@@ -137,7 +137,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const mainEl = document.querySelector('main');
-const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
 let pixelRatio = lowPower ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.25);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(pixelRatio);
@@ -204,13 +204,13 @@ const outputPass = new OutputPass();
 
 const finalRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio, {
   type: lowPower ? THREE.UnsignedByteType : THREE.HalfFloatType,
-  samples: lowPower ? 0 : 4,
+  samples: 0,
 });
 const finalComposer = new EffectComposer(renderer, finalRenderTarget);
 finalComposer.addPass(renderPass);
 if (!lowPower) finalComposer.addPass(bloomPass);
 finalComposer.addPass(outputPass);
-/* SMAA remplacé par le MSAA 4x du render target (plus léger, plus net) */
+if (!lowPower) finalComposer.addPass(smaaPass);
 
 // #endregion
 // #region Base (socle bas + luminaire haut, procéduraux — mêmes cotes que la référence)
@@ -288,7 +288,7 @@ function labelTexture(p) {
   g.textAlign = 'center'; g.font = '30px Geistmono'; g.fillStyle = 'rgba(244,243,246,.75)';
   g.fillText('OPTIMISATION MANUELLE', W / 2, H - 250);
   g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 200);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return t;
 }
 
@@ -336,7 +336,7 @@ const duplicateCan = (item) => { const can = item.clone(); scene.add(can); retur
 
 await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
   items.forEach((item) => cans.push(item));
-  const targetCount = lowPower ? 12 : 16;
+  const targetCount = lowPower ? 12 : 24;
   let i = 0;
   while (cans.length < targetCount) { cans.push(duplicateCan(cans[i % PRODUCTS.length])); i++; }
 });
