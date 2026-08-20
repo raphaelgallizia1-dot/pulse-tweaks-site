@@ -251,8 +251,8 @@ for (const f of ['italic 900 expanded 100px Archivo', '700 expanded 100px Archiv
 
 /* Boîte noire mate (référence : packshot Pulse Tweaks fourni par Kouro le 2026-08-20) */
 const bodyMaterial = makeMaterial({
-  color: 0x0a0a0c, metalness: 0.0, roughness: 0.8, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
-  clearcoat: 0.03, clearcoatRoughness: 0.7, reflectivity: 0.3, ior: 1.4, envMapIntensity: 0.35,
+  color: 0x020203, metalness: 0.0, roughness: 0.85, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
+  clearcoat: 0.0, clearcoatRoughness: 1, reflectivity: 0.08, ior: 1.2, envMapIntensity: 0.06,
 });
 applyEnvironmentTint(bodyMaterial);
 
@@ -285,11 +285,11 @@ function labelTexture(p) {
   const W = 1024, H = 3386;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#020203'; g.fillRect(0, 0, W, H);
   drawLogo(g, W / 2, 300, 78, '#f2f2f2');
   const [w1, w2] = SPLIT[p.key] || [p.name, ''];
   g.save(); g.translate(W / 2, H / 2 + 60); g.rotate(-Math.PI / 2);
-  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillStyle = '#ececec'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   g.font = 'italic 900 expanded 330px Archivo';
   g.fillText(w1, 0, -40);
   g.fillText(w2, 0, 290);
@@ -310,7 +310,7 @@ function sideTexture(p) {
   const W = 496, H = 3386;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#020203'; g.fillRect(0, 0, W, H);
   const [w1, w2] = SPLIT[p.key] || [p.name, ''];
   g.save(); g.translate(W / 2, 560); g.rotate(-Math.PI / 2);
   g.fillStyle = '#e8e8e8'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -340,7 +340,7 @@ const createCan = async (p) => {
   const can = new THREE.Group();
   const labelMaterial = makeMaterial({
     color: 0xffffff, metalness: 0.0, roughness: 0.78, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
-    clearcoat: 0.03, clearcoatRoughness: 0.7, reflectivity: 0.3, ior: 1.4, map: labelTexture(p), envMapIntensity: 0.35,
+    clearcoat: 0.0, clearcoatRoughness: 1, reflectivity: 0.08, ior: 1.2, map: labelTexture(p), envMapIntensity: 0.06,
   });
   applyEnvironmentTint(labelMaterial);
   const sideMaterial = labelMaterial.clone(); sideMaterial.map = sideTexture(p);
