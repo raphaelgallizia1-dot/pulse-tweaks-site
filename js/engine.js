@@ -247,6 +247,7 @@ scene.add(base);
 await Promise.race([document.fonts.load('400 100px Anton'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
 
 await Promise.race([document.fonts.load('400 20px Geistmono'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
+await Promise.race([document.fonts.load('400 20px Geist'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
 
 const bodyMaterial = makeMaterial({
   color: 0x0c0b12, metalness: 0.78, roughness: 0.32, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
@@ -259,36 +260,33 @@ applyEnvironmentTint(capMaterial);
 
 /* Étiquette : canvas 1024×3072, portée par la face avant (et l'arrière) */
 function labelTexture(p) {
-  const W = 1024, H = 3072;
+  /* haute résolution : l'objet remplit l'écran sur les bénéfices, les textes doivent rester nets */
+  const W = 2048, H = 6144;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
   g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
-  // cadre
-  g.strokeStyle = 'rgba(255,255,255,.38)'; g.lineWidth = 4; g.strokeRect(70, 70, W - 140, H - 140);
-  // marque
-  g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 96px Anton';
-  g.fillText('PULSE TWEAKS', W / 2, 230);
-  g.font = '34px Geistmono'; g.fillStyle = 'rgba(244,243,246,.7)';
-  g.fillText(p.tag, W / 2, 300);
-  // nom géant vertical
-  g.save(); g.translate(250, H / 2 + 80); g.rotate(-Math.PI / 2);
-  g.font = 'italic 300px Anton'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
-  g.fillText(p.name, 0, 100); g.restore();
-  // 3 lignes
-  g.textAlign = 'left'; g.font = '40px Geistmono';
+  g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, W - 280, H - 280);
+  g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 210px Anton';
+  g.fillText('PULSE TWEAKS', W / 2, 470);
+  g.font = '78px Geistmono'; g.fillStyle = 'rgba(244,243,246,.8)';
+  g.fillText(p.tag, W / 2, 600);
+  g.save(); g.translate(520, H / 2 + 160); g.rotate(-Math.PI / 2);
+  g.font = 'italic 620px Anton'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
+  g.fillText(p.name, 0, 200); g.restore();
+  g.textAlign = 'left'; g.font = '600 92px Geist, Geistmono';
   p.lines.forEach((line, i) => {
-    const y = 1380 + i * 190;
-    g.fillStyle = p.css; g.fillRect(440, y - 30, 22, 22);
-    g.fillStyle = '#f4f3f6';
+    const y = 2760 + i * 400;
+    g.fillStyle = p.css; g.fillRect(880, y - 66, 48, 48);
+    g.fillStyle = '#ffffff';
     const parts = line.split(' / ');
-    g.fillText(parts[0], 490, y);
-    if (parts[1]) g.fillText(parts[1], 490, y + 52);
+    g.fillText(parts[0], 980, y);
+    if (parts[1]) g.fillText(parts[1], 980, y + 118);
   });
-  // pied
-  g.textAlign = 'center'; g.font = '30px Geistmono'; g.fillStyle = 'rgba(244,243,246,.75)';
-  g.fillText('OPTIMISATION MANUELLE', W / 2, H - 250);
-  g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 200);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(244,243,246,.85)';
+  g.fillText('OPTIMISATION MANUELLE', W / 2, H - 520);
+  g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 410);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true;
   return t;
 }
 
@@ -407,7 +405,7 @@ section.resize();
 const swipe = { active: true, holding: false, startX: 0, startY: 0, lastX: 0, lastY: 0, deltaX: 0, deltaY: 0, direction: 0 };
 
 // Défilement automatique (demande Kouro 2026-08-20 : « les produits se scrollent toutes seules, pas vite »)
-const auto = { speed: 0.45, idleAfter: 4, lastInput: 0, running: false };
+const auto = { speed: 0.45, idleAfter: 3, lastInput: 0, running: false };
 auto.touch = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
 ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, auto.touch, { passive: true }));
 const _goTo = carousel.goTo;
@@ -525,7 +523,7 @@ loader.play = async () => {
   animation.paused = false;
   loopGuard.lastPos = scroll.position;
   loopGuard.snapping = false;
-  auto.touch();
+  auto.lastInput = performance.now() / 1000 - auto.idleAfter; /* démarre tout de suite après l'intro */
   loader.ended.emit();
 };
 
