@@ -219,6 +219,7 @@
       const enterScene = async () => {
         if (entered || !videoEnded || !sceneReady) return;
         entered = true;
+        document.documentElement.dataset.entered = '1';
 
         gsap.killTweensOf(percentObj);
         gsap.to(percentObj, {
@@ -269,6 +270,7 @@
       const onSceneReady = () => {
         if (sceneReady) return;
         sceneReady = true;
+        document.documentElement.dataset.sceneReady = '1';
         enterScene();
       };
       window.addEventListener('carousel:ready', onSceneReady);
@@ -343,6 +345,7 @@
       } else {
         videoEnded = true;
         startFakePercent();
+        enterScene(); /* la scène peut déjà être prête (module fini avant DOMContentLoaded) */
       }
     };
 
