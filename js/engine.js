@@ -517,6 +517,7 @@ loader.play = async () => {
   animation.paused = false;
   loopGuard.lastPos = scroll.position;
   loopGuard.snapping = false;
+  auto.touch();
   loader.ended.emit();
 };
 
@@ -570,8 +571,16 @@ function animate(tick = 0) {
   pointer.smoothY = lerp(pointer.smoothY, pointer.y, delta * 10);
 
   if (!animation.paused) {
-    if (!swipe.holding) carousel.target = carousel.getRounded(carousel.target);
-    carousel.position = lerp(carousel.position, carousel.target, delta * 10);
+    const idle = time - auto.lastInput > auto.idleAfter;
+    const onHome = section.items.length > 1 && scroll.position < section.items[1].top * 0.5;
+    auto.running = idle && onHome && !swipe.holding && !pointer.prevent;
+    if (auto.running) {
+      carousel.target += auto.speed * delta;
+      carousel.position = carousel.target;
+    } else {
+      if (!swipe.holding) carousel.target = carousel.getRounded(carousel.target);
+      carousel.position = lerp(carousel.position, carousel.target, delta * 10);
+    }
   }
 
   camera.fov = data.fov;
