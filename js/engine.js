@@ -406,6 +406,14 @@ section.resize();
 
 const swipe = { active: true, holding: false, startX: 0, startY: 0, lastX: 0, lastY: 0, deltaX: 0, deltaY: 0, direction: 0 };
 
+// Défilement automatique (demande Kouro 2026-08-20 : « les produits se scrollent toutes seules, pas vite »)
+const auto = { speed: 0.45, idleAfter: 4, lastInput: 0, running: false };
+auto.touch = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
+['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, auto.touch, { passive: true }));
+const _goTo = carousel.goTo;
+carousel.goTo = (index) => { auto.touch(); _goTo(index); };
+
+
 // #endregion
 // #region Timeline (états-clés identiques à la référence)
 
