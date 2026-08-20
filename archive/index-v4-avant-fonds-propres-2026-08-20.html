@@ -154,6 +154,18 @@
 <div id="gl"></div>
 
 <div id="loader"><div class="wm">Pulse<br>Tweaks</div></div>
+<div id="dbg" style="position:fixed;z-index:99;left:8px;bottom:8px;font:12px monospace;color:#7fff7f"></div>
+<script>/* DEBUG TEMPORAIRE — à retirer avant livraison */
+if (new URLSearchParams(location.search).has('seek')){
+  const st = document.createElement('style');
+  st.textContent = '*{transition:none !important; animation-duration:.01s !important}';
+  document.head.appendChild(st);
+}
+window.__err = '';
+window.addEventListener('error', e => { window.__err = e.message + ' @' + (e.filename||'').split('/').pop() + ':' + e.lineno; });
+window.addEventListener('unhandledrejection', e => { window.__err = 'REJ ' + (e.reason && e.reason.message || e.reason); });
+setInterval(() => { document.getElementById('dbg').textContent = document.title + ' | ' + window.__err; }, 200);
+</script>
 
 <div id="topbar"><div class="fill" id="topfill"></div></div>
 
@@ -256,7 +268,7 @@
 }}
 </script>
 <script type="module">
-
+document.title = 'M1-imports';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -317,7 +329,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.getElementById('gl').appendChild(renderer.domElement);
-
+document.title = 'M2-renderer';
 
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
@@ -354,9 +366,7 @@ const bgB = new THREE.Mesh(new THREE.PlaneGeometry(BG_W, BG_H),
   new THREE.MeshBasicMaterial({ map:BGTEX.neutral, transparent:true, opacity:0, depthWrite:false }));
 bgB.position.set(0, 2, -30.8); scene.add(bgB);
 let bgCurrentKey = 'neutral', bgFading = false;
-const QA_FAST_BG = new URLSearchParams(location.search).has('seek');
 function setBg(key){
-  if (QA_FAST_BG){ bgA.material.map = BGTEX[key]; bgA.material.needsUpdate = true; bgCurrentKey = key; return; }
   if (key === bgCurrentKey || bgFading) { if (key !== bgCurrentKey) bgQueued = key; return; }
   bgB.material.map = BGTEX[key]; bgB.material.needsUpdate = true;
   bgFading = true; bgCurrentKey = key;
@@ -380,7 +390,15 @@ function claimTexture(css){
   const w = 2048, h = 1024;
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d');
-  g.fillStyle = 'rgba(244,243,246,.62)'; g.textAlign = 'center';
+  const bg = g.createRadialGradient(w/2, h/2, 60, w/2, h/2, w*.62);
+  bg.addColorStop(0, css); bg.addColorStop(.6, css + '66'); bg.addColorStop(1, css + '00');
+  g.fillStyle = bg; g.globalAlpha = .55; g.fillRect(0, 0, w, h); g.globalAlpha = 1;
+  for (let i = 0; i < 7; i++){
+    const fx = g.createRadialGradient(200 + i*280, 300 + (i%3)*220, 10, 200 + i*280, 300 + (i%3)*220, 340);
+    fx.addColorStop(0, 'rgba(255,255,255,.12)'); fx.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = fx; g.fillRect(0, 0, w, h);
+  }
+  g.fillStyle = 'rgba(244,243,246,.55)'; g.textAlign = 'center';
   g.font = 'italic 290px Anton, sans-serif';
   g.save(); g.transform(1, 0, -.11, 1, 0, 0);
   g.fillText('ZÉRO RÉGLAGE', w/2 + 60, h/2 - 40);
@@ -491,16 +509,16 @@ const data = { ...BASE };
 function specState(f){
   return { ...BASE, camX:-2.2, camZ:11 - f*.3, camY:-.2 + f*.12, camRX:.04, camRZ: f % 2 ? .04 : -.05, fov:20,
     spacing:6, modTilt:.32, modSpin:.42 + f*.16, modY:-.15 + f*.14,
-    carouselLight:0, centerSpotI:60, haloOp:0, floorOp:0, bgTint:1, bgOp:.6, bgX:15 };
+    carouselLight:0, centerSpotI:60, haloOp:.22, bgTint:1, bgOp:.6, bgX:15 };
 }
 const STATES = [
   { ...BASE },                                                                     /* 0 accueil (studio neutre) */
   { ...BASE, camX:-2.2, camZ:12, camY:-.2, camRX:.04, camRZ:-.05, fov:20,          /* 1 fiche produit choisi */
     spacing:6, modTilt:.32, modSpin:.42, modY:-.15,
-    carouselLight:0, centerSpotI:60, haloOp:0, floorOp:0, bgTint:1, bgOp:.62, bgX:15 },
+    carouselLight:0, centerSpotI:60, haloOp:.25, bgTint:1, bgOp:.62, bgX:15 },
   specState(1), specState(2), specState(3),                                        /* 2-4 spécificités 1 à 1 */
   { ...BASE, camZ:20, camY:.4, spacing:9, modTilt:0, modSpin:6.28, modY:0,         /* 5 claim teinté : module SEUL devant le texte géant */
-    carouselLight:.35, centerSpotI:18, haloOp:0, floorOp:0, claimMix:1, bgTint:1, bgOp:1 },
+    carouselLight:.35, centerSpotI:18, haloOp:0, floorOp:0, claimMix:1, bgTint:1, bgOp:.28 },
   { ...BASE, camX:1.9, camZ:19, camY:1.4, spacing:3.7, wave:1, rowY:-.5,           /* 6 gamme : diagonale pleine largeur, fuite vers la droite */
     rowZslope:1, carouselLight:.9, haloOp:.25, modTilt:0, gammeMode:1, bgOp:.42 },
   { ...BASE, rowY:6.4, camY:.2, camZ:18, hangMode:1, wave:.4, haloOp:0, floorOp:0, bgOp:.34 }, /* 7 avis */
@@ -734,7 +752,7 @@ function frame(){
   });
 
   /* crossfade des fonds-images (jamais lié à la souris) */
-  const bgGlobal = .88 + .12 * data.bgOp;
+  const bgGlobal = .55 + .45 * data.bgOp;
   if (bgFading){
     bgB.material.opacity = Math.min(bgGlobal, bgB.material.opacity + .04);
     if (bgB.material.opacity >= bgGlobal - .01){
@@ -769,7 +787,7 @@ function frame(){
 
   composer.render();
   if (!firstFrameDone){
-    firstFrameDone = true; 
+    firstFrameDone = true; document.title = 'M5-frame1';
     document.getElementById('loader').classList.add('done');
     if (QA_SEEK !== null){
       const k = Math.max(0, Math.min(S - 1, +QA_SEEK));
@@ -791,9 +809,9 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
 });
 
-
+document.title = 'M3-avant-fonts';
 document.fonts.ready.then(() => {
-  
+  document.title = 'M4-fonts-ok';
   modules.forEach(m => {
     const p = PRODUCTS[m.userData.p];
     m.children.forEach(ch => { if (ch === m.userData.face){ ch.material.map = labelTexture(p); ch.material.needsUpdate = true; } });
