@@ -344,7 +344,7 @@ function radialTexture(inner, mid){
 const texLoader = new THREE.TextureLoader();
 const BGTEX = {};
 ['bios','os','timer','flux','neutral'].forEach(k => {
-  BGTEX[k] = texLoader.load('assets/bg/bg-' + k + '.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; });
+  BGTEX[k] = texLoader.load('assets/bg/bg-' + k + '.jpg?v=3', t => { t.colorSpace = THREE.SRGBColorSpace; });
 });
 const BG_W = 124, BG_H = BG_W * 9/16;
 const bgA = new THREE.Mesh(new THREE.PlaneGeometry(BG_W, BG_H),
@@ -367,7 +367,7 @@ const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(90, 90),
   new THREE.MeshStandardMaterial({ color:0x0e0d14, roughness:.42, metalness:.55, transparent:true })
 );
-floor.rotation.x = -Math.PI/2; floor.position.y = -2.05; scene.add(floor);
+floor.rotation.x = -Math.PI/2; floor.position.y = -2.05; floor.visible = false; /* plus de salle 3D : le sol est dans l'image de fond */
 
 const halo = new THREE.Mesh(
   new THREE.PlaneGeometry(9,9),
