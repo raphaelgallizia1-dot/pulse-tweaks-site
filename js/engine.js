@@ -137,8 +137,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const mainEl = document.querySelector('main');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-let pixelRatio = lowPower ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.5);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+let pixelRatio = lowPower ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.25);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(pixelRatio);
 renderer.setClearColor(0x000000, 0);
@@ -244,88 +244,114 @@ scene.add(base);
 // #endregion
 // #region Module Pulse (remplace can.glb : même repère — axe long = Z local, enfants tournés de +90° en X)
 
-await Promise.race([document.fonts.load('400 100px Anton'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
+/* Polices de l'étiquette : Archivo large (comme le packaging de Kouro), Geist pour les petits textes */
+for (const f of ['italic 900 expanded 100px Archivo', '700 expanded 100px Archivo', '300 20px Geist', '400 20px Geistmono']) {
+  await Promise.race([document.fonts.load(f), new Promise((r) => setTimeout(r, 2500))]).catch(() => {});
+}
 
-await Promise.race([document.fonts.load('400 20px Geistmono'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
-
+/* Boîte noire mate (référence : packshot Pulse Tweaks fourni par Kouro le 2026-08-20) */
 const bodyMaterial = makeMaterial({
-  color: 0x0c0b12, metalness: 0.78, roughness: 0.32, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
-  clearcoat: 0.6, clearcoatRoughness: 0.25, reflectivity: 1, ior: 2, envMapIntensity: 1.2,
+  color: 0x0a0a0c, metalness: 0.0, roughness: 0.8, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
+  clearcoat: 0.03, clearcoatRoughness: 0.7, reflectivity: 0.3, ior: 1.4, envMapIntensity: 0.35,
 });
 applyEnvironmentTint(bodyMaterial);
 
-const capMaterial = makeMaterial({ color: 0x15141c, metalness: 0.9, roughness: 0.25, clearcoat: 0.4, envMapIntensity: 1 });
-applyEnvironmentTint(capMaterial);
+const SPLIT = { bios: ['BIOS', 'TUNER'], os: ['PULSE', 'OS'], timer: ['TIMER', 'TUNER'], flux: ['FLUX', 'TUNER'] };
+const TAGLINE = {
+  bios: ['TUNE THE BIOS.', 'UNLOCK THE HARDWARE.'],
+  os: ['CLEAN SYSTEM.', 'PURE PERFORMANCE.'],
+  timer: ['REDUCE DELAY.', 'GAIN ADVANTAGE.'],
+  flux: ['STABLE PING.', 'ZERO PACKET LOSS.'],
+};
 
-/* Étiquette : canvas 1024×3072, portée par la face avant (et l'arrière) */
+/* logo « PULSE ∿ TWEAKS » */
+function drawLogo(g, cx, cy, size, color) {
+  g.save();
+  g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `700 expanded ${size}px Archivo`;
+  g.fillText('PULSE', cx - size * 0.55, cy);
+  g.fillText('TWEAKS', cx, cy + size * 1.15);
+  const x0 = cx + size * 1.35, w = size * 1.1, y = cy;
+  g.strokeStyle = color; g.lineWidth = Math.max(2, size * 0.07); g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath();
+  g.moveTo(x0, y); g.lineTo(x0 + w * 0.2, y); g.lineTo(x0 + w * 0.32, y - size * 0.45); g.lineTo(x0 + w * 0.5, y + size * 0.5);
+  g.lineTo(x0 + w * 0.64, y - size * 0.25); g.lineTo(x0 + w * 0.74, y); g.lineTo(x0 + w, y);
+  g.stroke();
+  g.restore();
+}
+
+/* Face avant / arrière : canvas 1024 × 3386 (ratio 1.3 : 4.3) */
 function labelTexture(p) {
-  const W = 1024, H = 3072;
+  const W = 1024, H = 3386;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
-  // cadre
-  g.strokeStyle = 'rgba(255,255,255,.38)'; g.lineWidth = 4; g.strokeRect(70, 70, W - 140, H - 140);
-  // marque
-  g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 96px Anton';
-  g.fillText('PULSE TWEAKS', W / 2, 230);
-  g.font = '34px Geistmono'; g.fillStyle = 'rgba(244,243,246,.7)';
-  g.fillText(p.tag, W / 2, 300);
-  // nom géant vertical
-  g.save(); g.translate(250, H / 2 + 80); g.rotate(-Math.PI / 2);
-  g.font = 'italic 300px Anton'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
-  g.fillText(p.name, 0, 100); g.restore();
-  // 3 lignes
-  g.textAlign = 'left'; g.font = '40px Geistmono';
-  p.lines.forEach((line, i) => {
-    const y = 1380 + i * 190;
-    g.fillStyle = p.css; g.fillRect(440, y - 30, 22, 22);
-    g.fillStyle = '#f4f3f6';
-    const parts = line.split(' / ');
-    g.fillText(parts[0], 490, y);
-    if (parts[1]) g.fillText(parts[1], 490, y + 52);
-  });
-  // pied
-  g.textAlign = 'center'; g.font = '30px Geistmono'; g.fillStyle = 'rgba(244,243,246,.75)';
-  g.fillText('OPTIMISATION MANUELLE', W / 2, H - 250);
-  g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 200);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, W, H);
+  drawLogo(g, W / 2, 300, 78, '#f2f2f2');
+  const [w1, w2] = SPLIT[p.key] || [p.name, ''];
+  g.save(); g.translate(W / 2, H / 2 + 60); g.rotate(-Math.PI / 2);
+  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.font = 'italic 900 expanded 330px Archivo';
+  g.fillText(w1, 0, -40);
+  g.fillText(w2, 0, 290);
+  g.restore();
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(290, H - 470, W - 580, 2);
+  g.fillStyle = '#e8e8e8'; g.textAlign = 'center'; g.font = '300 44px Geist';
+  const [t1, t2] = TAGLINE[p.key] || ['', ''];
+  const spaced = (t) => t.split('').join('\u200A');
+  g.fillText(spaced(t1), W / 2, H - 370);
+  g.fillText(spaced(t2), W / 2, H - 300);
+  g.fillStyle = p.css; g.beginPath(); g.arc(W / 2, H - 215, 9, 0, Math.PI * 2); g.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
 
-const MOD_W = 1.35, MOD_H = 0.8, MOD_L = 4.0;
-const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 6, 0.12);
-const capGeometry = new THREE.CylinderGeometry(0.42, 0.5, 0.22, 48);
-capGeometry.rotateX(Math.PI / 2); capGeometry.translate(0, 0, MOD_L / 2 + 0.1);
-const labelGeometry = new THREE.PlaneGeometry(1.12, 3.4);
-labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + 0.006, 0);
-const labelBackGeometry = new THREE.PlaneGeometry(1.12, 3.4);
-labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - 0.006, 0);
-const stripGeometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
-stripGeometry.translate(MOD_W / 2 + 0.005, MOD_H / 2 - 0.12, 0);
-const strip2Geometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
-strip2Geometry.translate(-MOD_W / 2 - 0.005, -MOD_H / 2 + 0.12, 0);
-const ledGeometry = new THREE.SphereGeometry(0.06, 16, 16);
-ledGeometry.translate(-MOD_W / 2 + 0.2, MOD_H / 2 + 0.02, MOD_L / 2 - 0.35);
+/* Tranches : nom vertical discret + filet, comme le packaging */
+function sideTexture(p) {
+  const W = 496, H = 3386;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, W, H);
+  const [w1, w2] = SPLIT[p.key] || [p.name, ''];
+  g.save(); g.translate(W / 2, 560); g.rotate(-Math.PI / 2);
+  g.fillStyle = '#e8e8e8'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '700 expanded 58px Archivo';
+  g.fillText(w1, 0, -42); g.fillText(w2, 0, 42);
+  g.restore();
+  g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(W / 2 - 1, 900, 2, 1500);
+  g.fillStyle = p.css; g.fillRect(W / 2 - 1, 2400, 2, 260);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+
+/* Géométrie : boîte élancée (même repère que la canette : axe long = Z local) */
+const MOD_W = 1.3, MOD_H = 0.62, MOD_L = 4.3;
+const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 3, 0.035);
+const E = 0.004;
+const labelGeometry = new THREE.PlaneGeometry(MOD_W - 0.07, MOD_L - 0.07);
+labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + E, 0);
+const labelBackGeometry = new THREE.PlaneGeometry(MOD_W - 0.07, MOD_L - 0.07);
+labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - E, 0);
+const sideRGeometry = new THREE.PlaneGeometry(MOD_H - 0.07, MOD_L - 0.07);
+sideRGeometry.rotateX(-Math.PI / 2); sideRGeometry.rotateZ(-Math.PI / 2); sideRGeometry.translate(MOD_W / 2 + E, 0, 0);
+const sideLGeometry = new THREE.PlaneGeometry(MOD_H - 0.07, MOD_L - 0.07);
+sideLGeometry.rotateX(-Math.PI / 2); sideLGeometry.rotateZ(Math.PI / 2); sideLGeometry.translate(-MOD_W / 2 - E, 0, 0);
 
 const createCan = async (p) => {
   const can = new THREE.Group();
-  const texture = labelTexture(p);
-
   const labelMaterial = makeMaterial({
-    color: 0xffffff, metalness: 0.35, roughness: 0.38, sheen: 0.05, sheenRoughness: 0.125, sheenColor: 0xffffff,
-    clearcoat: 0.5, clearcoatRoughness: 0.3, reflectivity: 1, ior: 2, map: texture, envMapIntensity: 0.8, side: THREE.DoubleSide,
+    color: 0xffffff, metalness: 0.0, roughness: 0.78, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
+    clearcoat: 0.03, clearcoatRoughness: 0.7, reflectivity: 0.3, ior: 1.4, map: labelTexture(p), envMapIntensity: 0.35,
   });
   applyEnvironmentTint(labelMaterial);
-  const glow = new THREE.MeshBasicMaterial({ color: p.color });
+  const sideMaterial = labelMaterial.clone(); sideMaterial.map = sideTexture(p);
+  applyEnvironmentTint(sideMaterial);
 
   const body = new THREE.Mesh(bodyGeometry, bodyMaterial); body.name = 'Body';
-  const cap = new THREE.Mesh(capGeometry, capMaterial); cap.name = 'Cap';
   const shell = new THREE.Mesh(labelGeometry, labelMaterial); shell.name = 'Shell';
   const shellBack = new THREE.Mesh(labelBackGeometry, labelMaterial); shellBack.name = 'ShellBack';
-  const strip = new THREE.Mesh(stripGeometry, glow); strip.name = 'Strip';
-  const strip2 = new THREE.Mesh(strip2Geometry, glow); strip2.name = 'Strip2';
-  const led = new THREE.Mesh(ledGeometry, glow); led.name = 'Led';
-  [body, cap, shell, shellBack, strip, strip2, led].forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
+  const sideR = new THREE.Mesh(sideRGeometry, sideMaterial); sideR.name = 'SideR';
+  const sideL = new THREE.Mesh(sideLGeometry, sideMaterial); sideL.name = 'SideL';
+  [body, shell, shellBack, sideR, sideL].forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
 
   scene.add(can);
   can.rotation.z = (Math.PI / 360) * 45;
