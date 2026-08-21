@@ -312,8 +312,8 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 @keyframes bentoDot { 0%, 100% { background: rgba(255,255,255,.14); transform: scale(1); } 18% { background: var(--color-scheme-1--taste-secondary); transform: scale(1.35); } 36% { background: rgba(255,255,255,.14); transform: scale(1); } }
 /* couches : cinq barres, la couleur de chacune */
 .bento_layers { display: flex; flex-direction: column; gap: .45rem; width: 100%; flex: 1; justify-content: center; padding: .4rem 0; }
-.bento_layers span { display: flex; align-items: center; gap: .7rem; height: 2.35rem; padding: 0 1rem; border-radius: .7rem; background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); font-family: var(--_typography---font-styles--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #fff; transform: translateX(0); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
-.bento_layers span i { font-style: normal; color: var(--c); }
+.bento_layers span { display: flex; align-items: center; gap: .7rem; min-height: 2.2rem; padding: .45rem .9rem; text-align: left; line-height: 1.25; border-radius: .7rem; background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); font-family: var(--_typography---font-styles--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #fff; transform: translateX(0); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+.bento_layers span i { font-style: normal; color: var(--c); flex: 0 0 1.4rem; }
 .bento_layers span { width: 100%; letter-spacing: .06em; text-transform: none; font-size: .76rem; }
 
 /* journal d'intervention */
