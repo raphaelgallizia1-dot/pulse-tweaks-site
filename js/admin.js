@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     track.style.setProperty('--w', width + 'px');
     track.style.setProperty('--dur', Math.max(40, width / 45) + 's');
   };
+  /* survol d'un avis = pause 3 s, puis reprise (un nouveau survol relance les 3 s) */
   const pause = () => {
     marquee.classList.add('is-paused');
     clearTimeout(pauseTimer);
@@ -33,8 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (marquee) {
     setupMarquee();
     window.addEventListener('resize', () => { clearTimeout(window.__mqT); window.__mqT = setTimeout(setupMarquee, 300); });
+    marquee.addEventListener('pointerover', (e) => { if (e.target.closest('.review')) pause(); });
     marquee.addEventListener('click', (e) => { if (e.target.closest('.review')) pause(); });
-    marquee.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.review')) { e.preventDefault(); pause(); } });
+    marquee.addEventListener('focusin', (e) => { if (e.target.closest('.review')) pause(); });
   }
 
   /* ---- modales ---- */
@@ -44,16 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal:not([hidden])').forEach(close); });
 
   const isAdmin = () => sessionStorage.getItem(SESSION) === '1';
+  const refreshCount = () => { const n = stored().length; $$('[data-review-count]').forEach((el) => { el.textContent = n; }); };
   const applyAdmin = () => {
     const on = isAdmin();
     $$('.navpill_addreview').forEach((b) => { b.hidden = !on; });
     const m = $('#admin-modal');
-    if (m) { $('[data-admin-form]', m).hidden = on; $('.modal_admin', m).hidden = !on; $('#admin-title').textContent = on ? 'Admin activé' : 'Mot de passe'; }
+    if (m) { $('[data-admin-form]', m).hidden = on; $('.modal_admin', m).hidden = !on; $('#admin-title').textContent = on ? 'Ajouter un avis' : 'Mot de passe'; }
+    refreshCount();
   };
   const sha256 = async (t) => { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join(''); };
 
   $$('[data-admin-open]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); applyAdmin(); open('#admin-modal'); }));
-  $$('[data-review-open]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); if (!isAdmin()) { open('#admin-modal'); return; } $$('.modal:not([hidden])').forEach(close); open('#review-modal'); }));
   $('[data-admin-logout]')?.addEventListener('click', () => { sessionStorage.removeItem(SESSION); applyAdmin(); });
 
   $('[data-admin-form]')?.addEventListener('submit', async (e) => {
@@ -63,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     err.hidden = ok;
     if (!ok) { form.pwd.select(); return; }
     sessionStorage.setItem(SESSION, '1'); form.reset(); applyAdmin();
+    setTimeout(() => $('[data-review-form] textarea')?.focus(), 60);
   });
 
   $('[data-review-form]')?.addEventListener('submit', (e) => {
@@ -71,11 +75,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const r = { id: String(Date.now()), text: form.text.value.trim(), who: form.who.value.trim(), products: form.products.value.trim(), stars: form.stars.value, date: new Date().toISOString().slice(0, 10) };
     if (!r.text || !r.who) return;
     const list = stored(); list.push(r); localStorage.setItem(KEY, JSON.stringify(list));
-    setupMarquee();
-    form.reset(); close(form.closest('.modal'));
+    setupMarquee(); refreshCount();
+    form.reset();
     const el = $('.review.is-added[data-id="' + r.id + '"]');
     if (el) { el.classList.add('is-new'); setTimeout(() => el.classList.remove('is-new'), 4000); }
-    $('#FAQ')?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+    const ok = document.createElement('div'); ok.className = 'modal_ok'; ok.textContent = 'Avis publié dans la ligne d\'avis.'; form.appendChild(ok); setTimeout(() => ok.remove(), 2500);
+  });
+  $('[data-clear-reviews]')?.addEventListener('click', () => {
+    if (!confirm('Effacer les avis ajoutés sur ce navigateur ?')) return;
+    localStorage.removeItem(KEY); $$('.reviews_track .review.is-added').forEach((el) => el.remove()); setupMarquee(); refreshCount();
   });
 
   $('[data-export-reviews]')?.addEventListener('click', () => {

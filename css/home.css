@@ -398,7 +398,6 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .reviews_track .review:hover, .reviews_track .review:focus-visible { border-color: var(--_primitives---opacity--white-60); }
 .reviews_marquee.is-paused .review { border-color: var(--color-scheme-1--taste-secondary); }
 .review.is-new { border-color: var(--color-scheme-1--taste-secondary); box-shadow: 0 0 24px color-mix(in srgb, var(--color-scheme-1--taste-secondary) 45%, transparent); }
-@media (prefers-reduced-motion: reduce) { .reviews_track { animation: none; flex-wrap: wrap; width: auto; } }
 @media screen and (max-width: 991px) { .reviews_track .review { width: 17rem; } }
 
 /* ---- Admin + modales ---- */
@@ -426,3 +425,12 @@ select.modal_input { appearance: none; }
 .modal_text { font-size: .9rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); margin-bottom: 1rem; }
 .modal_actions { display: flex; flex-wrap: wrap; gap: .6rem; }
 .modal_export { width: 100%; min-height: 9rem; margin-top: .8rem; padding: .7rem; border-radius: .7rem; border: 1px solid var(--color-scheme-1--border); background: rgba(0,0,0,.5); color: #fff; font-family: var(--_typography---font-styles--mono); font-size: .72rem; }
+
+/* [hidden] doit gagner sur tout display explicite (Code 901 : piege deja paye) */
+[hidden] { display: none !important; }
+.modal_row { display: grid; grid-template-columns: 1fr auto; gap: .8rem; }
+.modal_count { margin: 1rem 0 .8rem; font-size: .85rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); }
+.modal_count span { color: var(--color-scheme-1--taste-secondary); font-family: var(--_typography---font-styles--mono); }
+.modal_ok { font-family: var(--_typography---font-styles--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--color-scheme-1--taste-secondary); }
+.modal_input, .modal_input:focus { pointer-events: auto; -webkit-user-select: text; user-select: text; }
+.reviews_track { animation-play-state: running; }
