@@ -441,6 +441,7 @@ const data = {
   lightIntensity: 22, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1,
 };
 const startData = JSON.parse(JSON.stringify(data));
+window.stepFx = { spin: 0, y: 0, rotZ: 0 }; /* additif, anime par le stepper de la section methode */
 const D = Math.PI / 180;
 
 const createTimeline = () => {
@@ -460,10 +461,8 @@ const createTimeline = () => {
   const adv = (rotZ, posY, spin) => ({ camPosX: 0, camPosY: -2, camPosZ: 12, camRotX: D * 10, camRotY: 0, camRotZ: D * rotZ, fov: 20, canScale: 1,
     canPosX: 0, canPosY: posY, canPosZ: 0, canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: D * spin, spacing: 2.2, wave: 0, swirl: 0, baseOffset: 3,
     lightIntensity: 0, lightWidth: 1, tintStrength: 0.2, spotIntensity: 35, spotY: 2.2, pointerInfluence: 0, swipeSpeed: 1 });
-  tl.to(data, { ...adv(-10, -0.8, 120), duration: dur() }); i += 1;
-  tl.to(data, { ...adv(5, -0.48, 130), duration: dur() }); i += 1;
-  tl.to(data, { ...adv(-10, 0.02, 120), duration: dur() }); i += 1;
-  tl.to(data, { ...adv(5, 0.5, 130), duration: dur() }); i += 1;
+  /* une seule section "methode" : les 4 points defilent DANS la section (stepper), le module pivote par point via stepFx */
+  tl.to(data, { ...adv(-6, -0.3, 120), duration: dur() }); i += 1;
 
   // Claim (« zéro réglage inutile »)
   tl.to(data, { camPosX: -3.4, camPosY: 0, camPosZ: 8, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 45, canScale: 0.7, canPosX: 0, canPosY: -1.3, canPosZ: -0.5, /* camera a gauche : le module passe a droite du texte geant (canPosX n'est pas lu sur l'axe X) */
@@ -691,6 +690,8 @@ function animate(tick = 0) {
       if (i >= PRODUCTS.length) canScale = lerp(canScale, 0.0001, sst);
     }
 
+    if (p0 >= 1 && data.stack === 0 && data.swirl === 0) { canPosY += window.stepFx.y * p; canRotZ += window.stepFx.rotZ * p; }
+
     can.position.set(canPosX, canPosY, canPosZ);
     can.rotation.set(canRotX, canRotY, canRotZ);
     can.scale.setScalar(canScale);
@@ -699,7 +700,7 @@ function animate(tick = 0) {
     can.rotation.x += (pointer.smoothY / 1280) * data.pointerInfluence * p;
 
     can.children.forEach((child) => {
-      if (child.isMesh) child.rotation.z = (can.rotation.y * 0.6 + data.canSpin * p) * (1 - data.stack);
+      if (child.isMesh) child.rotation.z = (can.rotation.y * 0.6 + (data.canSpin + window.stepFx.spin) * p) * (1 - data.stack);
     });
   });
 
@@ -788,7 +789,7 @@ on(window, 'mouseup touchend', () => {
 // #endregion
 // #region Mobile Paging
 
-const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 8 };
+const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 5 };
 const isMobile = () => window.innerWidth < 1024;
 
 on(window, 'touchstart', (e) => {
@@ -827,7 +828,7 @@ on(window, 'touchend', (e) => {
 /* Passage de section : courbe entree-sortie (demarrage doux, arrivee douce) au lieu du cubique sortant
    qui partait brutalement ; duree unique ; un COOLDOWN et un filtre de geste : l'inertie d'un trackpad
    envoie des dizaines d'evenements decroissants apres le geste, qui relancaient un 2e saut. */
-const wheelPager = { locked: false, lastSnap: 9, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
+const wheelPager = { locked: false, lastSnap: 6, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
 window.sectionChanged = signal();
 let wheelTimer;
 window.addEventListener('wheel', (e) => {

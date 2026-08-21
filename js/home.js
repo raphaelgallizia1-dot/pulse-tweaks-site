@@ -1058,33 +1058,52 @@
 
     const initBenefitsNav = () => {
       const nav = $('.benefits_nav');
-      const sections = $$('.section.is-benefits');
+      const section = $('.section.is-benefits');
       const profileSection = $('.section.is-profile');
-      if (!nav || !sections.length || !profileSection) return;
-
-      const icons = $$('.benefits_icon-wrapper', nav);
-
-      const tl = gsap.timeline({
+      if (!nav || !section || !profileSection) return;
+      gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
-        scrollTrigger: {
-          trigger: profileSection,
-          start: 'top bottom',
-          endTrigger: sections[sections.length - 1],
-          end: 'bottom bottom',
-          toggleActions: 'play reverse play reverse',
-        },
-      });
+        scrollTrigger: { trigger: profileSection, start: 'top bottom', endTrigger: section, end: 'bottom bottom', toggleActions: 'play reverse play reverse' },
+      }).fromTo(nav, { autoAlpha: 0 }, { autoAlpha: 1 });
+    };
 
-      tl.fromTo(nav, { autoAlpha: 0 }, { autoAlpha: 1 });
-
-      sections.forEach((section, i) => {
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top bottom',
-          end: 'bottom bottom',
-          onToggle: ({ isActive }) => icons[i]?.classList.toggle('is-active', isActive),
+    // Stepper de la methode : 4 points en UNE section, defilement auto 3,2 s, rail cliquable, pause au survol
+    const initBenefitsStepper = () => {
+      const section = $('.section.is-benefits');
+      if (!section) return;
+      const steps = [...$$('.benefits_step', section)];
+      const bars = [...$$('.benefits_progress span', section)];
+      const icons = [...$$('.benefits_nav .benefits_icon-wrapper')];
+      const DUR = 3.2;
+      let idx = 0, live = false, timer = null, paused = false;
+      const fx = window.stepFx || (window.stepFx = { spin: 0, y: 0, rotZ: 0 });
+      const show = (i, animate = true) => {
+        steps.forEach((st, k) => {
+          const on = k === i;
+          st.classList.toggle('is-active', on);
+          if (on) gsap.fromTo(st, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: animate ? 0.55 : 0, ease: 'power3.out', overwrite: true });
+          else gsap.to(st, { autoAlpha: 0, y: -10, duration: animate ? 0.35 : 0, ease: 'power2.in', overwrite: true });
         });
+        icons.forEach((ic, k) => ic.classList.toggle('is-active', k === i));
+        bars.forEach((b, k) => { gsap.killTweensOf(b); gsap.set(b, { scaleX: k < i ? 1 : 0 }); });
+        if (animate) { gsap.fromTo(fx, { spin: fx.spin }, { spin: fx.spin + Math.PI * 0.3, duration: 1.1, ease: 'power3.out' }); gsap.fromTo(fx, { rotZ: 0.05 }, { rotZ: 0, duration: 0.9, ease: 'power2.out' }); }
+        idx = i;
+      };
+      const run = () => {
+        clearTimeout(timer);
+        if (!live) return;
+        gsap.fromTo(bars[idx], { scaleX: 0 }, { scaleX: 1, duration: DUR, ease: 'none', paused: paused });
+        timer = setTimeout(() => { if (live && !paused) { show((idx + 1) % steps.length); run(); } }, DUR * 1000);
+      };
+      icons.forEach((ic, k) => ic.addEventListener('click', () => { show(k); run(); }));
+      section.addEventListener('pointerenter', () => { paused = true; });
+      section.addEventListener('pointerleave', () => { paused = false; run(); });
+      $$('.benefits_nav').forEach((n) => { n.addEventListener('pointerenter', () => { paused = true; }); n.addEventListener('pointerleave', () => { paused = false; run(); }); });
+      ScrollTrigger.create({
+        trigger: section, start: 'top bottom', end: 'bottom bottom',
+        onToggle: ({ isActive }) => { live = isActive; if (isActive) { show(0, true); run(); } else { clearTimeout(timer); } },
       });
+      show(0, false);
     };
 
     // Section Argument
@@ -1273,7 +1292,7 @@
       const secEl = $('.hud_readout-sec');
       const layEl = $('.hud_readout-layer');
       if (!secEl || !layEl) return;
-      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE 01', 'MÉTHODE 02', 'MÉTHODE 03', 'MÉTHODE 04', 'CLAIM', 'PACKSHOT', 'COUCHES', 'MÉTHODE', 'FAQ', 'DISCORD', 'FIN'];
+      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE', 'CLAIM', 'PACKSHOT', 'COUCHES', 'MÉTHODE', 'FAQ', 'DISCORD', 'FIN'];
       const type = (el, text) => {
         if (el.dataset.txt === text) return;
         el.dataset.txt = text;
@@ -1370,6 +1389,7 @@
     initSectionProfile();
     initSectionBenefits();
     initBenefitsNav();
+    initBenefitsStepper();
     initSectionArgument();
     initSectionFullGamme();
     initSectionFaq();

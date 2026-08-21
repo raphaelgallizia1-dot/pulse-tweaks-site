@@ -349,3 +349,13 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .is-live .bento_tags span { animation: bentoTag 3.6s ease-in-out infinite; }
 .bento_tags span:nth-child(2) { animation-delay: .4s } .bento_tags span:nth-child(3) { animation-delay: .8s } .bento_tags span:nth-child(4) { animation-delay: 1.2s } .bento_tags span:nth-child(5) { animation-delay: 1.6s } .bento_tags span:nth-child(6) { animation-delay: 2s }
 @keyframes bentoTag { 0%, 100% { color: var(--_primitives---opacity--white-60); border-color: var(--color-scheme-1--border); } 12% { color: #fff; border-color: var(--color-scheme-1--taste-secondary); } 24% { color: var(--_primitives---opacity--white-60); border-color: var(--color-scheme-1--border); } }
+
+/* ---- Methode : 4 points en une section (stepper) ---- */
+.benefits_steps { position: relative; min-height: 14rem; }
+.benefits_step { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.benefits_step.is-active { position: relative; }
+.benefits_progress { display: flex; gap: .4rem; justify-content: center; margin-top: 1.2rem; }
+.benefits_progress span { display: block; width: 2.6rem; height: 2px; background: rgba(255,255,255,.16); border-radius: 2px; overflow: hidden; position: relative; }
+.benefits_progress span::after { content: ''; position: absolute; inset: 0; background: var(--color-scheme-1--taste-secondary); transform-origin: left; transform: scaleX(inherit); }
+.benefits_progress span { transform-origin: left; }
+.benefits_nav .benefits_icon-wrapper { appearance: none; background: transparent; border: 0; color: inherit; cursor: pointer; padding: 0; font: inherit; }
