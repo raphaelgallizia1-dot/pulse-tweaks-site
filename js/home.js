@@ -234,10 +234,7 @@
           defaults: { ease: 'power3.out' },
           delay: 0.5,
           onComplete: () => {
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-            window.lenis?.start();
-
+            /* overflow + lenis.start() sont faits par le moteur a la fin de loader.play() (sinon 1,8 s de clavier actif en plein tween) */
             if (window.ScrollTrigger) ScrollTrigger.refresh();
             window.dispatchEvent(new CustomEvent('pulse:loaded'));
           },
@@ -277,6 +274,16 @@
       if (window.carousel && window.__sceneReady) {
         onSceneReady();
       }
+      /* garde-fou : CDN injoignable ou WebGL absent -> on ne laisse pas une page morte derriere le loader */
+      setTimeout(() => {
+        if (sceneReady) return;
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        if (loaderPercent) loaderPercent.textContent = 'Affichage simplifié';
+        gsap.to(loaderWrapper, { autoAlpha: 0, duration: 0.5, delay: 0.6, onComplete: () => gsap.set(loaderWrapper, { display: 'none' }) });
+        [gammeContainer, navbar, hud].forEach((el) => el && gsap.set(el, { autoAlpha: 1 }));
+        document.documentElement.dataset.fallback = '1';
+      }, 15000);
 
       const startFakePercent = () => {
         gsap.to(percentObj, {
@@ -550,6 +557,7 @@
         animating = true;
         isOpen = true;
         button.classList.add('is-open');
+        button.setAttribute('aria-expanded', 'true');
 
         const mobile = isMobile();
         const menuDuration = mobile ? 0.8 : 0.6;
@@ -590,6 +598,7 @@
         animating = true;
         isOpen = false;
         button.classList.remove('is-open');
+        button.setAttribute('aria-expanded', 'false');
 
         const mobile = isMobile();
         const menuDuration = mobile ? 0.7 : 0.5;
@@ -628,9 +637,7 @@
       });
 
       links.forEach((link) => {
-        link.addEventListener('click', () => {
-          if (isMobile()) close();
-        });
+        link.addEventListener('click', () => close());
       });
 
       document.addEventListener('click', (e) => {
@@ -920,11 +927,15 @@
         const icon = $('.faq_icon-wrapper', acc);
         if (!q || !a) return;
         let open = false;
-        q.addEventListener('click', () => {
+        const toggle = () => {
           open = !open;
+          q.setAttribute('aria-expanded', open ? 'true' : 'false');
           gsap.to(a, { height: open ? 'auto' : 0, duration: 0.5, ease: 'power3.inOut' });
           if (icon) gsap.to(icon, { rotation: open ? 45 : 0, duration: 0.4, ease: 'power2.out' });
-        });
+        };
+        q.addEventListener('click', toggle);
+        q.setAttribute('tabindex', '0'); q.setAttribute('role', 'button'); q.setAttribute('aria-expanded', 'false');
+        q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
       });
     };
 
@@ -1014,7 +1025,6 @@
         if (!container) return;
         const reveal = initAnimations(section);
 
-        gsap.set(section, { '--line': 0 });
 
         gsap
           .timeline({
@@ -1077,7 +1087,7 @@
       const section = $('.section.is-argument');
       if (!section) return;
 
-      const svgShapes = $$('.argument_svg svg path, .argument_svg svg polygon', section);
+      const svgShapes = $$('.argument_svg svg path, .argument_svg svg polygon, .argument_svg svg text', section);
       const svgBlur = $('.argument_svg-blur', section);
 
       gsap.set(svgShapes, { autoAlpha: 0, scale: 0.6, transformOrigin: '50% 50%' });
@@ -1201,10 +1211,11 @@
       const applySuggest = () => layers.forEach((l) => l.classList.toggle('is-suggested', window.stackHighlight.has(Number(l.dataset.index))));
       chips.forEach((chip) => chip.addEventListener('click', () => {
         const on = chip.classList.contains('is-on');
-        chips.forEach((ch) => ch.classList.remove('is-on'));
+        chips.forEach((ch) => { ch.classList.remove('is-on'); ch.setAttribute('aria-pressed', 'false'); });
         window.stackHighlight = new Set();
         if (!on) {
           chip.classList.add('is-on');
+          chip.setAttribute('aria-pressed', 'true');
           const ids = chip.dataset.layers.split(',').map(Number);
           window.stackHighlight = new Set(ids);
           if (window.carousel) window.carousel.goTo(ids[0]);
@@ -1266,7 +1277,7 @@
       };
       initWhenCarousel(() => {
         const total = String((window.PULSE_PRODUCTS || []).length || 5).padStart(2, '0');
-        const layer = () => type(layEl, String(window.carousel.index + 1).padStart(2, '0') + ' / ' + total);
+        const layer = (ev) => type(layEl, String((ev && typeof ev.index === 'number' ? ev.index : window.carousel.index) + 1).padStart(2, '0') + ' / ' + total);
         layer();
         window.carousel.changed.connect(layer);
         if (!window.lenis) return;

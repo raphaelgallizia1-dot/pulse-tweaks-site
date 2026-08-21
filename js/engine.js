@@ -71,6 +71,7 @@ const closest = (items, goal, map, check) => {
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const lowPower = isIOS || window.innerWidth < 1024;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // #endregion Device Profile
 // #region Setup
@@ -92,7 +93,7 @@ scroll.distanceTo = (target, position = scroll.position) => {
 };
 lenis.on('scroll', () => { scroll.position = scroll.wrapped(lenis.animatedScroll); });
 scroll.snap = (position = scroll.position) => {
-  if (window.innerWidth < 1024) return;
+  if (window.innerWidth < 1024 || typeof section === 'undefined' || !section.items.length) return;
   const found = closest(section.items, position, (item) => item.top);
   if (found.index >= 0 && section.items[found.index].snap) scroll.to(section.items[found.index].top);
   else if (scroll.distanceTo(section.items[0].top, position) < section.items[0].height / 2) scroll.to(section.items[0].top);
@@ -123,7 +124,13 @@ carousel.getIndex = (wrapped = true) => {
   if (wrapped) return wrap(index, 0, PRODUCTS.length);
   return index;
 };
-carousel.goTo = (index) => { carousel.target = index * carousel.spacing - carousel.offset; };
+carousel.goTo = (index) => {
+  /* chemin le plus court depuis la position courante : apres le defilement auto, un goTo absolu rembobinait des tours entiers */
+  const cur = carousel.getIndex(false), n = PRODUCTS.length;
+  let d = (((index - cur) % n) + n) % n;
+  if (d > n / 2) d -= n;
+  carousel.target = (cur + d) * carousel.spacing - carousel.offset;
+};
 carousel.previous = () => carousel.goTo(carousel.getIndex(false) - 1);
 carousel.next = () => carousel.goTo(carousel.getIndex(false) + 1);
 carousel.changed = signal();
@@ -354,7 +361,8 @@ await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
 
 const raycast = new THREE.Raycaster();
 on(window, 'click', (e) => {
-  if (pointer.prevent || swipe.direction != 0 || scroll.position > section.items[1].top) return;
+  /* uniquement les clics sur le canvas : les fleches/pagination sont posees au centre, sinon double action */
+  if (e.target !== renderer.domElement || pointer.prevent || swipe.direction != 0 || scroll.position > section.items[1].top) return;
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
   cans.forEach((can) => {
@@ -363,10 +371,7 @@ on(window, 'click', (e) => {
       if (delta > 0) carousel.next();
       if (delta < 0) carousel.previous();
       if (delta == 0)
-        scroll.to(section.items[1].top, {
-          duration: wheelPager.slowIndexes.includes(0) ? wheelPager.durationSlow : wheelPager.durationFast,
-          easing: easeInOut,
-        });
+        scroll.to(section.items[1].top, { duration: wheelPager.duration, lock: true, easing: easeInOut });
     }
   });
 });
@@ -421,7 +426,7 @@ section.resize();
 const swipe = { active: true, holding: false, startX: 0, startY: 0, lastX: 0, lastY: 0, deltaX: 0, deltaY: 0, direction: 0 };
 
 // Défilement automatique (demande Kouro 2026-08-20 : « les produits se scrollent toutes seules, pas vite »)
-const auto = { speed: 0.45, idleAfter: 3, lastInput: 0, running: false };
+const auto = { speed: reducedMotion ? 0 : 0.45, idleAfter: 3, lastInput: 0, running: false };
 auto.touch = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
 ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, auto.touch, { passive: true }));
 const _goTo = carousel.goTo;
@@ -443,7 +448,8 @@ const D = Math.PI / 180;
 const createTimeline = () => {
   let i = 0;
   const tl = gsap.timeline({ defaults: { ease: 'power1.inOut' } });
-  const dur = () => section.items[i].height / lenis.dimensions.scrollHeight;
+  /* denominateur = somme des sections (pas lenis.dimensions, remesure avec 250 ms de retard au resize) */
+  const dur = () => section.items[i].height / section.total();
 
   // Gamme (carrousel)
   tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 40, canScale: 1, canPosX: 0.5, canPosY: -0.5, canPosZ: 0,
@@ -501,10 +507,19 @@ const createTimeline = () => {
   tl.to(data, { ...startData, duration: section.items[i] ? section.items[i].height / lenis.dimensions.scrollHeight : 1 });
 
   tl.pause();
+  tl.render(0, true, true); /* fige les valeurs de depart du 1er tween sur startData, pas sur l'etat courant */
   return tl;
 };
 
+section.total = () => section.items.reduce((sum, it) => sum + it.height, 0);
 let timeline = createTimeline();
+const rebuildTimeline = () => {
+  section.resize();
+  if (timeline) timeline.kill();
+  Object.assign(data, startData);
+  timeline = createTimeline();
+  timeline.seek(scroll.position / (window.QA_H || section.total()), false);
+};
 
 // #endregion
 // #region Loader
@@ -526,8 +541,8 @@ loader.play = async () => {
   carousel.position = carousel.offset;
   tl.set(data, { camPosZ: 25, spacing: 10, baseOffset: 3, wave: 0, swirl: 0, lightWidth: 2, lightIntensity: 0, canSpin: D * 20, pointerInfluence: 0 });
   tl.to(data, { lightIntensity: 30 }, 0);
-  tl.to(data, { camPosZ: 29 }, 1);
-  tl.to(data, startData, 2);
+  tl.to(data, { camPosZ: 29 }, 0.6);
+  tl.to(data, startData, 1.2); /* intro : 3,0 s au lieu de 3,8 (la page n'est pilotable qu'a la fin) */
   loader.timeline = tl;
 
   const animMs = Math.max(tl.duration() * 1000, 1800);
@@ -562,7 +577,7 @@ const loopGuard = { lastPos: 0, snapping: false, timer: null };
 
 let time = 0;
 function animate(tick = 0) {
-  var delta = tick / 1000 - time;
+  var delta = Math.min(tick / 1000 - time, 1 / 30); /* borne : au retour d'onglet, 60 s de delta faisaient sauter le carrousel */
   requestAnimationFrame(animate);
   time = tick / 1000;
 
@@ -604,8 +619,9 @@ function animate(tick = 0) {
     const onHome = section.items.length > 1 && scroll.position < section.items[1].top * 0.5;
     auto.running = idle && onHome && !swipe.holding && !pointer.prevent;
     if (auto.running) {
+      /* derive lente ; position lissee (et non collee a la cible) : un clic recu pendant l'intro ne fait plus sauter la rangee */
       carousel.target += auto.speed * delta;
-      carousel.position = carousel.target;
+      carousel.position = lerp(carousel.position, carousel.target, Math.min(1, delta * 10));
     } else {
       if (!swipe.holding) carousel.target = carousel.getRounded(carousel.target);
       carousel.position = lerp(carousel.position, carousel.target, delta * 10);
@@ -624,7 +640,7 @@ function animate(tick = 0) {
   carousel.index = index;
 
   const p0 = clamp(scroll.distanceTo(0) / section.items[0].height, 0, 1);
-  timeline.seek(scroll.position / (window.QA_H || lenis.dimensions.scrollHeight)); /* QA_H : hauteur figee en mode ?seek (le verrou CSS ramene Lenis a 100vh) */
+  timeline.seek(scroll.position / (window.QA_H || section.total())); /* somme des sections : independant des remesures Lenis */
 
   const windowRatio = clamp(1440 / lenis.dimensions.scrollWidth, 1, 2.4);
   const wave = windowRatio * 0.25 * (1 - p0) * data.wave;
@@ -790,13 +806,18 @@ on(window, 'touchend', (e) => {
 /* Passage de section : courbe entree-sortie (demarrage doux, arrivee douce) au lieu du cubique sortant
    qui partait brutalement ; duree unique ; un COOLDOWN et un filtre de geste : l'inertie d'un trackpad
    envoie des dizaines d'evenements decroissants apres le geste, qui relancaient un 2e saut. */
-const wheelPager = { locked: false, lastSnap: 7, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
+const wheelPager = { locked: false, lastSnap: 8, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
 window.sectionChanged = signal();
 let wheelTimer;
 window.addEventListener('wheel', (e) => {
   if (pointer.prevent) return;
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
-  if (anchor > wheelPager.lastSnap) return;
+  const dirNow = e.deltaY > 0 ? 1 : -1;
+  if (anchor > wheelPager.lastSnap) {
+    /* zone libre (FAQ, avis) : on ne reprend la main que pour REMONTER vers la pile depuis le haut de la FAQ */
+    const faqTop = section.items[wheelPager.lastSnap + 1].top;
+    if (!(dirNow < 0 && scroll.position <= faqTop + 60)) return;
+  }
   e.preventDefault();
   const now = performance.now();
   const d = Math.abs(e.deltaY);
@@ -806,8 +827,11 @@ window.addEventListener('wheel', (e) => {
   if (wheelPager.locked || !fresh) return;
   if (d < 4) return;
   const dir = e.deltaY > 0 ? 1 : -1;
-  const target = clamp(anchor + dir, 0, section.items.length - 1);
-  if (target === anchor) return;
+  const off = scroll.position - section.items[anchor].top;
+  let target = clamp(anchor + dir, 0, section.items.length - 1);
+  /* page desalignee (scroll libre, clavier) : le 1er cran recale sur la section la plus proche dans le sens du geste */
+  if (Math.abs(off) > 40) target = (dir < 0 && off > 0) || (dir > 0 && off < 0) ? anchor : target;
+  if (target === anchor && Math.abs(off) <= 40) return;
   const duration = wheelPager.duration;
   wheelPager.locked = true;
   scroll.to(section.items[target].top, { duration, lock: true, easing: easeInOut });
@@ -816,14 +840,52 @@ window.addEventListener('wheel', (e) => {
   wheelTimer = setTimeout(() => (wheelPager.locked = false), duration * 1000 + wheelPager.cooldown);
 }, { passive: false });
 
+// #region Clavier (1 touche = 1 section, coherent avec la molette)
+
+window.addEventListener('keydown', (e) => {
+  if (pointer.prevent || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tag = document.activeElement?.tagName || '';
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+  if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */
+  const anchor = closest(section.items, scroll.position, (item) => item.top).index;
+  const last = section.items.length - 3; /* la FAQ est la derniere section navigable */
+  let target = null;
+  if (['ArrowDown', 'PageDown', ' '].includes(e.key)) target = Math.min(anchor + 1, last);
+  if (['ArrowUp', 'PageUp'].includes(e.key)) target = Math.max(anchor - 1, 0);
+  if (e.key === 'Home') target = 0;
+  if (e.key === 'End') target = last;
+  if (e.key === 'ArrowLeft' && anchor === 0) { carousel.previous(); e.preventDefault(); return; }
+  if (e.key === 'ArrowRight' && anchor === 0) { carousel.next(); e.preventDefault(); return; }
+  if (target === null || target === anchor || wheelPager.locked) { if (target !== null) e.preventDefault(); return; }
+  e.preventDefault();
+  wheelPager.locked = true;
+  const far = Math.abs(target - anchor) > 1;
+  const duration = far ? 1.8 : wheelPager.duration;
+  /* saut lointain (End/Home) : Lenis infini prendrait le chemin le plus court a REBOURS, que le clamp anti-negatif bloque a 0.
+     On coupe l'infini le temps du trajet : la page descend/remonte vraiment. */
+  const opts = { duration, lock: true, easing: easeInOut };
+  if (far) {
+    const inf = lenis.options.infinite; lenis.options.infinite = false;
+    loopGuard.snapping = true; clearTimeout(loopGuard.timer);
+    loopGuard.timer = setTimeout(() => { loopGuard.snapping = false; lenis.options.infinite = inf; }, duration * 1000 + 250);
+    opts.onComplete = () => { lenis.options.infinite = inf; };
+  }
+  scroll.to(section.items[target].top, opts);
+  window.sectionChanged.emit({ from: anchor, to: target });
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => (wheelPager.locked = false), duration * 1000 + wheelPager.cooldown);
+});
+
 // #endregion
 // #region Resize / Start
 
 animate();
 
 let lastResizeWidth = window.innerWidth;
+const coarse = matchMedia('(pointer: coarse)').matches;
 on(window, 'resize', () => {
-  if (window.innerWidth === lastResizeWidth) return;
+  /* sur tactile, la barre d'URL change la hauteur en permanence : on n'y reagit qu'a la largeur ; sur desktop, toute resize compte */
+  if (coarse && window.innerWidth === lastResizeWidth) return;
   lastResizeWidth = window.innerWidth;
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -832,9 +894,10 @@ on(window, 'resize', () => {
   finalComposer.setPixelRatio(pixelRatio);
   finalComposer.setSize(window.innerWidth, window.innerHeight);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  section.resize();
-  timeline = createTimeline();
+  rebuildTimeline();
 });
+/* le contenu change de hauteur (accordeon FAQ, polices) : la timeline suit */
+if (window.ResizeObserver) new ResizeObserver(debounce(() => { if (!pointer.prevent) rebuildTimeline(); }, 300)).observe(document.querySelector('.page-wrapper'));
 
 lenis.scrollTo(0, { immediate: true });
 window.loader = loader;
@@ -857,6 +920,7 @@ if (indicator.el) {
     const idx = clamp(parseInt(q, 10) || 0, 0, section.items.length - 1);
     window.QA_POS = section.items[idx].top;
     window.QA_H = lenis.dimensions.scrollHeight;
+    auto.lastInput = Infinity; /* captures deterministes : pas de derive auto */
     pointer.prevent = false; swipe.active = true; animation.paused = false;
     carousel.target = carousel.getRounded(); carousel.position = carousel.target;
     loopGuard.lastPos = window.QA_POS;

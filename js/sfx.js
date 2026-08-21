@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.querySelector('.navbar_sound');
     return btn ? btn.classList.contains('is-muted') : false;
   };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.querySelector('.navbar_sound')?.classList.add('is-muted');
 
   // petites recettes : [fréquence, durée, type, glissando]
   const RECIPES = {
@@ -36,13 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
     osc.start(t); osc.stop(t + r.d + 0.02);
   };
 
+  /* la molette n'est PAS un geste d'activation : resume() est refuse et le son restait muet toute la session */
+  const EV = ['pointerdown', 'touchstart', 'keydown'];
   const unlock = () => {
     initCtx();
-    if (ctx.state === 'suspended') ctx.resume();
-    unlocked = true;
-    ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach((ev) => window.removeEventListener(ev, unlock));
+    ctx.resume().then(() => {
+      if (ctx.state !== 'running') return;
+      unlocked = true;
+      EV.forEach((ev) => window.removeEventListener(ev, unlock));
+    }).catch(() => {});
   };
-  ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach((ev) => window.addEventListener(ev, unlock));
+  EV.forEach((ev) => window.addEventListener(ev, unlock));
 
   window.pulseSound = { play };
 
