@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const KEY = 'pulseReviews';
   const TOKEN_KEY = 'pulseGh';
   const REMOTE = 'assets/reviews.json';
-  const SESSION = 'pulseAdmin';
+  let unlocked = false;   /* le code est redemande a CHAQUE ouverture du panneau */
 
   /* ---- avis : rendu + defilement ---- */
   const track = $('.reviews_track');
@@ -53,11 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---- modales ---- */
   const open = (id) => { const m = $(id); if (!m) return; m.hidden = false; requestAnimationFrame(() => m.classList.add('is-open')); const f = $('input, textarea', m); if (f) setTimeout(() => f.focus(), 60); };
-  const close = (m) => { m.classList.remove('is-open'); setTimeout(() => { m.hidden = true; }, 250); };
+  const close = (m) => {
+    m.classList.remove('is-open');
+    setTimeout(() => { m.hidden = true; }, 250);
+    if (m.id === 'admin-modal') { unlocked = false; const f = $('[data-admin-form]', m); if (f) f.reset(); applyAdmin(); }
+  };
   $$('[data-modal-close]').forEach((b) => b.addEventListener('click', () => close(b.closest('.modal'))));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal:not([hidden])').forEach(close); });
 
-  const isAdmin = () => sessionStorage.getItem(SESSION) === '1';
+  const isAdmin = () => unlocked;
   const refreshCount = () => {
     const n = all().length;
     $$('[data-review-count]').forEach((el) => { el.textContent = n; });
@@ -93,8 +97,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const sha256 = async (t) => { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join(''); };
 
-  $$('[data-admin-open]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); applyAdmin(); open('#admin-modal'); }));
-  $('[data-admin-logout]')?.addEventListener('click', () => { sessionStorage.removeItem(SESSION); applyAdmin(); });
+  $$('[data-admin-open]').forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    unlocked = false; applyAdmin();                       /* toujours l'ecran de code, meme apres un ajout */
+    const err = $('#admin-modal .modal_error'); if (err) err.hidden = true;
+    open('#admin-modal');
+  }));
+  $('[data-admin-logout]')?.addEventListener('click', () => { unlocked = false; applyAdmin(); close($('#admin-modal')); });
 
   $('[data-admin-form]')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -102,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ok = (await sha256(form.pwd.value)) === HASH;
     err.hidden = ok;
     if (!ok) { form.pwd.select(); return; }
-    sessionStorage.setItem(SESSION, '1'); form.reset(); applyAdmin();
+    unlocked = true; form.reset(); applyAdmin();
     setTimeout(() => $('[data-review-form] textarea')?.focus(), 60);
   });
 
