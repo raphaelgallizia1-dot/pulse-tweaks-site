@@ -115,7 +115,7 @@ let carousel = {
   lastIndex: 0,
   lastPosition: -1.5,
   delta: 0,
-  offset: PRODUCTS.length % 2 === 0 ? 0 : 1.5,
+  offset: 0, /* l'offset 1.5 de la reference (nombre impair) supposait un pas de 3 ; avec un pas de 3.5 aucun module ne tombait au centre (5 produits : fiche ChipsetTuner affichait TimerTuner) */
 };
 carousel.getRounded = () => round(carousel.target + carousel.offset, carousel.spacing) - carousel.offset;
 carousel.getIndex = (wrapped = true) => {
@@ -299,7 +299,7 @@ function labelTexture(p) {
 }
 
 const MOD_W = 1.35, MOD_H = 0.8, MOD_L = 4.0;
-const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 6, 0.12);
+const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 4, 0.12);
 const capGeometry = new THREE.CylinderGeometry(0.42, 0.5, 0.22, 48);
 capGeometry.rotateX(Math.PI / 2); capGeometry.translate(0, 0, MOD_L / 2 + 0.1);
 const labelGeometry = new THREE.PlaneGeometry(1.12, 3.4);
@@ -342,7 +342,9 @@ const duplicateCan = (item) => { const can = item.clone(); scene.add(can); retur
 
 await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
   items.forEach((item) => cans.push(item));
-  const targetCount = lowPower ? 12 : 24;
+  /* le wrap de la reference place au centre le module n. cans.length/2 : cette moitie DOIT etre un multiple du nombre de produits
+     (24/2 = 12 = 3 x 4 marchait par construction ; avec 5 produits : 30 clones, 15 = 3 x 5). Sinon aucun module n'est centre. */
+  const targetCount = PRODUCTS.length * 2 * (lowPower ? 1 : 3);
   let i = 0;
   while (cans.length < targetCount) { cans.push(duplicateCan(cans[i % PRODUCTS.length])); i++; }
 });
@@ -371,8 +373,14 @@ on(window, 'click', (e) => {
 
 const isInGamme = () => scroll.position < section.items[1].top;
 
+let hoverPending = false;
 on(window, 'mousemove', (e) => {
   if (!isInGamme()) { document.body.style.cursor = ''; return; }
+  if (hoverPending) return;
+  hoverPending = true;
+  requestAnimationFrame(() => { hoverPending = false; hoverTest(e); });
+});
+const hoverTest = (e) => {
   if (swipe.holding && swipe.direction === 1) { document.body.style.cursor = 'grabbing'; return; }
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
@@ -383,7 +391,7 @@ on(window, 'mousemove', (e) => {
     }
   });
   document.body.style.cursor = hoverActive ? 'pointer' : 'grab';
-});
+};
 on(window, 'mouseup touchend', () => { if (isInGamme()) document.body.style.cursor = 'grab'; });
 
 // #endregion
@@ -454,8 +462,8 @@ const createTimeline = () => {
   tl.to(data, { ...adv(5, 0.5, 130), duration: dur() }); i += 1;
 
   // Claim (« zéro réglage inutile »)
-  tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 8, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 45, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.5,
-    canRotX: D * -20, canRotY: 0, canRotZ: D * -5, canSpin: 0, spacing: 5, wave: 0, swirl: 0, baseOffset: 3,
+  tl.to(data, { camPosX: -3.4, camPosY: 0, camPosZ: 8, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 45, canScale: 0.7, canPosX: 0, canPosY: -1.3, canPosZ: -0.5, /* camera a gauche : le module passe a droite du texte geant (canPosX n'est pas lu sur l'axe X) */
+    canRotX: D * -20, canRotY: 0, canRotZ: D * -8, canSpin: 0, spacing: 5, wave: 0, swirl: 0, baseOffset: 3,
     lightIntensity: 45, lightWidth: 1.5, tintStrength: 2, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
   i += 1;
   tl.set(swipe, { active: true });
@@ -468,7 +476,7 @@ const createTimeline = () => {
 
   // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
   const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
-  tl.to(data, { camPosX: mob ? 0 : 3.5, camPosY: mob ? -7.45 : 0.1, camPosZ: mob ? 64 : 24, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
+  tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -8.2 : 0.1, camPosZ: mob ? 74 : 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
     lightIntensity: 38, lightWidth: 1.6, tintStrength: 1.2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
   i += 1;
@@ -647,14 +655,17 @@ function animate(tick = 0) {
     if (data.stack > 0) {
       /* empilement : cans[k] (k < 4) = un produit chacun, les clones s'effacent ; la couche active s'avance */
       const k = i % PRODUCTS.length, sst = data.stack;
-      const sy = (k - (PRODUCTS.length - 1) / 2) * 1.02 + data.canPosY;
-      const active = k === carousel.index && i < PRODUCTS.length;
-      /* la couche active s'avance en douceur (lerp par module, pas un saut) */
-      can.userData.lift = lerp(can.userData.lift || 0, active ? 0.7 : 0, Math.min(1, delta * 7));
-      canPosX = lerp(canPosX, data.canPosX, sst);
+      const gap = 1.5; /* ecart entre couches : on voit chaque module en entier */
+      const sy = (k - (PRODUCTS.length - 1) / 2) * gap + data.canPosY;
+      const active = i < PRODUCTS.length && (k === carousel.index || (window.stackHighlight && window.stackHighlight.has(k)));
+      /* la couche active s'avance, grossit et bascule vers la camera (en douceur, lerp par module) */
+      can.userData.lift = lerp(can.userData.lift || 0, active ? 1 : 0, Math.min(1, delta * 7));
+      const L = can.userData.lift;
+      canPosX = lerp(canPosX, data.canPosX + L * 0.35, sst);
       canPosY = lerp(canPosY, sy, sst);
-      canPosZ = lerp(canPosZ, data.canPosZ + can.userData.lift, sst);
-      canRotX = lerp(canRotX, 0, sst);
+      canPosZ = lerp(canPosZ, data.canPosZ + L * 1.6, sst);
+      canScale = lerp(canScale, 1 + L * 0.12, sst);
+      canRotX = lerp(canRotX, L * -0.22, sst);
       canRotY = lerp(canRotY, 0, sst);
       canRotZ = lerp(canRotZ, -Math.PI / 2, sst); /* -90 : l'etiquette se lit a l'endroit (a +90 elle est retournee) */
       if (i >= PRODUCTS.length) canScale = lerp(canScale, 0.0001, sst);
@@ -851,7 +862,7 @@ if (indicator.el) {
     loopGuard.lastPos = window.QA_POS;
     window.dispatchEvent(new CustomEvent('pulse:qa', { detail: { pos: window.QA_POS, idx } }));
     /* sonde QA : lire l'etat reel du moteur depuis une page de test */
-    window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; } };
+    window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; } };
   }
 }
 

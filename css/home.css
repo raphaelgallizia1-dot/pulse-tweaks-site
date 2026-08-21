@@ -79,7 +79,7 @@ h2[data-anim='chars-mask'] .line-mask:not(:first-child), .heading-style-h2 [data
 .scroll_indicator__hotspot { background: radial-gradient(ellipse at center, #fff 0%, rgba(255,255,255,.5) 35%, transparent 70%); }
 
 /* dégradé conique de la gamme : les 4 couches */
-.gamme_gradient { background: conic-gradient(from 17deg at 50% 50%, #8b5cf6 0deg, #3b82f6 90deg, #6366f1 180deg, #22d3ee 270deg, #8b5cf6 360deg); }
+.gamme_gradient { background: conic-gradient(from 17deg at 50% 50%, #8b5cf6 0deg, #d946ef 72deg, #3b82f6 144deg, #6366f1 216deg, #22d3ee 288deg, #8b5cf6 360deg); }
 
 /* claim : texte géant SVG */
 .argument_svg svg text { fill: var(--color-scheme-1--taste-secondary); font-family: Anton, Impact, sans-serif; font-style: italic; }
@@ -107,7 +107,8 @@ h2 { font-style: italic; }
 .text-size-tiny a { text-decoration: underline; }
 
 /* ---- Fluidité : filtres lourds allégés (un drop-shadow de 90 px sur un SVG pleine largeur se repeint à chaque frame) ---- */
-.argument_svg { filter: drop-shadow(0 0 36px var(--color-scheme-1--taste-secondary)); will-change: filter, opacity; }
+.argument_svg { filter: drop-shadow(0 0 22px var(--color-scheme-1--taste-secondary)); will-change: filter, opacity; }
+.argument_svg svg text { fill-opacity: 0.9 !important; }
 .review { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,.06); }
 
 /* ---- Signature Pulse : survol des boutons par crochets d'angle (le motif des fiches), plus de bascule de lettres ---- */
@@ -160,3 +161,31 @@ h2 { font-style: italic; }
 .protocol_desc { font-size: .9rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); }
 @media screen and (max-width: 991px) { .protocol_steps { grid-template-columns: 1fr 1fr; } .protocol_step:nth-child(2) { border-right: 0; } }
 @media screen and (max-width: 560px) { .protocol_steps { grid-template-columns: 1fr; } .protocol_step { border-right: 0; margin-right: 0; border-bottom: 1px solid var(--color-scheme-1--border); } .protocol_step:last-child { border-bottom: 0; } }
+
+/* ---- Pile : 5 couches, configurateur par symptome ---- */
+.stack_symptoms { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin-top: var(--_spacing-sizing---element-padding--s); }
+.stack_symptoms-label { font-family: var(--_typography---font-styles--mono); font-size: .66rem; letter-spacing: .18em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); margin-right: .35rem; }
+.stack_chip { appearance: none; background: transparent; color: var(--color-scheme-1--text); border: 1px solid var(--color-scheme-1--border); border-radius: 999px; padding: .45rem .85rem; font-family: var(--_typography---font-styles--mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: background-color .3s, color .3s, border-color .3s; }
+.stack_chip:hover { border-color: var(--_primitives---opacity--white-60); }
+.stack_chip.is-on { background: var(--color-scheme-1--text); color: var(--_primitives---colors--neutral-darkest); border-color: var(--color-scheme-1--text); }
+.stack_layer.is-suggested { color: var(--color-scheme-1--text); }
+.stack_layer.is-suggested .stack_num { color: var(--c); }
+.stack_layer.is-suggested::after { content: 'conseillé'; position: absolute; right: 0; top: .35rem; font-size: .58rem; letter-spacing: .18em; color: var(--c); }
+.stack_layer.is-suggested .stack_price { visibility: hidden; }
+.stack_price.is-ticket, .profile_price.is-ticket { font-size: .8rem; font-family: var(--_typography---font-styles--mono); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.profile_price.is-ticket { font-size: .85rem; }
+.stack_note { margin-top: .8rem; font-family: var(--_typography---font-styles--mono); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--_primitives---opacity--white-30); }
+.stack_list { margin-top: var(--_spacing-sizing---element-padding--s); }
+.stack_layer { padding: .7rem 0; }
+
+/* ---- Avis : preuve sociale sur trois colonnes ---- */
+.reviews_grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 40rem) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.reviews_side { display: grid; gap: var(--_spacing-sizing---element-padding--s); text-align: left; }
+.reviews_side.is-left { margin-top: 9rem; }
+.reviews_side.is-right { margin-top: 14rem; }
+.review.is-result { border-color: var(--color-scheme-1--taste-secondary); }
+.review_result-num { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 1.9rem; line-height: 1; letter-spacing: .01em; }
+.review_result-num span { color: var(--color-scheme-1--taste-secondary); font-size: 1.2rem; margin: 0 .15em; }
+.review_result-ctx { margin-top: .5rem; font-size: .85rem; color: var(--_primitives---opacity--white-60); }
+a.review_who { display: block; text-decoration: underline; text-underline-offset: .2em; }
+@media screen and (max-width: 1199px) { .reviews_grid { grid-template-columns: 1fr; } .reviews_side { margin-top: 0 !important; } .reviews_side.is-left { order: 2; } .reviews_side.is-right { order: 3; } }

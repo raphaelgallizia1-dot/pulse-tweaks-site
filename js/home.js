@@ -1195,6 +1195,24 @@
       const layers = [...$$('.stack_layer', section)];
       const setActive = (i) => layers.forEach((l) => l.classList.toggle('is-active', Number(l.dataset.index) === i));
 
+      /* configurateur par symptome : chaque puce conseille des couches (liste + 3D via window.stackHighlight) */
+      const chips = [...$$('.stack_chip', section)];
+      window.stackHighlight = new Set();
+      const applySuggest = () => layers.forEach((l) => l.classList.toggle('is-suggested', window.stackHighlight.has(Number(l.dataset.index))));
+      chips.forEach((chip) => chip.addEventListener('click', () => {
+        const on = chip.classList.contains('is-on');
+        chips.forEach((ch) => ch.classList.remove('is-on'));
+        window.stackHighlight = new Set();
+        if (!on) {
+          chip.classList.add('is-on');
+          const ids = chip.dataset.layers.split(',').map(Number);
+          window.stackHighlight = new Set(ids);
+          if (window.carousel) window.carousel.goTo(ids[0]);
+          window.pulseSound?.play('click');
+        }
+        applySuggest();
+      }));
+
       initWhenCarousel(() => {
         setActive(window.carousel.index);
         window.carousel.changed.connect(({ index }) => setActive(index));
@@ -1247,7 +1265,8 @@
         gsap.to(o, { n: text.length, duration: 0.05 * text.length, ease: 'none', onUpdate: () => { el.textContent = text.slice(0, Math.round(o.n)) + (o.n < text.length ? '_' : ''); } });
       };
       initWhenCarousel(() => {
-        const layer = () => type(layEl, String(window.carousel.index + 1).padStart(2, '0') + ' / 04');
+        const total = String((window.PULSE_PRODUCTS || []).length || 5).padStart(2, '0');
+        const layer = () => type(layEl, String(window.carousel.index + 1).padStart(2, '0') + ' / ' + total);
         layer();
         window.carousel.changed.connect(layer);
         if (!window.lenis) return;
