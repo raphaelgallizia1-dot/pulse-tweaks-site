@@ -487,6 +487,12 @@ const createTimeline = () => {
     lightIntensity: 0, lightWidth: 2.4, tintStrength: 1.9, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* spots coupes : seul l'environnement eclaire, uniformement -> aucun reflet sur les etiquettes */
   i += 1;
 
+  // Methode (bento DOM) : scene hors champ, meme etat que la FAQ
+  tl.to(data, { stack: 0, camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
+    canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.6, wave: 0, swirl: 1, baseOffset: 20,
+    lightIntensity: 0, lightWidth: 3, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
+  i += 1;
+
   // Hors champ (FAQ)
   tl.to(data, { stack: 0, camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.6, wave: 0, swirl: 1, baseOffset: 20,
@@ -823,7 +829,7 @@ on(window, 'touchend', (e) => {
 /* Passage de section : courbe entree-sortie (demarrage doux, arrivee douce) au lieu du cubique sortant
    qui partait brutalement ; duree unique ; un COOLDOWN et un filtre de geste : l'inertie d'un trackpad
    envoie des dizaines d'evenements decroissants apres le geste, qui relancaient un 2e saut. */
-const wheelPager = { locked: false, lastSnap: 8, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
+const wheelPager = { locked: false, lastSnap: 9, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
 window.sectionChanged = signal();
 let wheelTimer;
 window.addEventListener('wheel', (e) => {

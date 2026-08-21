@@ -1273,7 +1273,7 @@
       const secEl = $('.hud_readout-sec');
       const layEl = $('.hud_readout-layer');
       if (!secEl || !layEl) return;
-      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE 01', 'MÉTHODE 02', 'MÉTHODE 03', 'MÉTHODE 04', 'CLAIM', 'PACKSHOT', 'COUCHES', 'FAQ', 'DISCORD', 'FIN'];
+      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE 01', 'MÉTHODE 02', 'MÉTHODE 03', 'MÉTHODE 04', 'CLAIM', 'PACKSHOT', 'COUCHES', 'MÉTHODE', 'FAQ', 'DISCORD', 'FIN'];
       const type = (el, text) => {
         if (el.dataset.txt === text) return;
         el.dataset.txt = text;
@@ -1307,6 +1307,38 @@
       });
     };
 
+    // Section Methode (bento) : tuiles en cascade, journal qui s'ecrit, graphe qui se trace
+
+    const initSectionBento = () => {
+      const section = $('.section.is-bento');
+      if (!section) return;
+      const container = $('.bento_container', section);
+      const reveal = initAnimations(section);
+      const cards = $$('.bento_card', section);
+      const lines = [...$$('.bento_log-line', section)];
+      let logTl = null;
+      const playLog = () => {
+        if (logTl) logTl.kill();
+        lines.forEach((l) => { l.textContent = ''; l.classList.remove('is-done'); });
+        logTl = gsap.timeline({ delay: 0.9 });
+        lines.forEach((l, i) => {
+          const text = l.dataset.line; const o = { n: 0 };
+          logTl.to(o, { n: text.length, duration: 0.035 * text.length, ease: 'none', onUpdate: () => { l.textContent = text.slice(0, Math.round(o.n)); }, onComplete: () => l.classList.add('is-done') }, i === 0 ? 0 : '+=0.25');
+        });
+      };
+      gsap.set(cards, { autoAlpha: 0, y: 22 });
+      gsap.timeline({
+        defaults: { duration: 0.5, ease: 'power2.inOut' },
+        scrollTrigger: {
+          trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
+          onEnter: () => { reveal?.in({ delay: 0.3 }); gsap.to(cards, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, delay: 0.45, ease: 'power3.out', overwrite: true }); section.classList.add('is-live'); playLog(); },
+          onEnterBack: () => { reveal?.in({ delay: 0.3 }); gsap.to(cards, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, delay: 0.45, ease: 'power3.out', overwrite: true }); section.classList.add('is-live'); playLog(); },
+          onLeave: () => { reveal?.out(); section.classList.remove('is-live'); },
+          onLeaveBack: () => { reveal?.out(); section.classList.remove('is-live'); },
+        },
+      }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.3 });
+    };
+
     // #region Init
 
     const initWhenCarousel = (fn) => {
@@ -1324,7 +1356,6 @@
     /* SplitText mesure les lignes : attendre les polices evite des coupures fausses (et 12 warnings console) */
     const boot = () => {
     initLoader();
-    initSoundToggle();
     initMenuButton();
     initMenuToggle();
     initScrollIcon();
@@ -1346,6 +1377,7 @@
     initSectionStack();
     initProtocol();
     initHudReadout();
+    initSectionBento();
     };
     Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]).then(boot);
   });
