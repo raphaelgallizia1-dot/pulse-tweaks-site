@@ -717,7 +717,24 @@ function animate(tick = 0) {
 
   if (!contextLost) finalComposer.render();
   carousel.lastPosition = carousel.position;
+  if (fpsMeter) fpsMeter.tick(tick);
 }
+
+/* ?fps=1 : compteur en haut a gauche (FPS sur 1 s, minimum sur 5 s, DPR, resolution) — pour mesurer sur un vrai GPU */
+const fpsMeter = new URLSearchParams(location.search).has('fps') ? (() => {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;font:12px/1.4 monospace;color:#fff;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:6px;pointer-events:none';
+  document.body.appendChild(el);
+  let frames = 0, last = 0, minFps = 999, since = 0;
+  return { tick(t) {
+    frames++;
+    if (t - last >= 1000) {
+      const fps = Math.round(frames * 1000 / (t - last)); frames = 0; last = t;
+      if (t - since > 5000) { minFps = fps; since = t; } else minFps = Math.min(minFps, fps);
+      el.textContent = fps + ' fps (min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2);
+    }
+  } };
+})() : null;
 
 // #endregion
 // #region Pointer / Swipe
