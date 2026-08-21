@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     enter: { f: 220, to: 110, d: 0.45, type: 'triangle', gain: 0.9 },
     benefits: { f: 520, to: 780, d: 0.22, type: 'sine', gain: 0.6 },
     click: { f: 1600, to: 1600, d: 0.04, type: 'square', gain: 0.25 },
+    tick: { f: 1320, to: 990, d: 0.05, type: 'sine', gain: 0.16 },
   };
 
   const play = (name, { volume = 1 } = {}) => {
@@ -102,6 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   };
   if (!bindBenefits()) window.addEventListener('carousel:ready', bindBenefits, { once: true });
+
+  /* tick discret a chaque passage de section a la molette (hors fiche et benefices, qui ont deja leur son) */
+  const bindTick = () => {
+    if (!window.sectionChanged) return false;
+    window.sectionChanged.connect(({ to }) => { if (to !== 1 && !(to >= 2 && to <= 5)) play('tick'); });
+    return true;
+  };
+  if (!bindTick()) window.addEventListener('carousel:ready', bindTick, { once: true });
 
   document.querySelector('.navbar_menu-button')?.addEventListener('click', () => play('click'));
   document.querySelectorAll('.navbar_link').forEach((link) => link.addEventListener('click', () => { play('click'); lockNav(); }));

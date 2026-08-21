@@ -105,3 +105,58 @@ h2 { font-style: italic; }
 .review_who { margin-top: .5rem; font-family: var(--_typography---font-styles--mono); font-size: .75rem; color: var(--_primitives---opacity--white-60); }
 .faq_icon-wrapper { transform-origin: center; }
 .text-size-tiny a { text-decoration: underline; }
+
+/* ---- Fluidité : filtres lourds allégés (un drop-shadow de 90 px sur un SVG pleine largeur se repeint à chaque frame) ---- */
+.argument_svg { filter: drop-shadow(0 0 36px var(--color-scheme-1--taste-secondary)); will-change: filter, opacity; }
+.review { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,.06); }
+
+/* ---- Signature Pulse : survol des boutons par crochets d'angle (le motif des fiches), plus de bascule de lettres ---- */
+.button { position: relative; overflow: visible; }
+.button::before, .button::after { content: ''; position: absolute; width: .6em; height: .6em; border: 1.5px solid var(--_primitives---colors--white, #fff); filter: drop-shadow(0 0 4px rgba(255,255,255,.6)); opacity: 0; pointer-events: none; transition: opacity .32s cubic-bezier(.2,.7,.2,1), transform .32s cubic-bezier(.2,.7,.2,1); }
+.button::before { top: -.35em; left: -.35em; border-right: 0; border-bottom: 0; border-top-left-radius: .25em; transform: translate(-.35em, -.35em); }
+.button::after { bottom: -.35em; right: -.35em; border-left: 0; border-top: 0; border-bottom-right-radius: .25em; transform: translate(.35em, .35em); }
+@media (hover: hover) { .button:hover::before, .button:hover::after { opacity: 1; transform: translate(0, 0); } }
+
+/* ---- HUD : lecture de la section et de la couche courantes ---- */
+.hud_readout { display: flex; flex-direction: column; gap: .15rem; margin-top: .4rem; font-family: var(--_typography---font-styles--mono); font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; opacity: .75; text-align: right; min-height: 2.2em; }
+.hud_readout-layer { color: var(--color-scheme-1--taste-secondary); }
+
+/* ---- Section « Couches » : les 4 modules 3D empilés à gauche, la liste à droite ---- */
+.stack_container { position: fixed; inset: 0; }
+.stack_grid { display: grid; grid-template-columns: 44% 1fr; align-items: center; height: 100%; }
+.stack_text { pointer-events: auto; max-width: 34rem; }
+.stack_list { list-style: none; margin: var(--_spacing-sizing---element-padding--m) 0 0; padding: 0; border-top: 1px solid var(--color-scheme-1--border); }
+.stack_layer { display: grid; grid-template-columns: 2.2rem 8.5rem 1fr auto; align-items: baseline; gap: .9rem; padding: .85rem 0; border-bottom: 1px solid var(--color-scheme-1--border); font-family: var(--_typography---font-styles--mono); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); cursor: pointer; outline: none; position: relative; transition: color .35s, transform .45s cubic-bezier(.2,.7,.2,1); }
+.stack_layer::before { content: ''; position: absolute; left: -1.2rem; top: 50%; width: .45rem; height: .45rem; border-radius: 50%; background: var(--c); transform: translateY(-50%) scale(0); transition: transform .35s cubic-bezier(.2,.7,.2,1); box-shadow: 0 0 14px var(--c); }
+.stack_name { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 1.25rem; letter-spacing: .01em; line-height: 1; color: var(--color-scheme-1--text); }
+.stack_price { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 1.1rem; letter-spacing: 0; }
+.stack_layer.is-active { color: var(--color-scheme-1--text); transform: translateX(.6rem); }
+.stack_layer.is-active::before { transform: translateY(-50%) scale(1); }
+.stack_layer.is-active .stack_num { color: var(--c); }
+.stack_cta { margin-top: var(--_spacing-sizing---element-padding--m); }
+@media screen and (max-width: 991px) {
+  .stack_grid { grid-template-columns: 1fr; align-content: end; }
+  .stack_spacer { display: none; }
+  .stack_text { max-width: none; }
+  .stack_layer { grid-template-columns: 2rem 1fr auto; grid-template-rows: auto auto; row-gap: .3rem; padding: .6rem 0; }
+  .stack_num, .stack_name, .stack_price { grid-row: 1; }
+  .stack_price { grid-column: 3; }
+  .stack_what { grid-column: 2 / span 2; grid-row: 2; font-size: .66rem; opacity: .8; }
+  .stack_name { font-size: 1.1rem; }
+  .stack_text p { font-size: .95rem; }
+  .hud_readout { display: none; }
+}
+
+/* ---- Protocole d'intervention (FAQ) : un relevé numéroté, pas des cartes ---- */
+.protocol { margin-bottom: var(--_spacing-sizing---section-padding--medium, 6rem); }
+.protocol_head { display: flex; justify-content: center; margin-bottom: var(--_spacing-sizing---element-padding--m); }
+.protocol_head .subhead { display: inline-flex; width: auto; }
+.protocol_head .subhead_text, .protocol_head .subhead_text .line { white-space: nowrap; }
+.protocol_steps { list-style: none; margin: 0 auto; padding: 0; max-width: 64rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--color-scheme-1--border); border-bottom: 1px solid var(--color-scheme-1--border); }
+.protocol_step { padding: 1.4rem 1.2rem 1.4rem 0; display: grid; gap: .55rem; align-content: start; border-right: 1px solid var(--color-scheme-1--border); margin-right: 1.2rem; }
+.protocol_step:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+.protocol_num { font-family: var(--_typography---font-styles--mono); font-size: .7rem; letter-spacing: .2em; color: var(--color-scheme-1--taste-secondary); }
+.protocol_title { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 1.6rem; line-height: 1; text-transform: uppercase; }
+.protocol_desc { font-size: .9rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); }
+@media screen and (max-width: 991px) { .protocol_steps { grid-template-columns: 1fr 1fr; } .protocol_step:nth-child(2) { border-right: 0; } }
+@media screen and (max-width: 560px) { .protocol_steps { grid-template-columns: 1fr; } .protocol_step { border-right: 0; margin-right: 0; border-bottom: 1px solid var(--color-scheme-1--border); } .protocol_step:last-child { border-bottom: 0; } }

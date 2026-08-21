@@ -7,7 +7,6 @@ import Lenis from 'https://cdn.jsdelivr.net/npm/lenis@1.3.23/dist/lenis.mjs';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -23,6 +22,7 @@ const wrap = (value, min, max) => {
 };
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const lerp = (a, b, t) => a + (b - a) * t;
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const round = (value, step) => Math.round(value / step) * step;
 const toArray = (item) => {
   if (Array.isArray(item)) return item;
@@ -137,8 +137,16 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const mainEl = document.querySelector('main');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-let pixelRatio = lowPower ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.25);
+/* antialias:false — l'anticrenelage est fait par la cible MSAA du composer (le canvas par defaut n'en a pas besoin) */
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+/* budget de pixels : 1,25 DPR max ET ~4 Mpx max, sinon un 1440p/4K multiplie le cout des passes plein ecran */
+const pixelBudget = 4.0e6;
+const computePixelRatio = () => {
+  const cap = lowPower ? 2 : 1.25;
+  const byBudget = Math.sqrt(pixelBudget / (window.innerWidth * window.innerHeight));
+  return Math.max(0.75, Math.min(window.devicePixelRatio, cap, byBudget));
+};
+let pixelRatio = computePixelRatio();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(pixelRatio);
 renderer.setClearColor(0x000000, 0);
@@ -199,18 +207,17 @@ const renderPass = new RenderPass(scene, camera);
 
 const resolution = new THREE.Vector2(window.innerWidth / 3, window.innerHeight / 3);
 const bloomPass = new UnrealBloomPass(resolution, 0.1, 0.1, 1);
-const smaaPass = new SMAAPass();
 const outputPass = new OutputPass();
 
+/* MSAA 4x sur la cible : une seule resolution au lieu des 3 passes plein ecran du SMAA (edges, weights, blend) */
 const finalRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio, {
   type: lowPower ? THREE.UnsignedByteType : THREE.HalfFloatType,
-  samples: 0,
+  samples: lowPower ? 0 : 4,
 });
 const finalComposer = new EffectComposer(renderer, finalRenderTarget);
 finalComposer.addPass(renderPass);
 if (!lowPower) finalComposer.addPass(bloomPass);
 finalComposer.addPass(outputPass);
-if (!lowPower) finalComposer.addPass(smaaPass);
 
 // #endregion
 // #region Base (socle bas + luminaire haut, procéduraux — mêmes cotes que la référence)
@@ -244,10 +251,11 @@ scene.add(base);
 // #endregion
 // #region Module Pulse (remplace can.glb : même repère — axe long = Z local, enfants tournés de +90° en X)
 
-await Promise.race([document.fonts.load('400 100px Anton'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
-
-await Promise.race([document.fonts.load('400 20px Geistmono'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
-await Promise.race([document.fonts.load('400 20px Geist'), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
+/* les 3 polices en PARALLELE avec une seule echeance (en serie, c'etait jusqu'a 9 s de loader) */
+await Promise.race([
+  Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('400 20px Geistmono'), document.fonts.load('400 20px Geist')]),
+  new Promise(r => setTimeout(r, 2000)),
+]).catch(() => {});
 
 const bodyMaterial = makeMaterial({
   color: 0x0c0b12, metalness: 0.78, roughness: 0.32, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
@@ -355,7 +363,7 @@ on(window, 'click', (e) => {
       if (delta == 0)
         scroll.to(section.items[1].top, {
           duration: wheelPager.slowIndexes.includes(0) ? wheelPager.durationSlow : wheelPager.durationFast,
-          easing: (t) => 1 - Math.pow(1 - t, 3),
+          easing: easeInOut,
         });
     }
   });
@@ -418,7 +426,7 @@ carousel.goTo = (index) => { auto.touch(); _goTo(index); };
 const data = {
   camPosX: 0, camPosY: 0, camPosZ: 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20,
   canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0, canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0,
-  spacing: 1, wave: 1, swirl: 0, baseOffset: 0,
+  spacing: 1, wave: 1, swirl: 0, baseOffset: 0, stack: 0,
   lightIntensity: 50, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1,
 };
 const startData = JSON.parse(JSON.stringify(data));
@@ -458,15 +466,22 @@ const createTimeline = () => {
     lightIntensity: 10, lightWidth: 3, tintStrength: 2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 2, duration: dur() });
   i += 1;
 
+  // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
+  const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
+  tl.to(data, { camPosX: mob ? 0 : 3.5, camPosY: mob ? -4.6 : 0.1, camPosZ: mob ? 52 : 24, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
+    canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
+    lightIntensity: 38, lightWidth: 1.6, tintStrength: 1.2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
+  i += 1;
+
   // Hors champ (FAQ)
-  tl.to(data, { camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
+  tl.to(data, { stack: 0, camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.6, wave: 0, swirl: 1, baseOffset: 20,
     lightIntensity: 0, lightWidth: 3, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
   i += 1;
   tl.set(swipe, { active: false });
 
   // Téléport : caméra en haut
-  tl.set(data, { camPosX: 0, camPosY: 8, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20, spacing: 5, swirl: 0 });
+  tl.set(data, { camPosX: 0, camPosY: 8, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20, spacing: 5, swirl: 0, stack: 0 });
 
   // Retour à l'écran (footer)
   tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0.5,
@@ -498,7 +513,7 @@ loader.play = async () => {
   swipe.active = false;
   pointer.prevent = true;
 
-  const tl = gsap.timeline({ defaults: { ease: 'power4.out', duration: 2.5 } });
+  const tl = gsap.timeline({ defaults: { ease: 'power4.out', duration: 1.8 } });
   carousel.target = carousel.offset;
   carousel.position = carousel.offset;
   tl.set(data, { camPosZ: 25, spacing: 10, baseOffset: 3, wave: 0, swirl: 0, lightWidth: 2, lightIntensity: 0, canSpin: D * 20, pointerInfluence: 0 });
@@ -507,7 +522,7 @@ loader.play = async () => {
   tl.to(data, startData, 2);
   loader.timeline = tl;
 
-  const animMs = Math.max(tl.duration() * 1000, 2500);
+  const animMs = Math.max(tl.duration() * 1000, 1800);
   await new Promise((resolve) => {
     let done = false;
     const finish = () => { if (done) return; done = true; resolve(); };
@@ -559,7 +574,7 @@ function animate(tick = 0) {
     else {
       if (total > 0 && prev - cur > total * 0.6 && !loopGuard.snapping) {
         loopGuard.snapping = true;
-        scroll.to(section.items[0].top, { duration: 1.2, lock: true, easing: (t) => 1 - Math.pow(1 - t, 3) });
+        scroll.to(section.items[0].top, { duration: 1.2, lock: true, easing: easeInOut });
         clearTimeout(loopGuard.timer);
         loopGuard.timer = setTimeout(() => (loopGuard.snapping = false), 1300);
       }
@@ -601,7 +616,7 @@ function animate(tick = 0) {
   carousel.index = index;
 
   const p0 = clamp(scroll.distanceTo(0) / section.items[0].height, 0, 1);
-  timeline.seek(scroll.position / lenis.dimensions.scrollHeight);
+  timeline.seek(scroll.position / (window.QA_H || lenis.dimensions.scrollHeight)); /* QA_H : hauteur figee en mode ?seek (le verrou CSS ramene Lenis a 100vh) */
 
   const windowRatio = clamp(1440 / lenis.dimensions.scrollWidth, 1, 2.4);
   const wave = windowRatio * 0.25 * (1 - p0) * data.wave;
@@ -629,6 +644,22 @@ function animate(tick = 0) {
     canRotY = lerp(canRotY, data.canRotY, p1);
     canRotZ = lerp(canRotZ, data.canRotZ, p1);
 
+    if (data.stack > 0) {
+      /* empilement : cans[k] (k < 4) = un produit chacun, les clones s'effacent ; la couche active s'avance */
+      const k = i % PRODUCTS.length, sst = data.stack;
+      const sy = (k - (PRODUCTS.length - 1) / 2) * 1.02 + data.canPosY;
+      const active = k === carousel.index && i < PRODUCTS.length;
+      /* la couche active s'avance en douceur (lerp par module, pas un saut) */
+      can.userData.lift = lerp(can.userData.lift || 0, active ? 0.7 : 0, Math.min(1, delta * 7));
+      canPosX = lerp(canPosX, data.canPosX, sst);
+      canPosY = lerp(canPosY, sy, sst);
+      canPosZ = lerp(canPosZ, data.canPosZ + can.userData.lift, sst);
+      canRotX = lerp(canRotX, 0, sst);
+      canRotY = lerp(canRotY, 0, sst);
+      canRotZ = lerp(canRotZ, -Math.PI / 2, sst); /* -90 : l'etiquette se lit a l'endroit (a +90 elle est retournee) */
+      if (i >= PRODUCTS.length) canScale = lerp(canScale, 0.0001, sst);
+    }
+
     can.position.set(canPosX, canPosY, canPosZ);
     can.rotation.set(canRotX, canRotY, canRotZ);
     can.scale.setScalar(canScale);
@@ -637,7 +668,7 @@ function animate(tick = 0) {
     can.rotation.x += (pointer.smoothY / 1280) * data.pointerInfluence * p;
 
     can.children.forEach((child) => {
-      if (child.isMesh) child.rotation.z = can.rotation.y * 0.6 + data.canSpin * p;
+      if (child.isMesh) child.rotation.z = (can.rotation.y * 0.6 + data.canSpin * p) * (1 - data.stack);
     });
   });
 
@@ -709,7 +740,7 @@ on(window, 'mouseup touchend', () => {
 // #endregion
 // #region Mobile Paging
 
-const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 7 };
+const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 8 };
 const isMobile = () => window.innerWidth < 1024;
 
 on(window, 'touchstart', (e) => {
@@ -737,7 +768,7 @@ on(window, 'touchend', (e) => {
   if (Math.abs(delta) > paging.threshold) target = paging.anchor + (delta < 0 ? 1 : -1);
   target = clamp(target, 0, section.items.length - 1);
   lenis.start();
-  scroll.to(section.items[target].top, { duration: 1.5, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  scroll.to(section.items[target].top, { duration: 1.5, easing: easeInOut });
   paging.active = false;
   paging.axis = 0;
 });
@@ -745,21 +776,31 @@ on(window, 'touchend', (e) => {
 // #endregion
 // #region Desktop Paging (1 cran de molette = 1 section)
 
-const wheelPager = { locked: false, lastSnap: 6, durationSlow: 1.5, durationFast: 1, slowIndexes: [0, 1, 5, 6], cooldown: 0 };
+/* Passage de section : courbe entree-sortie (demarrage doux, arrivee douce) au lieu du cubique sortant
+   qui partait brutalement ; duree unique ; un COOLDOWN et un filtre de geste : l'inertie d'un trackpad
+   envoie des dizaines d'evenements decroissants apres le geste, qui relancaient un 2e saut. */
+const wheelPager = { locked: false, lastSnap: 7, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
+window.sectionChanged = signal();
 let wheelTimer;
 window.addEventListener('wheel', (e) => {
   if (pointer.prevent) return;
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
   if (anchor > wheelPager.lastSnap) return;
   e.preventDefault();
-  if (wheelPager.locked) return;
-  if (Math.abs(e.deltaY) < 4) return;
+  const now = performance.now();
+  const d = Math.abs(e.deltaY);
+  /* nouveau geste = pause > 90 ms OU delta qui remonte franchement ; sinon c'est la traine du geste precedent */
+  const fresh = now - wheelPager.lastTime > 90 || d > wheelPager.lastDelta * 1.6;
+  wheelPager.lastTime = now; wheelPager.lastDelta = d;
+  if (wheelPager.locked || !fresh) return;
+  if (d < 4) return;
   const dir = e.deltaY > 0 ? 1 : -1;
   const target = clamp(anchor + dir, 0, section.items.length - 1);
   if (target === anchor) return;
-  const duration = wheelPager.slowIndexes.includes(anchor) ? wheelPager.durationSlow : wheelPager.durationFast;
+  const duration = wheelPager.duration;
   wheelPager.locked = true;
-  scroll.to(section.items[target].top, { duration, lock: true, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  scroll.to(section.items[target].top, { duration, lock: true, easing: easeInOut });
+  window.sectionChanged.emit({ from: anchor, to: target });
   clearTimeout(wheelTimer);
   wheelTimer = setTimeout(() => (wheelPager.locked = false), duration * 1000 + wheelPager.cooldown);
 }, { passive: false });
@@ -775,6 +816,9 @@ on(window, 'resize', () => {
   lastResizeWidth = window.innerWidth;
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  pixelRatio = computePixelRatio();
+  renderer.setPixelRatio(pixelRatio);
+  finalComposer.setPixelRatio(pixelRatio);
   finalComposer.setSize(window.innerWidth, window.innerHeight);
   renderer.setSize(window.innerWidth, window.innerHeight);
   section.resize();
@@ -801,10 +845,13 @@ if (indicator.el) {
   if (q !== null) {
     const idx = clamp(parseInt(q, 10) || 0, 0, section.items.length - 1);
     window.QA_POS = section.items[idx].top;
+    window.QA_H = lenis.dimensions.scrollHeight;
     pointer.prevent = false; swipe.active = true; animation.paused = false;
     carousel.target = carousel.getRounded(); carousel.position = carousel.target;
     loopGuard.lastPos = window.QA_POS;
     window.dispatchEvent(new CustomEvent('pulse:qa', { detail: { pos: window.QA_POS, idx } }));
+    /* sonde QA : lire l'etat reel du moteur depuis une page de test */
+    window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; } };
   }
 }
 

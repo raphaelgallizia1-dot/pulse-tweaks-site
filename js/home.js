@@ -1184,6 +1184,89 @@
       );
     };
 
+
+    // Section Couches (signature Pulse : 4 modules empilés, la liste pilote le carrousel)
+
+    const initSectionStack = () => {
+      const section = $('.section.is-stack');
+      if (!section) return;
+      const container = $('.stack_container', section);
+      const reveal = initAnimations(section);
+      const layers = [...$$('.stack_layer', section)];
+      const setActive = (i) => layers.forEach((l) => l.classList.toggle('is-active', Number(l.dataset.index) === i));
+
+      initWhenCarousel(() => {
+        setActive(window.carousel.index);
+        window.carousel.changed.connect(({ index }) => setActive(index));
+        layers.forEach((l) => {
+          const go = () => { const i = Number(l.dataset.index); if (i !== window.carousel.index) window.carousel.goTo(i); };
+          l.addEventListener('pointerenter', go);
+          l.addEventListener('click', go);
+          l.addEventListener('focus', go);
+        });
+      });
+
+      gsap.timeline({
+        defaults: { duration: 0.5, ease: 'power2.inOut' },
+        scrollTrigger: {
+          trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
+          onEnter: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+          onEnterBack: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+          onLeave: () => reveal?.out(),
+          onLeaveBack: () => reveal?.out(),
+        },
+      }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.35 });
+    };
+
+    // Protocole (FAQ) : relevé numéroté qui s'écrit à l'arrivée
+
+    const initProtocol = () => {
+      const block = $('.protocol');
+      if (!block) return;
+      const reveal = initAnimations(block);
+      const steps = $$('.protocol_step', block);
+      gsap.set(steps, { autoAlpha: 0, y: 14 });
+      ScrollTrigger.create({
+        trigger: block, start: 'top 85%', once: true,
+        onEnter: () => { reveal?.in(); gsap.to(steps, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power3.out', delay: 0.2 }); },
+      });
+    };
+
+    // HUD : lecture dactylographiée de la section et de la couche courantes
+
+    const initHudReadout = () => {
+      const secEl = $('.hud_readout-sec');
+      const layEl = $('.hud_readout-layer');
+      if (!secEl || !layEl) return;
+      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE 01', 'MÉTHODE 02', 'MÉTHODE 03', 'MÉTHODE 04', 'CLAIM', 'PACKSHOT', 'COUCHES', 'FAQ', 'DISCORD', 'FIN'];
+      const type = (el, text) => {
+        if (el.dataset.txt === text) return;
+        el.dataset.txt = text;
+        gsap.killTweensOf(el);
+        const o = { n: 0 };
+        gsap.to(o, { n: text.length, duration: 0.05 * text.length, ease: 'none', onUpdate: () => { el.textContent = text.slice(0, Math.round(o.n)) + (o.n < text.length ? '_' : ''); } });
+      };
+      initWhenCarousel(() => {
+        const layer = () => type(layEl, String(window.carousel.index + 1).padStart(2, '0') + ' / 04');
+        layer();
+        window.carousel.changed.connect(layer);
+        if (!window.lenis) return;
+        let tops = [];
+        const build = () => { let top = 0; tops = [...$$('section')].map((el) => { const t = top; top += el.clientHeight; return t; }); };
+        build();
+        window.addEventListener('resize', build);
+        const wrap = (v, min, max) => { const size = max - min; v = v % size; if (v < 0) v += size; return v + min; };
+        window.lenis.on('scroll', () => {
+          const max = window.lenis.dimensions.scrollHeight - window.lenis.dimensions.height;
+          if (max <= 0) return;
+          const pos = wrap(window.lenis.animatedScroll, 0, max);
+          let best = 0, dist = Infinity;
+          tops.forEach((t, i) => { const d = Math.abs(t - pos); if (d < dist) { dist = d; best = i; } });
+          type(secEl, NAMES[best] || '');
+        });
+      });
+    };
+
     // #region Init
 
     const initWhenCarousel = (fn) => {
@@ -1198,6 +1281,8 @@
       window.carouselText = initCarouselText();
     };
 
+    /* SplitText mesure les lignes : attendre les polices evite des coupures fausses (et 12 warnings console) */
+    const boot = () => {
     initLoader();
     initSoundToggle();
     initMenuButton();
@@ -1218,4 +1303,9 @@
     initSectionFullGamme();
     initSectionFaq();
     initFaq();
+    initSectionStack();
+    initProtocol();
+    initHudReadout();
+    };
+    Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]).then(boot);
   });
