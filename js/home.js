@@ -361,11 +361,14 @@
     // Sound Button
 
     const initSoundToggle = () => {
-      const sound = $('.navbar_sound');
+      const sounds = [...$$('.navbar_sound')];
+      const sound = sounds[0];
       if (!sound) return;
 
       const label = $('div:first-child', sound);
       const bars = $$('svg rect', sound);
+      /* bouton de la pilule (desktop) et bouton mobile restent synchronises */
+      const mirror = () => sounds.slice(1).forEach((b) => { b.classList.toggle('is-muted', sound.classList.contains('is-muted')); $('div:first-child', b).textContent = label.textContent; b.setAttribute('aria-pressed', sound.getAttribute('aria-pressed')); });
       let isMuted = false;
       let playing = false;
 
@@ -395,12 +398,15 @@
         });
       };
 
-      sound.addEventListener('click', () => {
+      const toggle = () => {
         isMuted = !isMuted;
         sound.classList.toggle('is-muted', isMuted);
+        sound.setAttribute('aria-pressed', isMuted ? 'false' : 'true');
         label.textContent = isMuted ? 'OFF' : 'ON';
         isMuted ? stop() : start();
-      });
+        mirror();
+      };
+      sounds.forEach((b) => b.addEventListener('click', toggle));
 
       start();
     };
@@ -1293,6 +1299,7 @@
           let best = 0, dist = Infinity;
           tops.forEach((t, i) => { const d = Math.abs(t - pos); if (d < dist) { dist = d; best = i; } });
           type(secEl, NAMES[best] || '');
+          $$('.navpill_link[data-sections]').forEach((a) => a.classList.toggle('is-current', a.dataset.sections.split(',').map(Number).includes(best)));
         };
         window.lenis.on('scroll', sync);
         window.sectionChanged?.connect(({ to }) => type(secEl, NAMES[to] || ''));
