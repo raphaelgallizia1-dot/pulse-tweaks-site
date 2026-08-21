@@ -314,8 +314,8 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .bento_layers { display: flex; flex-direction: column; gap: .45rem; width: 100%; flex: 1; justify-content: center; padding: .4rem 0; }
 .bento_layers span { display: flex; align-items: center; gap: .7rem; height: 2.35rem; padding: 0 1rem; border-radius: .7rem; background: color-mix(in srgb, var(--c) 18%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); font-family: var(--_typography---font-styles--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #fff; transform: translateX(0); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
 .bento_layers span i { font-style: normal; color: var(--c); }
-.bento_layers span:nth-child(1) { width: 100%; } .bento_layers span:nth-child(2) { width: 92%; } .bento_layers span:nth-child(3) { width: 84%; } .bento_layers span:nth-child(4) { width: 76%; } .bento_layers span:nth-child(5) { width: 68%; }
-.bento_card.is-tall:hover .bento_layers span { transform: translateX(.35rem); }
+.bento_layers span { width: 100%; letter-spacing: .06em; text-transform: none; font-size: .76rem; }
+
 /* journal d'intervention */
 .bento_card.is-log { align-items: flex-start; text-align: left; justify-content: center; background: rgba(8,8,12,.85); }
 .bento_log { font-family: var(--_typography---font-styles--mono); font-size: .74rem; letter-spacing: .04em; line-height: 1.9; color: var(--_primitives---opacity--white-60); width: 100%; }
@@ -343,3 +343,9 @@ html[data-fallback="1"] .section { pointer-events: auto; }
   .bento_card.is-tall, .bento_card.is-safe { grid-row: auto; grid-column: auto; }
   .bento_scan { min-height: 6rem; }
 }
+
+.bento_tags { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; padding: .3rem 0; }
+.bento_tags span { padding: .4rem .75rem; border-radius: 999px; border: 1px solid var(--color-scheme-1--border); background: rgba(255,255,255,.05); font-family: var(--_typography---font-styles--mono); font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); }
+.is-live .bento_tags span { animation: bentoTag 3.6s ease-in-out infinite; }
+.bento_tags span:nth-child(2) { animation-delay: .4s } .bento_tags span:nth-child(3) { animation-delay: .8s } .bento_tags span:nth-child(4) { animation-delay: 1.2s } .bento_tags span:nth-child(5) { animation-delay: 1.6s } .bento_tags span:nth-child(6) { animation-delay: 2s }
+@keyframes bentoTag { 0%, 100% { color: var(--_primitives---opacity--white-60); border-color: var(--color-scheme-1--border); } 12% { color: #fff; border-color: var(--color-scheme-1--taste-secondary); } 24% { color: var(--_primitives---opacity--white-60); border-color: var(--color-scheme-1--border); } }
