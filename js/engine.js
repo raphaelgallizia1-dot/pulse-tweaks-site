@@ -212,8 +212,8 @@ const renderPass = new RenderPass(scene, camera);
 // #endregion
 // #region Passes / Composer
 
-const resolution = new THREE.Vector2(window.innerWidth / 3, window.innerHeight / 3);
-const bloomPass = new UnrealBloomPass(resolution, 0.1, 0.1, 1);
+const resolution = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
+const bloomPass = new UnrealBloomPass(resolution, 0.08, 0.1, 1.15); /* demi-resolution + seuil plus haut : le halo en gros pixels autour du texte blanc disparait */
 const outputPass = new OutputPass();
 
 /* MSAA 4x sur la cible : une seule resolution au lieu des 3 passes plein ecran du SMAA (edges, weights, blend) */
@@ -265,7 +265,7 @@ await Promise.race([
 ]).catch(() => {});
 
 const bodyMaterial = makeMaterial({
-  color: 0x0c0b12, metalness: 0.78, roughness: 0.32, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
+  color: 0x0c0b12, metalness: 0.5, roughness: 0.6, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
   clearcoat: 0.6, clearcoatRoughness: 0.25, reflectivity: 1, ior: 2, envMapIntensity: 1.2,
 });
 applyEnvironmentTint(bodyMaterial);
@@ -279,8 +279,7 @@ function labelTexture(p) {
   const W = 2048, H = 6144;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, W - 280, H - 280);
+  g.fillStyle = '#0c0b12'; g.fillRect(0, 0, W, H); /* meme noir que le boitier : la plaque se fond dans la face, plus de cadre */
   g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 210px Anton';
   g.fillText('PULSE TWEAKS', W / 2, 470);
   g.font = '78px Geistmono'; g.fillStyle = 'rgba(244,243,246,.8)';
@@ -301,18 +300,19 @@ function labelTexture(p) {
   g.fillText('OPTIMISATION MANUELLE', W / 2, H - 520);
   g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 410);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.premultiplyAlpha = false;
   return t;
 }
 
 const MOD_W = 1.35, MOD_H = 0.8, MOD_L = 4.0;
-const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 4, 0.12);
+const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 8, 0.045); /* biseau fin : la bande claire le long de l'etiquette etait ce biseau qui accrochait la lampe */ /* 8 segments : biseau lisse, sans facettes */
 const capGeometry = new THREE.CylinderGeometry(0.42, 0.5, 0.22, 48);
 capGeometry.rotateX(Math.PI / 2); capGeometry.translate(0, 0, MOD_L / 2 + 0.1);
-const labelGeometry = new THREE.PlaneGeometry(1.12, 3.4);
-labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + 0.006, 0);
-const labelBackGeometry = new THREE.PlaneGeometry(1.12, 3.4);
-labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - 0.006, 0);
+const LBL_W = MOD_W - 0.09 + 0.01, LBL_L = MOD_L - 0.09 + 0.01; /* = la face plane du boitier (hors biseau), a 1 cm pres */
+const labelGeometry = new THREE.PlaneGeometry(LBL_W, LBL_L);
+labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + 0.003, 0);
+const labelBackGeometry = new THREE.PlaneGeometry(LBL_W, LBL_L);
+labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - 0.003, 0);
 const stripGeometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
 stripGeometry.translate(MOD_W / 2 + 0.005, MOD_H / 2 - 0.12, 0);
 const strip2Geometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
