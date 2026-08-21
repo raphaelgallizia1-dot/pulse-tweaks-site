@@ -213,7 +213,7 @@ const renderPass = new RenderPass(scene, camera);
 // #region Passes / Composer
 
 const resolution = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
-const bloomPass = new UnrealBloomPass(resolution, 0.08, 0.1, 1.15); /* demi-resolution + seuil plus haut : le halo en gros pixels autour du texte blanc disparait */
+const bloomPass = new UnrealBloomPass(resolution, 0.08, 0.1, 1.4); /* demi-resolution + seuil plus haut : le halo en gros pixels autour du texte blanc disparait */
 const outputPass = new OutputPass();
 
 /* MSAA 4x sur la cible : une seule resolution au lieu des 3 passes plein ecran du SMAA (edges, weights, blend) */
@@ -283,21 +283,21 @@ function labelTexture(p) {
   g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, W - 280, H - 280);
   g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 210px Anton';
   g.fillText('PULSE TWEAKS', W / 2, 470);
-  g.font = '78px Geistmono'; g.fillStyle = 'rgba(244,243,246,.8)';
+  g.font = '78px Geistmono'; g.fillStyle = 'rgba(228,228,234,.85)';
   g.fillText(p.tag, W / 2, 600);
   g.save(); g.translate(520, H / 2 + 160); g.rotate(-Math.PI / 2);
   g.font = 'italic 620px Anton'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
   g.fillText(p.name, 0, 200); g.restore();
-  g.textAlign = 'left'; g.font = '600 92px Geist, Geistmono';
+  g.textAlign = 'left'; g.font = '600 92px Geist, Geistmono'; /* petites lignes en blanc casse : pas de brulure */
   p.lines.forEach((line, i) => {
     const y = 2760 + i * 400;
     g.fillStyle = p.css; g.fillRect(880, y - 66, 48, 48);
-    g.fillStyle = '#ffffff';
+    g.fillStyle = '#e4e4ea';
     const parts = line.split(' / ');
     g.fillText(parts[0], 980, y);
     if (parts[1]) g.fillText(parts[1], 980, y + 118);
   });
-  g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(244,243,246,.85)';
+  g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(228,228,234,.9)';
   g.fillText('OPTIMISATION MANUELLE', W / 2, H - 520);
   g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 410);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
@@ -325,12 +325,8 @@ const createCan = async (p) => {
   const can = new THREE.Group();
   const texture = labelTexture(p);
 
-  /* etiquette mate : metal/clearcoat/env reduits, le reflet blanc du spot effacait le texte du module central */
-  const labelMaterial = makeMaterial({
-    color: 0xffffff, metalness: 0.0, roughness: 0.9, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
-    clearcoat: 0, clearcoatRoughness: 1, reflectivity: 0.2, ior: 1.2, map: texture, envMapIntensity: 0.22, side: THREE.DoubleSide,
-  });
-  applyEnvironmentTint(labelMaterial);
+  /* etiquette NON eclairee : elle s'affiche telle qu'imprimee (les spots surexposaient les petits textes, illisibles) */
+  const labelMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, toneMapped: false });
   const glow = new THREE.MeshBasicMaterial({ color: p.color });
 
   const body = new THREE.Mesh(bodyGeometry, bodyMaterial); body.name = 'Body';
