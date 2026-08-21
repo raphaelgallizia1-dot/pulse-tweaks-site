@@ -478,7 +478,7 @@ const createTimeline = () => {
   const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
   tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -8.2 : 0.1, camPosZ: mob ? 74 : 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
-    lightIntensity: 38, lightWidth: 1.6, tintStrength: 1.2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
+    lightIntensity: 14, lightWidth: 2.4, tintStrength: 1.0, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* lumiere large et douce : zero point chaud sur les etiquettes */
   i += 1;
 
   // Hors champ (FAQ)
@@ -664,8 +664,8 @@ function animate(tick = 0) {
       canPosX = lerp(canPosX, data.canPosX + L * 0.35, sst);
       canPosY = lerp(canPosY, sy, sst);
       canPosZ = lerp(canPosZ, data.canPosZ + L * 1.6, sst);
-      canScale = lerp(canScale, 1 + L * 0.12, sst);
-      canRotX = lerp(canRotX, L * -0.22, sst);
+      canScale = lerp(canScale, 1 + L * 0.08, sst);
+      canRotX = lerp(canRotX, 0, sst); /* pas de bascule : inclinee vers le spot, l'etiquette se couvrait d'un reflet blanc illisible */
       canRotY = lerp(canRotY, 0, sst);
       canRotZ = lerp(canRotZ, -Math.PI / 2, sst); /* -90 : l'etiquette se lit a l'endroit (a +90 elle est retournee) */
       if (i >= PRODUCTS.length) canScale = lerp(canScale, 0.0001, sst);
