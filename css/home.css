@@ -207,6 +207,16 @@ button.navbar_sound { display: flex; align-items: center; gap: .5rem; }
 /* repli sans WebGL/CDN : la page reste lisible */
 html[data-fallback="1"] .section { pointer-events: auto; }
 
+/* ecrans peu hauts (<= 900 px) : la pile ne doit pas remonter sous le logo */
+@media screen and (min-width: 992px) and (max-height: 900px) {
+  .stack_grid { align-items: start; padding-top: 5.5rem; }
+  .stack_text h2 { font-size: 2.4rem; }
+  .stack_text .margin-bottom.margin-small { margin-bottom: .4rem; }
+  .stack_layer { padding: .5rem 0; }
+  .stack_list, .stack_symptoms { margin-top: .7rem; }
+  .stack_cta { margin-top: .9rem; }
+}
+
 /* ---- Mobile (audit 2026-08-21) ---- */
 .review { background: rgba(18,17,24,.92); } /* opaque : le module 3D du retour de camera transparaissait derriere les avis */
 @media screen and (max-width: 991px) {

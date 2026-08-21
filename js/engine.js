@@ -84,7 +84,7 @@ window.lenis = lenis;
 
 const scroll = { position: 0 };
 scroll.wrapped = (position) => wrap(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
-scroll.to = (pos, options) => { if (pos !== 0) pos -= 10; lenis.scrollTo(pos, options); };
+scroll.to = (pos, options) => { if (pos !== 0) pos -= 2; lenis.scrollTo(pos, options); }; /* -2 et non -10 : a 10 px du debut, des revelations calees sur le top ne se declenchaient pas */
 scroll.distanceTo = (target, position = scroll.position) => {
   const min = position;
   const max = position - lenis.dimensions.scrollHeight + lenis.dimensions.height;
@@ -477,7 +477,7 @@ const createTimeline = () => {
   // Packshot (gamme debout en diagonale, swirl)
   tl.to(data, { camPosX: -3, camPosY: -3.5, camPosZ: 20, camRotX: D * 10, camRotY: D * -9, camRotZ: D * -10, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 1, baseOffset: 20,
-    lightIntensity: 10, lightWidth: 3, tintStrength: 2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 2, duration: dur() });
+    lightIntensity: 8, lightWidth: 3, tintStrength: 1.25, /* 2 : reflet blanc qui effacait l'etiquette TIMERTUNER */ spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 2, duration: dur() });
   i += 1;
 
   // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
@@ -866,6 +866,8 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
   const last = section.items.length - 3; /* la FAQ est la derniere section navigable */
+  /* zone libre (FAQ, avis, pied de page) : le clavier defile nativement, on ne bloque rien */
+  if (anchor >= last && ['ArrowDown', 'PageDown', ' ', 'End'].includes(e.key)) return;
   let target = null;
   if (['ArrowDown', 'PageDown', ' '].includes(e.key)) target = Math.min(anchor + 1, last);
   if (['ArrowUp', 'PageUp'].includes(e.key)) target = Math.max(anchor - 1, 0);

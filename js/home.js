@@ -1286,14 +1286,17 @@
         build();
         window.addEventListener('resize', build);
         const wrap = (v, min, max) => { const size = max - min; v = v % size; if (v < 0) v += size; return v + min; };
-        window.lenis.on('scroll', () => {
+        const sync = () => {
           const max = window.lenis.dimensions.scrollHeight - window.lenis.dimensions.height;
           if (max <= 0) return;
           const pos = wrap(window.lenis.animatedScroll, 0, max);
           let best = 0, dist = Infinity;
           tops.forEach((t, i) => { const d = Math.abs(t - pos); if (d < dist) { dist = d; best = i; } });
           type(secEl, NAMES[best] || '');
-        });
+        };
+        window.lenis.on('scroll', sync);
+        window.sectionChanged?.connect(({ to }) => type(secEl, NAMES[to] || ''));
+        setInterval(sync, 600); /* filet : apres un saut (End/Home, boucle) le dernier evenement scroll pouvait manquer */
       });
     };
 
