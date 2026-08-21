@@ -265,7 +265,7 @@ await Promise.race([
 ]).catch(() => {});
 
 const bodyMaterial = makeMaterial({
-  color: 0x0c0b12, metalness: 0.5, roughness: 0.6, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
+  color: 0x0c0b12, metalness: 0.78, roughness: 0.32, sheen: 0.2, sheenRoughness: 0.3, sheenColor: 0xffffff,
   clearcoat: 0.6, clearcoatRoughness: 0.25, reflectivity: 1, ior: 2, envMapIntensity: 1.2,
 });
 applyEnvironmentTint(bodyMaterial);
@@ -279,7 +279,8 @@ function labelTexture(p) {
   const W = 2048, H = 6144;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0c0b12'; g.fillRect(0, 0, W, H); /* meme noir que le boitier : la plaque se fond dans la face, plus de cadre */
+  g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, W - 280, H - 280);
   g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 210px Anton';
   g.fillText('PULSE TWEAKS', W / 2, 470);
   g.font = '78px Geistmono'; g.fillStyle = 'rgba(244,243,246,.8)';
@@ -305,14 +306,14 @@ function labelTexture(p) {
 }
 
 const MOD_W = 1.35, MOD_H = 0.8, MOD_L = 4.0;
-const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 8, 0.045); /* biseau fin : la bande claire le long de l'etiquette etait ce biseau qui accrochait la lampe */ /* 8 segments : biseau lisse, sans facettes */
+const bodyGeometry = new RoundedBoxGeometry(MOD_W, MOD_H, MOD_L, 6, 0.12); /* 8 segments : biseau lisse, sans facettes */
 const capGeometry = new THREE.CylinderGeometry(0.42, 0.5, 0.22, 48);
 capGeometry.rotateX(Math.PI / 2); capGeometry.translate(0, 0, MOD_L / 2 + 0.1);
-const LBL_W = MOD_W - 0.09 + 0.01, LBL_L = MOD_L - 0.09 + 0.01; /* = la face plane du boitier (hors biseau), a 1 cm pres */
+const LBL_W = 1.12, LBL_L = 3.4; /* plaque d'origine (validee) */ /* = la face plane du boitier (hors biseau), a 1 cm pres */
 const labelGeometry = new THREE.PlaneGeometry(LBL_W, LBL_L);
-labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + 0.003, 0);
+labelGeometry.rotateX(-Math.PI / 2); labelGeometry.translate(0, MOD_H / 2 + 0.006, 0);
 const labelBackGeometry = new THREE.PlaneGeometry(LBL_W, LBL_L);
-labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - 0.003, 0);
+labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labelBackGeometry.translate(0, -MOD_H / 2 - 0.006, 0);
 const stripGeometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
 stripGeometry.translate(MOD_W / 2 + 0.005, MOD_H / 2 - 0.12, 0);
 const strip2Geometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
@@ -455,7 +456,7 @@ const createTimeline = () => {
   // Gamme (carrousel)
   tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 40, canScale: 1, canPosX: 0.5, canPosY: -0.5, canPosZ: 0,
     canRotX: D * -37.5, canRotY: D * 15, canRotZ: D * 22.5, canSpin: 0, spacing: 3.5, wave: 0, swirl: 0, baseOffset: 3,
-    lightIntensity: 9, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
+    lightIntensity: 14, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
   i += 1;
   tl.set(swipe, { active: false });
 
@@ -547,7 +548,7 @@ loader.play = async () => {
   carousel.target = carousel.offset;
   carousel.position = carousel.offset;
   tl.set(data, { camPosZ: 25, spacing: 10, baseOffset: 3, wave: 0, swirl: 0, lightWidth: 2, lightIntensity: 0, canSpin: D * 20, pointerInfluence: 0 });
-  tl.to(data, { lightIntensity: 9 }, 0);
+  tl.to(data, { lightIntensity: 14 }, 0);
   tl.to(data, { camPosZ: 29 }, 0.6);
   tl.to(data, startData, 1.2); /* intro : 3,0 s au lieu de 3,8 (la page n'est pilotable qu'a la fin) */
   loader.timeline = tl;
