@@ -206,3 +206,48 @@ button.navbar_sound { display: flex; align-items: center; gap: .5rem; }
 @media screen and (min-width: 992px) and (max-width: 1100px) { .profile_container .max-width-custom { max-width: 24rem; } }
 /* repli sans WebGL/CDN : la page reste lisible */
 html[data-fallback="1"] .section { pointer-events: auto; }
+
+/* ---- Mobile (audit 2026-08-21) ---- */
+.review { background: rgba(18,17,24,.92); } /* opaque : le module 3D du retour de camera transparaissait derriere les avis */
+@media screen and (max-width: 991px) {
+  .profile_desc { height: auto !important; } /* 5rem fixes en base : le paragraphe debordait, prix et bouton se posaient dessus */
+  .carousel_title-bis-wrapper { opacity: .22; }
+  .profile_cta { margin-top: var(--_spacing-sizing---element-padding--s); flex-wrap: wrap; gap: .8rem; }
+  .stack_text { padding-top: 1rem; }
+  .stack_chip { font-size: .78rem; padding: .6rem .95rem; min-height: 40px; }
+  .stack_symptoms-label { font-size: .72rem; }
+  .stack_what { font-size: .74rem; }
+  .stack_num, .protocol_num, .review_who, .stack_note { font-size: .75rem; }
+  .review_result-ctx { font-size: .9rem; }
+  .stack_layer { min-height: 48px; }
+  .navbar_menu-button, .navbar_sound { min-height: 44px; padding: 0 .6rem; }
+  .navbar_menu-button { margin-left: -.6rem; }
+  .carousel_arrow { width: 44px !important; height: 44px !important; padding: 6px; }
+  .footer_container { display: flex !important; flex-direction: column; align-items: stretch; gap: .6rem; grid-template-columns: none !important; }
+  .footer_container .button.is-social { width: 100%; }
+  .footer_container .button.is-social, .footer_container .footer_link { display: flex; justify-content: center; align-items: center; min-height: 44px; padding: .6rem 1rem; font-size: .85rem; }
+  .footer_link-list { display: flex; justify-content: center; }
+  .section.is-last-copy, .section.is-last { min-height: 55svh; } /* 2 ecrans vides avant la boucle : trop long au pouce */
+}
+
+@media screen and (max-width: 991px) {
+  .carousel_title-bis-wrapper { display: none; } /* les grandes lettres passaient sous le paragraphe de la fiche */
+  .hud_left { display: none; } /* les lettres P T _ croisaient les numeros de la pile */
+  /* pile compacte : tout doit tenir sous la barre en 844 px */
+  .stack_text { padding-top: 0; }
+  .stack_text .margin-bottom.margin-small { margin-bottom: .5rem; }
+  .stack_text h2 { font-size: 2rem; }
+  .stack_text p { font-size: .9rem; line-height: 1.35; }
+  .stack_symptoms { gap: .35rem; margin-top: .6rem; }
+  .stack_symptoms-label { display: none; }
+  .stack_chip { font-size: .7rem; padding: .45rem .7rem; min-height: 36px; }
+  .stack_list { margin-top: .6rem; }
+  .stack_layer { grid-template-columns: 1.8rem 1fr auto; grid-template-rows: auto; min-height: 44px; padding: .45rem 0; gap: .6rem; align-items: center; }
+  .stack_what { display: none; }
+  .stack_layer.is-active .stack_what, .stack_layer.is-suggested .stack_what { display: block; grid-column: 2 / span 2; font-size: .7rem; opacity: .85; }
+  .stack_name { font-size: 1.1rem; }
+  .stack_price { font-size: 1rem; }
+  .stack_note { margin-top: .5rem; font-size: .66rem; }
+  .stack_cta { margin-top: .7rem; }
+  .stack_cta .button { padding: .75rem 1rem; font-size: .8rem; }
+}

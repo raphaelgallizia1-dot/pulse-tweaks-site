@@ -482,7 +482,7 @@ const createTimeline = () => {
 
   // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
   const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
-  tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -8.2 : 0.1, camPosZ: mob ? 74 : 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
+  tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -40 : 0.1, camPosZ: mob ? 74 : 29, /* mobile : pile hors champ, la liste suffit (pas la place a 390 px) */ camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
     lightIntensity: 0, lightWidth: 2.4, tintStrength: 1.9, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* spots coupes : seul l'environnement eclaire, uniformement -> aucun reflet sur les etiquettes */
   i += 1;
@@ -756,7 +756,7 @@ on(window, 'mousemove touchmove', (e) => {
 on(window, 'mouseup touchend', () => {
   if (!swipe.holding) return;
   setTimeout(() => {
-    swipe.deltaX *= 8;
+    swipe.deltaX = clamp(swipe.deltaX * 8, -90, 90); /* 90 x 0.02 = 1.8 < 3.5 : un geste deplace au plus d'un produit */
     swipe.holding = false;
     swipe.direction = 0;
     lenis.start();
