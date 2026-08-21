@@ -1067,37 +1067,37 @@
       }).fromTo(nav, { autoAlpha: 0 }, { autoAlpha: 1 });
     };
 
-    // Points chauds de la methode : 4 reperes accroches au module 3D, chacun ouvre sa fiche
-    const initHotspots = () => {
+    // Methode : rail fixe de 4 reperes + panneau de lecture a droite (le module ne bouge pas)
+    const initMethodRail = () => {
       const section = $('.section.is-benefits');
-      const wrap = $('.hotspots', section);
-      if (!section || !wrap) return;
-      const items = [...$$('.hotspot', wrap)];
-      /* coordonnees dans le repere du module (x largeur, y longueur, z face avant) */
-      const LOCAL = [[0.15, 1.35, 0.45], [0.42, 0.15, 0.45], [-0.05, -0.95, 0.45], [0.6, -1.5, 0.45]];
-      window.hotspots = { active: false, items: items.map((el, i) => ({ el, local: LOCAL[i] })) };
-      let openIdx = -1, autoTimer = null;
-      const open = (i) => {
-        openIdx = i;
-        items.forEach((it, k) => { it.classList.toggle('is-open', k === i); $('.hotspot_dot', it).setAttribute('aria-expanded', k === i ? 'true' : 'false'); });
+      if (!section) return;
+      const marks = [...$$('.method_mark', section)];
+      const items = [...$$('.method_item', section)];
+      const side = $('.method_side', section);
+      let cur = 0;
+      const show = (i, animate = true) => {
+        cur = i;
+        marks.forEach((m, k) => { m.classList.toggle('is-active', k === i); m.setAttribute('aria-selected', k === i ? 'true' : 'false'); });
+        items.forEach((it, k) => {
+          if (k === i) { it.classList.add('is-active'); gsap.fromTo(it, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: animate ? 0.5 : 0, ease: 'power3.out', overwrite: true }); }
+          else { it.classList.remove('is-active'); gsap.to(it, { autoAlpha: 0, y: -8, duration: animate ? 0.25 : 0, overwrite: true }); }
+        });
       };
-      items.forEach((it, i) => {
-        const dot = $('.hotspot_dot', it);
-        dot.addEventListener('pointerenter', () => { clearTimeout(autoTimer); open(i); });
-        dot.addEventListener('click', () => { clearTimeout(autoTimer); open(openIdx === i ? -1 : i); });
-        dot.addEventListener('focus', () => open(i));
+      marks.forEach((m, i) => {
+        m.addEventListener('pointerenter', () => show(i));
+        m.addEventListener('click', () => show(i));
+        m.addEventListener('focus', () => show(i));
+        m.setAttribute('role', 'tab');
       });
-      ScrollTrigger.create({
-        trigger: section, start: 'top bottom', end: 'bottom bottom',
-        onToggle: ({ isActive }) => {
-          window.hotspots.active = isActive;
-          section.classList.toggle('is-live', isActive);
-          clearTimeout(autoTimer);
-          if (isActive) { open(-1); gsap.fromTo(items, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.5, stagger: 0.12, delay: 0.6, ease: 'back.out(1.8)', overwrite: true }); autoTimer = setTimeout(() => { if (openIdx === -1) open(0); }, 1600); }
-          else { open(-1); gsap.set(items, { autoAlpha: 0 }); }
+      show(0, false);
+      gsap.timeline({
+        defaults: { duration: 0.5, ease: 'power2.inOut' },
+        scrollTrigger: {
+          trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
+          onEnter: () => { show(0, false); gsap.fromTo(marks, { autoAlpha: 0, x: 14 }, { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.08, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+          onEnterBack: () => { show(0, false); gsap.fromTo(marks, { autoAlpha: 0, x: 14 }, { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.08, delay: 0.5, ease: 'power3.out', overwrite: true }); },
         },
-      });
-      gsap.set(items, { autoAlpha: 0 });
+      }).fromTo(side, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.45 });
     };
 
     // Section Argument
@@ -1382,7 +1382,7 @@
     initSectionGamme();
     initSectionProfile();
     initSectionBenefits();
-    initHotspots();
+    initMethodRail();
     initSectionArgument();
     initSectionFullGamme();
     initSectionFaq();
