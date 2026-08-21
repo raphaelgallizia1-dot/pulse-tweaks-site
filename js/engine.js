@@ -326,8 +326,8 @@ const createCan = async (p) => {
 
   /* etiquette mate : metal/clearcoat/env reduits, le reflet blanc du spot effacait le texte du module central */
   const labelMaterial = makeMaterial({
-    color: 0xffffff, metalness: 0.08, roughness: 0.62, sheen: 0.02, sheenRoughness: 0.3, sheenColor: 0xffffff,
-    clearcoat: 0.12, clearcoatRoughness: 0.6, reflectivity: 0.5, ior: 1.4, map: texture, envMapIntensity: 0.45, side: THREE.DoubleSide,
+    color: 0xffffff, metalness: 0.0, roughness: 0.9, sheen: 0, sheenRoughness: 1, sheenColor: 0x000000,
+    clearcoat: 0, clearcoatRoughness: 1, reflectivity: 0.2, ior: 1.2, map: texture, envMapIntensity: 0.22, side: THREE.DoubleSide,
   });
   applyEnvironmentTint(labelMaterial);
   const glow = new THREE.MeshBasicMaterial({ color: p.color });
@@ -441,7 +441,7 @@ const data = {
   camPosX: 0, camPosY: 0, camPosZ: 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20,
   canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0, canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0,
   spacing: 1, wave: 1, swirl: 0, baseOffset: 0, stack: 0,
-  lightIntensity: 50, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1,
+  lightIntensity: 22, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1,
 };
 const startData = JSON.parse(JSON.stringify(data));
 const D = Math.PI / 180;
@@ -455,7 +455,7 @@ const createTimeline = () => {
   // Gamme (carrousel)
   tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 40, canScale: 1, canPosX: 0.5, canPosY: -0.5, canPosZ: 0,
     canRotX: D * -37.5, canRotY: D * 15, canRotZ: D * 22.5, canSpin: 0, spacing: 3.5, wave: 0, swirl: 0, baseOffset: 3,
-    lightIntensity: 20, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
+    lightIntensity: 9, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
   i += 1;
   tl.set(swipe, { active: false });
 
@@ -547,7 +547,7 @@ loader.play = async () => {
   carousel.target = carousel.offset;
   carousel.position = carousel.offset;
   tl.set(data, { camPosZ: 25, spacing: 10, baseOffset: 3, wave: 0, swirl: 0, lightWidth: 2, lightIntensity: 0, canSpin: D * 20, pointerInfluence: 0 });
-  tl.to(data, { lightIntensity: 20 }, 0);
+  tl.to(data, { lightIntensity: 9 }, 0);
   tl.to(data, { camPosZ: 29 }, 0.6);
   tl.to(data, startData, 1.2); /* intro : 3,0 s au lieu de 3,8 (la page n'est pilotable qu'a la fin) */
   loader.timeline = tl;
