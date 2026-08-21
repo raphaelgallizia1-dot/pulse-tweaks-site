@@ -222,7 +222,7 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 }
 
 /* ---- Mobile (audit 2026-08-21) ---- */
-.review { background: rgba(18,17,24,.92); } /* opaque : le module 3D du retour de camera transparaissait derriere les avis */
+.review { background: rgba(12,11,18,.97); } /* opaque : le module 3D du retour de camera transparaissait derriere les avis */
 @media screen and (max-width: 991px) {
   .profile_desc { height: auto !important; } /* 5rem fixes en base : le paragraphe debordait, prix et bouton se posaient dessus */
   .carousel_title-bis-wrapper { opacity: .22; }
@@ -446,3 +446,20 @@ select.modal_input { appearance: none; }
 .loader_img { display: flex; align-items: center; justify-content: center; gap: clamp(1rem, 2.5vw, 2.2rem); }
 .loader_logo { width: clamp(5rem, 11vw, 9rem); height: clamp(5rem, 11vw, 9rem); object-fit: contain; display: block; flex: 0 0 auto; animation: loaderLogo 2.8s ease-in-out infinite; filter: drop-shadow(0 0 26px color-mix(in srgb, var(--color-scheme-1--taste-secondary) 60%, transparent)); }
 @keyframes loaderLogo { 0%, 100% { transform: scale(.97); opacity: .85; } 50% { transform: scale(1); opacity: 1; } }
+
+/* Avis : la ligne prend toute la largeur de la page */
+.reviews_marquee { width: 100vw; max-width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+.review_tag { display: inline-block; margin-left: .45rem; padding: .12rem .45rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--color-scheme-1--taste-secondary) 60%, transparent); color: var(--color-scheme-1--taste-secondary); font-size: .72em; letter-spacing: .06em; text-transform: uppercase; vertical-align: 1px; }
+
+/* Panneau admin : logo, etoiles maison, bloc publication */
+.modal_head { display: flex; align-items: center; gap: .9rem; margin-bottom: 1rem; }
+.modal_logo { width: 3.2rem; height: 3.2rem; object-fit: contain; flex: 0 0 auto; }
+.modal_head .modal_title { margin-bottom: 0; }
+.stars_field { display: flex; gap: .25rem; }
+.star { appearance: none; background: transparent; border: 0; padding: .1rem; font-size: 1.5rem; line-height: 1; cursor: pointer; color: rgba(255,255,255,.22); transition: color .2s, transform .2s; }
+.star.is-on { color: var(--color-scheme-1--taste-secondary); }
+.star:hover { transform: scale(1.12); }
+.modal_details { margin: .2rem 0 1rem; border-top: 1px solid var(--color-scheme-1--border); padding-top: .8rem; }
+.modal_details summary { cursor: pointer; font-family: var(--_typography---font-styles--mono); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-scheme-1--taste-secondary); }
+.modal_details .modal_form { margin-top: .7rem; }
+.bento_logo { width: 3.4rem; height: 3.4rem; object-fit: contain; margin-bottom: .3rem; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--color-scheme-1--taste-secondary) 55%, transparent)); }
