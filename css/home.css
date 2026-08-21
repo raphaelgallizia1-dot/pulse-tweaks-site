@@ -463,3 +463,14 @@ select.modal_input { appearance: none; }
 .modal_details summary { cursor: pointer; font-family: var(--_typography---font-styles--mono); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-scheme-1--taste-secondary); }
 .modal_details .modal_form { margin-top: .7rem; }
 .bento_logo { width: 3.4rem; height: 3.4rem; object-fit: contain; margin-bottom: .3rem; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--color-scheme-1--taste-secondary) 55%, transparent)); }
+
+/* Gestion des avis : liste a cocher */
+.rev_list { max-height: 15rem; overflow-y: auto; margin: .7rem 0; border: 1px solid var(--color-scheme-1--border); border-radius: .7rem; }
+.rev_row { display: grid; grid-template-columns: auto 7rem 1fr auto; gap: .6rem; align-items: center; padding: .5rem .7rem; border-bottom: 1px solid var(--color-scheme-1--border); font-size: .78rem; cursor: pointer; }
+.rev_row:last-child { border-bottom: 0; }
+.rev_row:hover { background: rgba(255,255,255,.05); }
+.rev_row input { accent-color: var(--color-scheme-1--taste-secondary); width: 1rem; height: 1rem; }
+.rev_who { font-family: var(--_typography---font-styles--mono); font-size: .7rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rev_txt { color: var(--_primitives---opacity--white-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rev_org { font-family: var(--_typography---font-styles--mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--_primitives---opacity--white-30); }
+[data-delete-reviews][disabled] { opacity: .4; cursor: not-allowed; }
