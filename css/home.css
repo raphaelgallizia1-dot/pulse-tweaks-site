@@ -82,7 +82,7 @@ h2[data-anim='chars-mask'] .line-mask:not(:first-child), .heading-style-h2 [data
 .gamme_gradient { background: conic-gradient(from 17deg at 50% 50%, #8b5cf6 0deg, #d946ef 72deg, #3b82f6 144deg, #6366f1 216deg, #22d3ee 288deg, #8b5cf6 360deg); }
 
 /* claim : texte géant SVG */
-.argument_svg svg text { fill: var(--color-scheme-1--taste-secondary); font-family: Anton, Impact, sans-serif; font-style: italic; }
+.argument_svg svg text { fill: #f4f3f6; font-family: Anton, Impact, sans-serif; font-style: italic; } /* blanc : la couleur produit inonde le fond, un texte de la meme couleur disparaissait (« INUTILE » illisible) */
 .argument_svg { filter: drop-shadow(0 0 80px var(--color-scheme-1--taste-secondary)) drop-shadow(0 0 90px var(--color-scheme-1--taste-primary)); mix-blend-mode: screen; }
 .argument_video img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -107,8 +107,8 @@ h2 { font-style: italic; }
 .text-size-tiny a { text-decoration: underline; }
 
 /* ---- Fluidité : filtres lourds allégés (un drop-shadow de 90 px sur un SVG pleine largeur se repeint à chaque frame) ---- */
-.argument_svg { filter: drop-shadow(0 0 22px var(--color-scheme-1--taste-secondary)); will-change: filter, opacity; }
-.argument_svg svg text { fill-opacity: 0.9 !important; }
+.argument_svg { filter: drop-shadow(0 0 18px var(--color-scheme-1--taste-secondary)) drop-shadow(0 2px 2px rgba(0,0,0,.6)); will-change: filter, opacity; }
+.argument_svg svg text { fill-opacity: 0.94 !important; }
 .review { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,.06); }
 
 /* ---- Signature Pulse : survol des boutons par crochets d'angle (le motif des fiches), plus de bascule de lettres ---- */
