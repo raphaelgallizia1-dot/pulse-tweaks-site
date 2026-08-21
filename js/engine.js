@@ -441,7 +441,8 @@ const data = {
   lightIntensity: 22, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1,
 };
 const startData = JSON.parse(JSON.stringify(data));
-window.stepFx = { spin: 0, y: 0, rotZ: 0 }; /* additif, anime par le stepper de la section methode */
+window.stepFx = { spin: 0, y: 0, rotZ: 0 };
+const _v3 = new THREE.Vector3();
 const D = Math.PI / 180;
 
 const createTimeline = () => {
@@ -719,6 +720,18 @@ function animate(tick = 0) {
   spot3.target.position.set(0, data.spotY - 2.5, 0);
 
   tint.strength.value = data.tintStrength;
+
+  /* points chauds de la section methode : coordonnees locales du module central projetees a l'ecran */
+  if (window.hotspots && window.hotspots.active) {
+    const center = cans[Math.floor(cans.length / 2)];
+    const W = window.innerWidth, H = window.innerHeight;
+    window.hotspots.items.forEach((hs) => {
+      _v3.set(hs.local[0], hs.local[1], hs.local[2]).applyMatrix4(center.matrixWorld).project(camera);
+      hs.el.style.transform = 'translate(' + ((_v3.x + 1) / 2 * W).toFixed(1) + 'px,' + ((1 - _v3.y) / 2 * H).toFixed(1) + 'px)';
+      hs.el.style.opacity = _v3.z < 1 ? 1 : 0;
+    });
+    window.stepFx.spin = Math.sin(time * 0.7) * 0.18; /* oscillation douce : le module "respire", invite a explorer */
+  } else if (window.stepFx) window.stepFx.spin = lerp(window.stepFx.spin, 0, Math.min(1, delta * 4));
 
   if (!contextLost) finalComposer.render();
   carousel.lastPosition = carousel.position;

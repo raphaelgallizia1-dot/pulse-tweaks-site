@@ -359,3 +359,25 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .benefits_progress span::after { content: ''; position: absolute; inset: 0; background: var(--color-scheme-1--taste-secondary); transform-origin: left; transform: scaleX(inherit); }
 .benefits_progress span { transform-origin: left; }
 .benefits_nav .benefits_icon-wrapper { appearance: none; background: transparent; border: 0; color: inherit; cursor: pointer; padding: 0; font: inherit; }
+
+/* ---- Methode : points chauds sur le module 3D ---- */
+.benefits_nav { display: none !important; }
+.benefits_hint { color: var(--_primitives---opacity--white-60); }
+.hotspots { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.hotspot { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; will-change: transform; }
+.hotspot_dot { position: absolute; left: -1.1rem; top: -1.1rem; width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.7); background: rgba(10,9,14,.55); color: #fff; font-family: var(--_typography---font-styles--mono); font-size: .62rem; letter-spacing: .08em; display: grid; place-items: center; cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background-color .3s, border-color .3s, transform .3s; }
+.hotspot_dot::before { content: ''; position: absolute; inset: -.45rem; border-radius: 50%; border: 1px solid var(--color-scheme-1--taste-secondary); opacity: 0; }
+.is-live .hotspot_dot::before { animation: hotPulse 2.2s ease-out infinite; }
+.hotspot:nth-child(2) .hotspot_dot::before { animation-delay: .5s } .hotspot:nth-child(3) .hotspot_dot::before { animation-delay: 1s } .hotspot:nth-child(4) .hotspot_dot::before { animation-delay: 1.5s }
+@keyframes hotPulse { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+.hotspot.is-open .hotspot_dot { background: var(--color-scheme-1--taste-secondary); border-color: var(--color-scheme-1--taste-secondary); color: var(--color-scheme-1--taste-primary); transform: scale(1.1); }
+.hotspot_card { position: absolute; left: 1.8rem; top: -.6rem; width: 19rem; padding: 1rem 1.1rem; border-radius: 1rem; background: rgba(12,11,18,.86); border: 1px solid var(--color-scheme-1--border); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); opacity: 0; visibility: hidden; transform: translateX(-.5rem); transition: opacity .3s, transform .35s cubic-bezier(.2,.7,.2,1), visibility 0s .3s; text-align: left; }
+.hotspot.is-open .hotspot_card { opacity: 1; visibility: visible; transform: translateX(0); transition: opacity .3s, transform .35s cubic-bezier(.2,.7,.2,1), visibility 0s; }
+.hotspot.is-right .hotspot_card { left: auto; right: 1.8rem; transform: translateX(.5rem); }
+.hotspot.is-right.is-open .hotspot_card { transform: translateX(0); }
+.hotspot_no { font-family: var(--_typography---font-styles--mono); font-size: .6rem; letter-spacing: .16em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); text-decoration: line-through; margin-bottom: .35rem; }
+.hotspot_title { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase; font-size: 1.25rem; line-height: 1.05; margin-bottom: .4rem; }
+.hotspot_text { font-size: .84rem; line-height: 1.45; color: var(--_primitives---opacity--white-60); }
+@media screen and (max-width: 991px) { .hotspot_card { width: min(16rem, 70vw); } .hotspot:nth-child(2) .hotspot_card, .hotspot:nth-child(4) .hotspot_card { left: auto; right: 1.8rem; } }
+
+.hotspot:nth-child(3) .hotspot_card, .hotspot:nth-child(4) .hotspot_card { top: auto; bottom: -.6rem; } /* bas du module : la fiche s'ouvre vers le haut */

@@ -1067,43 +1067,37 @@
       }).fromTo(nav, { autoAlpha: 0 }, { autoAlpha: 1 });
     };
 
-    // Stepper de la methode : 4 points en UNE section, defilement auto 3,2 s, rail cliquable, pause au survol
-    const initBenefitsStepper = () => {
+    // Points chauds de la methode : 4 reperes accroches au module 3D, chacun ouvre sa fiche
+    const initHotspots = () => {
       const section = $('.section.is-benefits');
-      if (!section) return;
-      const steps = [...$$('.benefits_step', section)];
-      const bars = [...$$('.benefits_progress span', section)];
-      const icons = [...$$('.benefits_nav .benefits_icon-wrapper')];
-      const DUR = 3.2;
-      let idx = 0, live = false, timer = null, paused = false;
-      const fx = window.stepFx || (window.stepFx = { spin: 0, y: 0, rotZ: 0 });
-      const show = (i, animate = true) => {
-        steps.forEach((st, k) => {
-          const on = k === i;
-          st.classList.toggle('is-active', on);
-          if (on) gsap.fromTo(st, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: animate ? 0.55 : 0, ease: 'power3.out', overwrite: true });
-          else gsap.to(st, { autoAlpha: 0, y: -10, duration: animate ? 0.35 : 0, ease: 'power2.in', overwrite: true });
-        });
-        icons.forEach((ic, k) => ic.classList.toggle('is-active', k === i));
-        bars.forEach((b, k) => { gsap.killTweensOf(b); gsap.set(b, { scaleX: k < i ? 1 : 0 }); });
-        if (animate) { gsap.fromTo(fx, { spin: fx.spin }, { spin: fx.spin + Math.PI * 0.3, duration: 1.1, ease: 'power3.out' }); gsap.fromTo(fx, { rotZ: 0.05 }, { rotZ: 0, duration: 0.9, ease: 'power2.out' }); }
-        idx = i;
+      const wrap = $('.hotspots', section);
+      if (!section || !wrap) return;
+      const items = [...$$('.hotspot', wrap)];
+      /* coordonnees dans le repere du module (x largeur, y longueur, z face avant) */
+      const LOCAL = [[0.15, 1.35, 0.45], [0.42, 0.15, 0.45], [-0.05, -0.95, 0.45], [0.6, -1.5, 0.45]];
+      window.hotspots = { active: false, items: items.map((el, i) => ({ el, local: LOCAL[i] })) };
+      let openIdx = -1, autoTimer = null;
+      const open = (i) => {
+        openIdx = i;
+        items.forEach((it, k) => { it.classList.toggle('is-open', k === i); $('.hotspot_dot', it).setAttribute('aria-expanded', k === i ? 'true' : 'false'); });
       };
-      const run = () => {
-        clearTimeout(timer);
-        if (!live) return;
-        gsap.fromTo(bars[idx], { scaleX: 0 }, { scaleX: 1, duration: DUR, ease: 'none', paused: paused });
-        timer = setTimeout(() => { if (live && !paused) { show((idx + 1) % steps.length); run(); } }, DUR * 1000);
-      };
-      icons.forEach((ic, k) => ic.addEventListener('click', () => { show(k); run(); }));
-      section.addEventListener('pointerenter', () => { paused = true; });
-      section.addEventListener('pointerleave', () => { paused = false; run(); });
-      $$('.benefits_nav').forEach((n) => { n.addEventListener('pointerenter', () => { paused = true; }); n.addEventListener('pointerleave', () => { paused = false; run(); }); });
+      items.forEach((it, i) => {
+        const dot = $('.hotspot_dot', it);
+        dot.addEventListener('pointerenter', () => { clearTimeout(autoTimer); open(i); });
+        dot.addEventListener('click', () => { clearTimeout(autoTimer); open(openIdx === i ? -1 : i); });
+        dot.addEventListener('focus', () => open(i));
+      });
       ScrollTrigger.create({
         trigger: section, start: 'top bottom', end: 'bottom bottom',
-        onToggle: ({ isActive }) => { live = isActive; if (isActive) { show(0, true); run(); } else { clearTimeout(timer); } },
+        onToggle: ({ isActive }) => {
+          window.hotspots.active = isActive;
+          section.classList.toggle('is-live', isActive);
+          clearTimeout(autoTimer);
+          if (isActive) { open(-1); gsap.fromTo(items, { autoAlpha: 0, scale: 0.6 }, { autoAlpha: 1, scale: 1, duration: 0.5, stagger: 0.12, delay: 0.6, ease: 'back.out(1.8)', overwrite: true }); autoTimer = setTimeout(() => { if (openIdx === -1) open(0); }, 1600); }
+          else { open(-1); gsap.set(items, { autoAlpha: 0 }); }
+        },
       });
-      show(0, false);
+      gsap.set(items, { autoAlpha: 0 });
     };
 
     // Section Argument
@@ -1388,8 +1382,7 @@
     initSectionGamme();
     initSectionProfile();
     initSectionBenefits();
-    initBenefitsNav();
-    initBenefitsStepper();
+    initHotspots();
     initSectionArgument();
     initSectionFullGamme();
     initSectionFaq();
