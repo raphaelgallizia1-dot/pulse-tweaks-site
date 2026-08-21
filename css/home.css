@@ -201,6 +201,10 @@ button.navbar_sound { display: flex; align-items: center; gap: .5rem; }
 .stack_note { color: var(--_primitives---opacity--white-60); font-size: .7rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  /* EXCEPTION : la ligne d'avis doit defiler quoi qu'il arrive (demande client).
+     Sans ces !important, la regle globale ci-dessus la figeait (duree 0,01 ms) sur un Windows
+     ou "animations reduites" est actif — c'est ce que Raphael voyait : un bloc immobile. */
+  .reviews_track { animation-duration: var(--dur, 60s) !important; animation-iteration-count: infinite !important; }
 }
 /* fiche : sous 1100 px le paragraphe passait sous le module 3D */
 @media screen and (min-width: 992px) and (max-width: 1100px) { .profile_container .max-width-custom { max-width: 24rem; } }
@@ -433,4 +437,4 @@ select.modal_input { appearance: none; }
 .modal_count span { color: var(--color-scheme-1--taste-secondary); font-family: var(--_typography---font-styles--mono); }
 .modal_ok { font-family: var(--_typography---font-styles--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--color-scheme-1--taste-secondary); }
 .modal_input, .modal_input:focus { pointer-events: auto; -webkit-user-select: text; user-select: text; }
-.reviews_track { animation-play-state: running; }
+
