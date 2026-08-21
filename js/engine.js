@@ -834,8 +834,9 @@ on(window, 'touchend', (e) => {
 const wheelPager = { locked: false, lastSnap: 6, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
 window.sectionChanged = signal();
 let wheelTimer;
+const inOverlay = (e) => !!(e.target && e.target.closest && e.target.closest('.modal:not([hidden])'));
 window.addEventListener('wheel', (e) => {
-  if (pointer.prevent) return;
+  if (pointer.prevent || inOverlay(e)) return;   /* fenetre admin ouverte : la molette lui appartient */
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
   const dirNow = e.deltaY > 0 ? 1 : -1;
   if (anchor > wheelPager.lastSnap) {
@@ -869,6 +870,7 @@ window.addEventListener('wheel', (e) => {
 
 window.addEventListener('keydown', (e) => {
   if (pointer.prevent || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (document.querySelector('.modal:not([hidden])')) return;   /* saisie dans la fenetre admin */
   const tag = document.activeElement?.tagName || '';
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
   if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */

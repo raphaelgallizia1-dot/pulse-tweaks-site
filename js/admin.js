@@ -29,7 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
   /* les avis d'origine (ecrits dans le HTML) : captures une seule fois, avant tout rendu */
   const BASE = $$('.review', track).map((el, i) => {
     if (!el.dataset.id) el.dataset.id = 'base-' + (i + 1);
-    return { id: el.dataset.id, html: el.outerHTML, text: el.childNodes[0]?.textContent || '', who: $('.review_who', el)?.textContent || '' };
+    const raw = ($('.review_who', el)?.textContent || '').trim();
+    const m = raw.match(/^(\u2605*)\s*(.*)$/) || [];
+    const rest = (m[2] || '').split(' \u00b7 ');
+    return {
+      id: el.dataset.id, html: el.outerHTML,
+      text: (el.childNodes[0]?.textContent || '').replace(/[\u00ab\u00bb]/g, '').trim(),
+      who: (rest[0] || '').trim(), products: rest.slice(1).join(' \u00b7 ').trim(),
+      stars: String((m[1] || '\u2605\u2605\u2605\u2605\u2605').length), tag: '',
+    };
   });
 
   let remote = { reviews: [], hidden: [] };
@@ -78,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const close = (m) => {
     m.classList.remove('is-open');
     setTimeout(() => { m.hidden = true; }, 250);
-    if (m.id === 'admin-modal') { unlocked = false; $('[data-admin-form]', m)?.reset(); applyAdmin(); }
+    if (m.id === 'admin-modal') { unlocked = false; editing = null; $('[data-admin-form]', m)?.reset(); setFormMode(); applyAdmin(); }
   };
   $$('[data-modal-close]').forEach((b) => b.addEventListener('click', () => close(b.closest('.modal'))));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal:not([hidden])').forEach(close); });
@@ -106,12 +114,40 @@ document.addEventListener('DOMContentLoaded', () => {
       ...v.base.map((b) => ({ id: b.id, who: b.who.replace(/^[★\s]+/, ''), text: b.text.replace(/[«»]/g, '').trim(), origin: 'origine' })),
       ...v.added.map((r) => ({ id: r.id, who: r.who + (r.tag ? ' (' + r.tag + ')' : ''), text: r.text, origin: 'ajouté' })),
     ];
-    box.innerHTML = rows.map((r) => '<label class="rev_row"><input type="checkbox" value="' + esc(r.id) + '"/><span class="rev_who">' + esc(r.who) + '</span><span class="rev_txt">' + esc(r.text.slice(0, 70)) + (r.text.length > 70 ? '…' : '') + '</span><span class="rev_org">' + r.origin + '</span></label>').join('')
+    box.innerHTML = rows.map((r) => '<label class="rev_row' + (editing === r.id ? ' is-editing' : '') + '"><input type="checkbox" value="' + esc(r.id) + '"/><span class="rev_who">' + esc(r.who) + '</span><span class="rev_txt">' + esc(r.text.slice(0, 70)) + (r.text.length > 70 ? '\u2026' : '') + '</span><span class="rev_org">' + r.origin + '</span><button type="button" class="rev_edit" data-edit="' + esc(r.id) + '">Modifier</button></label>').join('')
       || '<p class="modal_text">Aucun avis.</p>';
+    box.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', (ev) => { ev.preventDefault(); startEdit(btn.dataset.edit); }));
     const del = $('[data-delete-reviews]');
     if (del) del.disabled = true;
     box.querySelectorAll('input').forEach((c) => c.addEventListener('change', () => { if (del) del.disabled = !box.querySelector('input:checked'); }));
   };
+
+  /* ---------- edition d'un avis ---------- */
+  let editing = null;
+  const findAny = (id) => BASE.find((b) => b.id === id) || remote.reviews.find((r) => r.id === id) || stored().find((r) => r.id === id);
+  const setFormMode = () => {
+    const lbl = $('[data-submit-label]'); const cancel = $('[data-cancel-edit]'); const title = $('#admin-title');
+    if (lbl) lbl.textContent = editing ? 'Enregistrer les modifications' : "Publier l'avis";
+    if (cancel) cancel.hidden = !editing;
+    if (title && isAdmin()) title.textContent = editing ? "Modifier l'avis" : 'Ajouter un avis';
+  };
+  const startEdit = (id) => {
+    const r = findAny(id); if (!r) return;
+    const form = $('[data-review-form]');
+    editing = id;
+    form.text.value = r.text || ''; form.who.value = r.who || ''; form.tag.value = r.tag || ''; form.products.value = r.products || '';
+    form.stars.value = String(r.stars || 5);
+    $$('[data-stars] .star').forEach((b, i) => b.classList.toggle('is-on', i < (+r.stars || 5)));
+    setFormMode(); refreshList();
+    form.scrollIntoView({ block: 'nearest' }); form.text.focus();
+  };
+  const cancelEdit = () => {
+    const form = $('[data-review-form]');
+    editing = null; form.reset(); form.stars.value = '5';
+    $$('[data-stars] .star').forEach((b) => b.classList.add('is-on'));
+    setFormMode(); refreshList();
+  };
+  $('[data-cancel-edit]')?.addEventListener('click', cancelEdit);
 
   const removeIds = async (ids) => {
     const set = new Set(ids);
@@ -177,7 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = e.currentTarget;
     const r = { id: 'r' + Date.now(), text: form.text.value.trim(), who: form.who.value.trim(), tag: form.tag.value.trim(), products: form.products.value.trim(), stars: form.stars.value, date: new Date().toISOString().slice(0, 10) };
     if (!r.text || !r.who) return;
-    setStored([...stored(), r]);
+    if (editing) {
+      const old = editing; editing = null; setFormMode();
+      if (BASE.some((b) => b.id === old)) {
+        /* un avis d'origine vit dans le HTML : on masque l'original et on enregistre la version modifiee */
+        setHiddenLocal([...new Set([...hiddenLocal(), old])]);
+        setStored([...stored(), r]);
+      } else {
+        r.id = old;   /* meme identifiant : la modification remplace l'avis */
+        remote.reviews = remote.reviews.map((x) => (x.id === old ? r : x));
+        const loc = stored();
+        setStored(loc.some((x) => x.id === old) ? loc.map((x) => (x.id === old ? r : x)) : [...loc, r]);
+      }
+    } else setStored([...stored(), r]);
     render(); refreshCount(); refreshList();
     form.reset(); $$('[data-stars] .star').forEach((b) => b.classList.add('is-on')); form.stars.value = '5';
     const el = $('.review[data-id="' + r.id + '"]');

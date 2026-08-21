@@ -474,3 +474,11 @@ select.modal_input { appearance: none; }
 .rev_txt { color: var(--_primitives---opacity--white-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rev_org { font-family: var(--_typography---font-styles--mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--_primitives---opacity--white-30); }
 [data-delete-reviews][disabled] { opacity: .4; cursor: not-allowed; }
+
+/* la fenetre admin garde la molette pour elle */
+.modal_box, .rev_list { overscroll-behavior: contain; }
+.modal_formactions { display: flex; gap: .6rem; align-items: center; }
+.rev_row { grid-template-columns: auto 6.5rem 1fr auto auto; }
+.rev_edit { appearance: none; background: transparent; border: 1px solid var(--color-scheme-1--border); border-radius: 999px; color: var(--_primitives---opacity--white-60); font-family: var(--_typography---font-styles--mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; padding: .25rem .5rem; cursor: pointer; }
+.rev_edit:hover { color: #fff; border-color: var(--color-scheme-1--taste-secondary); }
+.rev_row.is-editing { background: color-mix(in srgb, var(--color-scheme-1--taste-secondary) 12%, transparent); }
