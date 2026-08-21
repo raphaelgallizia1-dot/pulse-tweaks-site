@@ -468,7 +468,7 @@ const createTimeline = () => {
 
   // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
   const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
-  tl.to(data, { camPosX: mob ? 0 : 3.5, camPosY: mob ? -4.6 : 0.1, camPosZ: mob ? 52 : 24, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
+  tl.to(data, { camPosX: mob ? 0 : 3.5, camPosY: mob ? -7.45 : 0.1, camPosZ: mob ? 64 : 24, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
     lightIntensity: 38, lightWidth: 1.6, tintStrength: 1.2, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() });
   i += 1;
