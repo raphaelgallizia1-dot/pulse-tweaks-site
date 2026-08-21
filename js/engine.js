@@ -478,7 +478,7 @@ const createTimeline = () => {
   const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
   tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -8.2 : 0.1, camPosZ: mob ? 74 : 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
-    lightIntensity: 14, lightWidth: 2.4, tintStrength: 1.0, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* lumiere large et douce : zero point chaud sur les etiquettes */
+    lightIntensity: 0, lightWidth: 2.4, tintStrength: 1.9, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* spots coupes : seul l'environnement eclaire, uniformement -> aucun reflet sur les etiquettes */
   i += 1;
 
   // Hors champ (FAQ)
