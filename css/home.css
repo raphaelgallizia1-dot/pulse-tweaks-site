@@ -500,13 +500,22 @@ select.modal_input { appearance: none; }
 @media screen and (max-width: 991px) { .section.is-reviews { min-height: auto; padding: 3rem 0; } .reviews_note { padding: 0 1.2rem; } }
 
 /* ================= Détails Pulse (plus rien des ornements de la référence) ================= */
-.carousel_arrow { width: 3rem !important; height: 3rem !important; display: grid; place-items: center; }
-.arrow_ring { width: 100%; height: 100%; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--color-scheme-1--border); background: rgba(12, 11, 18, .55); color: #fff; transition: border-color .3s, background-color .3s, transform .3s cubic-bezier(.2, .7, .2, 1); }
-.arrow_ring svg { width: 1.15rem; height: 1.15rem; }
-.carousel_arrow:hover .arrow_ring { border-color: var(--color-scheme-1--taste-secondary); background: rgba(12, 11, 18, .85); }
-.carousel_arrow.is-prev:hover .arrow_ring { transform: translateX(-.18rem); }
-.carousel_arrow.is-next:hover .arrow_ring { transform: translateX(.18rem); }
-.carousel_arrow:focus-visible .arrow_ring { outline: 2px solid var(--color-scheme-1--taste-secondary); outline-offset: 3px; }
+/* Flèches du carrousel : un chevron nu qui glisse, et un filet qui se déploie dans le sens du
+   déplacement. Pas de pastille ni de cadre — rien qui puisse faire « bouton par défaut ». */
+.carousel_arrow { width: 3.25rem !important; height: 3.25rem !important; display: grid; place-items: center; }
+.arrow_mark { position: relative; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; color: rgba(255, 255, 255, .68); filter: drop-shadow(0 1px 5px rgba(0, 0, 0, .9)); transition: color .3s, transform .35s cubic-bezier(.2, .7, .2, 1); }
+.arrow_mark svg { width: 100%; height: 100%; }
+.arrow_mark::after { content: ''; position: absolute; top: 50%; width: 0; height: 1px; background: currentColor; transition: width .35s cubic-bezier(.2, .7, .2, 1); }
+.carousel_arrow.is-prev .arrow_mark::after { right: 86%; }
+.carousel_arrow.is-next .arrow_mark::after { left: 86%; }
+.carousel_arrow:hover .arrow_mark, .carousel_arrow:focus-visible .arrow_mark { color: #fff; }
+.carousel_arrow:hover .arrow_mark::after, .carousel_arrow:focus-visible .arrow_mark::after { width: 1.15rem; }
+.carousel_arrow.is-prev:hover .arrow_mark { transform: translateX(-.28rem); }
+.carousel_arrow.is-next:hover .arrow_mark { transform: translateX(.28rem); }
+@media (hover: none) { .arrow_mark { color: rgba(255, 255, 255, .82); } }
+/* écartées du module central : au repos elles tombaient sur l'arête du produit */
+.carousel_nav { max-width: 46vh; }
+@media screen and (max-width: 991px) { .carousel_nav { max-width: 74vw; } }
 
 .faq_plus { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--color-scheme-1--taste-secondary); transition: transform .35s cubic-bezier(.2, .7, .2, 1); }
 .faq_plus svg { width: 100%; height: 100%; }

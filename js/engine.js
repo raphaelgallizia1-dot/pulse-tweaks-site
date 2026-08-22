@@ -8,7 +8,6 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -23,6 +22,10 @@ const wrap = (value, min, max) => {
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+/* Calage de section : la courbe en S demarrait si lentement que le premier mouvement arrivait
+   82 ms apres le cran de molette (mesure) — c'est ce qui se ressent comme de la latence.
+   Celle-ci part tout de suite et se pose en douceur. */
+const easeSnap = (t) => 1 - Math.pow(1 - t, 4);
 const round = (value, step) => Math.round(value / step) * step;
 const toArray = (item) => {
   if (Array.isArray(item)) return item;
@@ -76,19 +79,22 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // #endregion Device Profile
 // #region Setup
 
-/* fin franche : plus de defilement infini (c'etait la signature de la reference) */
-const lenis = new Lenis({ autoRaf: false, infinite: false, syncTouch: true });
+/* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
+const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
 window.lenis = lenis;
 
 // #endregion Setup
 // #region Scroll
 
 const scroll = { position: 0 };
-/* sans boucle, la position se BORNE (wrap ramenait le dernier pixel a 0 : la scene repartait a l'accueil) */
-scroll.wrapped = (position) => clamp(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
+scroll.wrapped = (position) => wrap(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
 scroll.to = (pos, options) => { if (pos !== 0) pos -= 2; lenis.scrollTo(pos, options); }; /* -2 et non -10 : a 10 px du debut, des revelations calees sur le top ne se declenchaient pas */
-/* plus de raccourci par le bas : la distance est la distance reelle */
-scroll.distanceTo = (target, position = scroll.position) => Math.abs(position - target);
+scroll.distanceTo = (target, position = scroll.position) => {
+  const min = position;
+  const max = position - lenis.dimensions.scrollHeight + lenis.dimensions.height;
+  if (Math.abs(max - target) < Math.abs(min - target)) return Math.abs(max - target);
+  return Math.abs(min - target);
+};
 lenis.on('scroll', () => { scroll.position = scroll.wrapped(lenis.animatedScroll); });
 scroll.snap = (position = scroll.position) => {
   if (window.innerWidth < 1024 || typeof section === 'undefined' || !section.items.length) return;
@@ -210,8 +216,8 @@ const renderPass = new RenderPass(scene, camera);
 // #endregion
 // #region Passes / Composer
 
-const resolution = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
-const bloomPass = new UnrealBloomPass(resolution, 0.08, 0.1, 1.4); /* demi-resolution + seuil plus haut : le halo en gros pixels autour du texte blanc disparait */
+/* Pas de passe de bloom : mesure du 2026-08-22, elle coutait 14 a 18 % du temps d'image pour un
+   ecart maximal de 8/255 sur un pixel (invisible). Le rendu net vient des materiaux et du MSAA. */
 const outputPass = new OutputPass();
 
 /* MSAA 4x sur la cible : une seule resolution au lieu des 3 passes plein ecran du SMAA (edges, weights, blend) */
@@ -221,7 +227,6 @@ const finalRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth * pixelR
 });
 const finalComposer = new EffectComposer(renderer, finalRenderTarget);
 finalComposer.addPass(renderPass);
-if (!lowPower) finalComposer.addPass(bloomPass);
 finalComposer.addPass(outputPass);
 
 // #endregion
@@ -367,7 +372,7 @@ on(window, 'click', (e) => {
       if (delta > 0) carousel.next();
       if (delta < 0) carousel.previous();
       if (delta == 0)
-        scroll.to(section.items[1].top, { duration: wheelPager.duration, lock: true, easing: easeInOut });
+        scroll.to(section.items[1].top, { duration: wheelPager.duration, lock: true, easing: easeSnap });
     }
   });
 });
@@ -402,7 +407,7 @@ const section = { items: [] };
 section.getIndex = () => closest(section.items, scroll.position, (item) => item.top).index;
 section.previous = () => section.goTo(section.getIndex() - 1);
 section.next = () => section.goTo(section.getIndex() + 1);
-section.goTo = (index) => scroll.to(section.items[clamp(index, 0, section.items.length - 1)].top);
+section.goTo = (index) => { const n = section.items.length; scroll.to(section.items[((index % n) + n) % n].top); };
 section.resize = () => {
   section.items.length = 0;
   let top = 0;
@@ -511,6 +516,10 @@ const createTimeline = () => {
     duration: section.items[i] ? section.items[i].height / section.total() : 1 });
   i += 1;
 
+  // Raccord de boucle : sur la fin de l'ecran final, la scene revient EXACTEMENT a l'etat de depart,
+  //  si bien qu'au moment ou le defilement reboucle, l'image ne saute pas.
+  tl.to(data, { ...startData, duration: section.items[i] ? Math.max(0.02, (section.items[i].height - lenis.dimensions.height) / section.total()) : 1 });
+
   tl.pause();
   tl.render(0, true, true); /* fige les valeurs de depart du 1er tween sur startData, pas sur l'etat courant */
   return tl;
@@ -579,6 +588,7 @@ renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefau
 renderer.domElement.addEventListener('webglcontextrestored', () => { contextLost = false; }, false);
 
 const loopGuard = { lastPos: 0, snapping: false, timer: null };
+let renderHidden = false; /* le canvas a deja ete vide : inutile de le redessiner */
 
 let time = 0;
 function animate(tick = 0) {
@@ -593,6 +603,22 @@ function animate(tick = 0) {
   }
   lenis.raf(time * 1000);
   if (window.QA_POS !== undefined) scroll.position = window.QA_POS;
+
+  {
+    const total = lenis.dimensions.scrollHeight - lenis.dimensions.height;
+    const prev = loopGuard.lastPos;
+    const cur = scroll.position;
+    if (pointer.prevent) loopGuard.lastPos = cur;
+    else {
+      if (total > 0 && prev - cur > total * 0.6 && !loopGuard.snapping) {
+        loopGuard.snapping = true;
+        scroll.to(section.items[0].top, { duration: 1.2, lock: true, easing: easeInOut });
+        clearTimeout(loopGuard.timer);
+        loopGuard.timer = setTimeout(() => (loopGuard.snapping = false), 1300);
+      }
+      loopGuard.lastPos = cur;
+    }
+  }
 
   const minX = cans.length * -0.5 * carousel.spacing;
   const maxX = cans.length * 0.5 * carousel.spacing;
@@ -712,7 +738,13 @@ function animate(tick = 0) {
 
   if (window.stepFx && window.stepFx.spin !== 0) window.stepFx.spin = lerp(window.stepFx.spin, 0, Math.min(1, delta * 4));
 
-  if (!contextLost) finalComposer.render();
+  /* Sections ou la scene est HORS CHAMP (avis, FAQ, fin) : mesure faite, le canvas y est
+     entierement vide (alpha 0). On ne paie ni les 30 objets ni les passes plein ecran. */
+  const hidden = data.camPosY <= -5.2 && data.lightIntensity === 0 && data.spotIntensity === 0;
+  if (!contextLost) {
+    if (!hidden) { finalComposer.render(); renderHidden = false; }
+    else if (!renderHidden) { renderer.setRenderTarget(null); renderer.clear(); renderHidden = true; }
+  }
   carousel.lastPosition = carousel.position;
   if (fpsMeter) fpsMeter.tick(tick);
 }
@@ -809,7 +841,7 @@ on(window, 'touchend', (e) => {
   if (Math.abs(delta) > paging.threshold) target = paging.anchor + (delta < 0 ? 1 : -1);
   target = clamp(target, 0, section.items.length - 1);
   lenis.start();
-  scroll.to(section.items[target].top, { duration: 1.5, easing: easeInOut });
+  scroll.to(section.items[target].top, { duration: 1.5, easing: easeSnap });
   paging.active = false;
   paging.axis = 0;
 });
@@ -820,7 +852,7 @@ on(window, 'touchend', (e) => {
 /* Passage de section : courbe entree-sortie (demarrage doux, arrivee douce) au lieu du cubique sortant
    qui partait brutalement ; duree unique ; un COOLDOWN et un filtre de geste : l'inertie d'un trackpad
    envoie des dizaines d'evenements decroissants apres le geste, qui relancaient un 2e saut. */
-const wheelPager = { locked: false, lastSnap: 7, duration: 1.2, cooldown: 220, lastTime: 0, lastDelta: 0 };
+const wheelPager = { locked: false, lastSnap: 7, duration: 1.0, cooldown: 140, lastTime: 0, lastDelta: 0 };
 window.sectionChanged = signal();
 let wheelTimer;
 const inOverlay = (e) => !!(e.target && e.target.closest && e.target.closest('.modal:not([hidden])'));
@@ -849,7 +881,7 @@ window.addEventListener('wheel', (e) => {
   if (target === anchor && Math.abs(off) <= 40) return;
   const duration = wheelPager.duration;
   wheelPager.locked = true;
-  scroll.to(section.items[target].top, { duration, lock: true, easing: easeInOut });
+  scroll.to(section.items[target].top, { duration, lock: true, easing: easeSnap });
   window.sectionChanged.emit({ from: anchor, to: target });
   clearTimeout(wheelTimer);
   wheelTimer = setTimeout(() => (wheelPager.locked = false), duration * 1000 + wheelPager.cooldown);
@@ -881,7 +913,7 @@ window.addEventListener('keydown', (e) => {
   const duration = far ? 1.8 : wheelPager.duration;
   /* saut lointain (End/Home) : Lenis infini prendrait le chemin le plus court a REBOURS, que le clamp anti-negatif bloque a 0.
      On coupe l'infini le temps du trajet : la page descend/remonte vraiment. */
-  const opts = { duration, lock: true, easing: easeInOut };
+  const opts = { duration, lock: true, easing: easeSnap };
   if (far) {
     const inf = lenis.options.infinite; lenis.options.infinite = false;
     loopGuard.snapping = true; clearTimeout(loopGuard.timer);
@@ -898,6 +930,7 @@ window.addEventListener('keydown', (e) => {
 // #region Resize / Start
 
 animate();
+renderer.compile(scene, camera); /* les 10 programmes GL sont prets avant le premier defilement, plus d'a-coup a l'entree d'une section */
 
 let lastResizeWidth = window.innerWidth;
 const coarse = matchMedia('(pointer: coarse)').matches;
@@ -923,13 +956,13 @@ window.loader = loader;
 /* Ecran de fin : remonter en haut sur demande (la reference le faisait toute seule, en boucle) */
 document.querySelector('[data-scroll-top]')?.addEventListener('click', () => {
   wheelPager.locked = true;
-  scroll.to(0, { duration: 1.6, lock: true, easing: easeInOut });
+  scroll.to(0, { duration: 1.6, lock: true, easing: easeSnap });
   clearTimeout(wheelTimer);
   wheelTimer = setTimeout(() => (wheelPager.locked = false), 1800);
 });
 
 /* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
-window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; } };
+window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
 
 /* Mode QA (captures headless) : ?seek=<index de section> place la page sur une section sans animation */
 {

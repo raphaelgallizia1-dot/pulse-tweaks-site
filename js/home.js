@@ -1297,15 +1297,19 @@
         const build = () => { let top = 0; tops = [...$$('section')].map((el) => { const t = top; top += el.clientHeight; return t; }); };
         build();
         window.addEventListener('resize', build);
-        /* borne, pas boucle : au dernier pixel, le modulo renvoyait 0 et le HUD affichait GAMME */
+        const wrap = (v, min, max) => { const size = max - min; v = v % size; if (v < 0) v += size; return v + min; };
+        const pills = [...$$('.navpill_link[data-sections]')].map((el) => ({ el, secs: el.dataset.sections.split(',').map(Number) }));
+        let lastBest = -1;
         const sync = () => {
           const max = window.lenis.dimensions.scrollHeight - window.lenis.dimensions.height;
           if (max <= 0) return;
-          const pos = clamp(window.lenis.animatedScroll, 0, max);
+          const pos = wrap(window.lenis.animatedScroll, 0, max);
           let best = 0, dist = Infinity;
           tops.forEach((t, i) => { const d = Math.abs(t - pos); if (d < dist) { dist = d; best = i; } });
+          if (best === lastBest) return; /* une ecriture DOM par changement de section, pas par image */
+          lastBest = best;
           type(secEl, NAMES[best] || '');
-          $$('.navpill_link[data-sections]').forEach((a) => a.classList.toggle('is-current', a.dataset.sections.split(',').map(Number).includes(best)));
+          pills.forEach(({ el, secs }) => el.classList.toggle('is-current', secs.includes(best)));
         };
         window.lenis.on('scroll', sync);
         window.sectionChanged?.connect(({ to }) => type(secEl, NAMES[to] || ''));
