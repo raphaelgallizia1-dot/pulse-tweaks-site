@@ -489,3 +489,12 @@ select.modal_input { appearance: none; }
 .stack_list.is-filtered .stack_layer.is-suggested { filter: none; }
 .stack_list.is-filtered .stack_layer.is-suggested::before { transform: translateY(-50%) scale(1); }
 .stack_layer.is-suggested::after { content: 'conseillé'; font-family: var(--_typography---font-styles--mono); font-size: .58rem; letter-spacing: .16em; text-transform: uppercase; color: var(--c); }
+
+/* ---- Section Avis (autonome, juste avant la FAQ) ---- */
+.section.is-reviews { display: flex; align-items: center; }
+.reviews_container { width: 100%; pointer-events: auto; }
+.reviews_head { text-align: center; margin-bottom: var(--_spacing-sizing---element-padding--l); }
+.reviews_head .subhead_wrapper { display: flex; justify-content: center; margin-bottom: .8rem; }
+.reviews_head h2 { font-size: clamp(2rem, 3.6vw, 3.4rem); line-height: .98; }
+.reviews_note { max-width: 42rem; margin: var(--_spacing-sizing---element-padding--l) auto 0; text-align: center; font-size: .85rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); }
+@media screen and (max-width: 991px) { .section.is-reviews { min-height: auto; padding: 3rem 0; } .reviews_note { padding: 0 1.2rem; } }

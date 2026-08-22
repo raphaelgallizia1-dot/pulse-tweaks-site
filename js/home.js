@@ -1310,7 +1310,7 @@
       const secEl = $('.hud_readout-sec');
       const layEl = $('.hud_readout-layer');
       if (!secEl || !layEl) return;
-      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE', 'CLAIM', 'PACKSHOT', 'OPTIS', 'MÉTHODE', 'FAQ', 'DISCORD', 'FIN'];
+      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE', 'CLAIM', 'PACKSHOT', 'OPTIS', 'MÉTHODE', 'AVIS', 'FAQ', 'DISCORD', 'FIN'];
       const type = (el, text) => {
         if (el.dataset.txt === text) return;
         el.dataset.txt = text;
