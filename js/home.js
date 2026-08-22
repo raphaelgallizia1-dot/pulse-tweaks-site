@@ -411,37 +411,6 @@
       start();
     };
 
-    // Scroll Button
-
-    const initScrollIcon = () => {
-      const wrappers = $$('.icon-scroll_wrapper');
-      if (!wrappers.length) return;
-
-      wrappers.forEach((wrapper) => {
-        const arrows = $$('svg > g', wrapper);
-        if (arrows.length !== 3) return;
-
-        const [first, middle, last] = arrows;
-
-        gsap.set([first, middle, last], { opacity: 0, scale: 0, transformOrigin: '50% 50%' });
-        gsap.set(first, { y: 100 });
-        gsap.set(last, { y: -100 });
-
-        const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.3 });
-
-        tl.to(first, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: 'power2.out' }).to(middle, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' }, '-=0.4').to(last, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: 'power2.out' }, '-=0.4').to(
-          [first, middle, last],
-          {
-            opacity: 0,
-            duration: 0.4,
-            ease: 'power2.in',
-            stagger: 0.25,
-          },
-          '+=0.3',
-        );
-      });
-    };
-
     // Menu Button
 
     const initMenuButton = () => {
@@ -962,7 +931,7 @@
         },
       });
 
-      tl.to('.carousel_pagination, .icon-scroll_wrapper, .carousel_arrow.is-prev, .scroll_discover, .gamme_gradient-wrapper', { autoAlpha: 0 });
+      tl.to('.carousel_pagination, .carousel_arrow.is-prev, .scroll_discover, .gamme_gradient-wrapper', { autoAlpha: 0 });
 
       if (isDesktop()) {
         tl.to('.carousel_title-collection', { autoAlpha: 0 }, '<');
@@ -1310,7 +1279,7 @@
       const secEl = $('.hud_readout-sec');
       const layEl = $('.hud_readout-layer');
       if (!secEl || !layEl) return;
-      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE', 'CLAIM', 'PACKSHOT', 'OPTIS', 'MÉTHODE', 'AVIS', 'FAQ', 'DISCORD', 'FIN'];
+      const NAMES = ['GAMME', 'FICHE', 'MÉTHODE', 'CLAIM', 'PACKSHOT', 'OPTIS', 'MÉTHODE', 'AVIS', 'FAQ', 'FIN'];
       const type = (el, text) => {
         if (el.dataset.txt === text) return;
         el.dataset.txt = text;
@@ -1328,11 +1297,11 @@
         const build = () => { let top = 0; tops = [...$$('section')].map((el) => { const t = top; top += el.clientHeight; return t; }); };
         build();
         window.addEventListener('resize', build);
-        const wrap = (v, min, max) => { const size = max - min; v = v % size; if (v < 0) v += size; return v + min; };
+        /* borne, pas boucle : au dernier pixel, le modulo renvoyait 0 et le HUD affichait GAMME */
         const sync = () => {
           const max = window.lenis.dimensions.scrollHeight - window.lenis.dimensions.height;
           if (max <= 0) return;
-          const pos = wrap(window.lenis.animatedScroll, 0, max);
+          const pos = clamp(window.lenis.animatedScroll, 0, max);
           let best = 0, dist = Infinity;
           tops.forEach((t, i) => { const d = Math.abs(t - pos); if (d < dist) { dist = d; best = i; } });
           type(secEl, NAMES[best] || '');
@@ -1395,7 +1364,6 @@
     initLoader();
     initMenuButton();
     initMenuToggle();
-    initScrollIcon();
     initCarouselArrowsHover();
     initWhenCarousel(setupCarouselText);
     initWhenCarousel(initCarouselNav);

@@ -76,21 +76,19 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // #endregion Device Profile
 // #region Setup
 
-const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true });
+/* fin franche : plus de defilement infini (c'etait la signature de la reference) */
+const lenis = new Lenis({ autoRaf: false, infinite: false, syncTouch: true });
 window.lenis = lenis;
 
 // #endregion Setup
 // #region Scroll
 
 const scroll = { position: 0 };
-scroll.wrapped = (position) => wrap(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
+/* sans boucle, la position se BORNE (wrap ramenait le dernier pixel a 0 : la scene repartait a l'accueil) */
+scroll.wrapped = (position) => clamp(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
 scroll.to = (pos, options) => { if (pos !== 0) pos -= 2; lenis.scrollTo(pos, options); }; /* -2 et non -10 : a 10 px du debut, des revelations calees sur le top ne se declenchaient pas */
-scroll.distanceTo = (target, position = scroll.position) => {
-  const min = position;
-  const max = position - lenis.dimensions.scrollHeight + lenis.dimensions.height;
-  if (Math.abs(max - target) < Math.abs(min - target)) return Math.abs(max - target);
-  return Math.abs(min - target);
-};
+/* plus de raccourci par le bas : la distance est la distance reelle */
+scroll.distanceTo = (target, position = scroll.position) => Math.abs(position - target);
 lenis.on('scroll', () => { scroll.position = scroll.wrapped(lenis.animatedScroll); });
 scroll.snap = (position = scroll.position) => {
   if (window.innerWidth < 1024 || typeof section === 'undefined' || !section.items.length) return;
@@ -404,7 +402,7 @@ const section = { items: [] };
 section.getIndex = () => closest(section.items, scroll.position, (item) => item.top).index;
 section.previous = () => section.goTo(section.getIndex() - 1);
 section.next = () => section.goTo(section.getIndex() + 1);
-section.goTo = (index) => scroll.to(section.items[index % (section.items.length - 1)].top);
+section.goTo = (index) => scroll.to(section.items[clamp(index, 0, section.items.length - 1)].top);
 section.resize = () => {
   section.items.length = 0;
   let top = 0;
@@ -504,17 +502,14 @@ const createTimeline = () => {
   i += 1;
   tl.set(swipe, { active: false });
 
-  // Téléport : caméra en haut
-  tl.set(data, { camPosX: 0, camPosY: 8, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20, spacing: 5, swirl: 0, stack: 0 });
-
-  // Retour à l'écran (footer)
-  tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 29, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 20, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0.5,
-    canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: D * 20, spacing: 5, wave: 0, swirl: 0, baseOffset: 10,
-    lightIntensity: 50, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
+  // Ecran de fin : la scene sort du champ, la page se termine sur le texte et le pied de page
+  //  (la reference finissait par un retour anime a l'accueil ; ici le site a une vraie fin)
+  tl.to(data, { camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1,
+    canPosX: 0, canPosY: 0, canPosZ: -0.4, canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.6,
+    wave: 0, swirl: 1, baseOffset: 20, stack: 0, lightIntensity: 0, lightWidth: 3, tintStrength: 1,
+    spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1,
+    duration: section.items[i] ? section.items[i].height / section.total() : 1 });
   i += 1;
-
-  // Boucle : retour aux valeurs initiales
-  tl.to(data, { ...startData, duration: section.items[i] ? section.items[i].height / lenis.dimensions.scrollHeight : 1 });
 
   tl.pause();
   tl.render(0, true, true); /* fige les valeurs de depart du 1er tween sur startData, pas sur l'etat courant */
@@ -598,22 +593,6 @@ function animate(tick = 0) {
   }
   lenis.raf(time * 1000);
   if (window.QA_POS !== undefined) scroll.position = window.QA_POS;
-
-  {
-    const total = lenis.dimensions.scrollHeight - lenis.dimensions.height;
-    const prev = loopGuard.lastPos;
-    const cur = scroll.position;
-    if (pointer.prevent) loopGuard.lastPos = cur;
-    else {
-      if (total > 0 && prev - cur > total * 0.6 && !loopGuard.snapping) {
-        loopGuard.snapping = true;
-        scroll.to(section.items[0].top, { duration: 1.2, lock: true, easing: easeInOut });
-        clearTimeout(loopGuard.timer);
-        loopGuard.timer = setTimeout(() => (loopGuard.snapping = false), 1300);
-      }
-      loopGuard.lastPos = cur;
-    }
-  }
 
   const minX = cans.length * -0.5 * carousel.spacing;
   const maxX = cans.length * 0.5 * carousel.spacing;
@@ -885,7 +864,7 @@ window.addEventListener('keydown', (e) => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
   if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
-  const last = section.items.length - 3; /* la FAQ est la derniere section navigable */
+  const last = section.items.length - 2; /* la FAQ est la derniere section navigable */
   /* zone libre (FAQ, avis, pied de page) : le clavier defile nativement, on ne bloque rien */
   if (anchor >= last && ['ArrowDown', 'PageDown', ' ', 'End'].includes(e.key)) return;
   let target = null;
@@ -941,16 +920,13 @@ if (window.ResizeObserver) new ResizeObserver(debounce(() => { if (!pointer.prev
 lenis.scrollTo(0, { immediate: true });
 window.loader = loader;
 
-// Indicateur de progression (barre du haut)
-const indicator = { el: document.querySelector('.scroll_indicator'), set: null };
-if (indicator.el) {
-  gsap.set(indicator.el, { '--p': 0 });
-  indicator.set = gsap.quickTo(indicator.el, '--p', { duration: 0.3, ease: 'power3.out' });
-  lenis.on('scroll', () => {
-    const max = lenis.dimensions.scrollHeight - lenis.dimensions.height;
-    indicator.set(max > 0 ? scroll.position / max : 0);
-  });
-}
+/* Ecran de fin : remonter en haut sur demande (la reference le faisait toute seule, en boucle) */
+document.querySelector('[data-scroll-top]')?.addEventListener('click', () => {
+  wheelPager.locked = true;
+  scroll.to(0, { duration: 1.6, lock: true, easing: easeInOut });
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => (wheelPager.locked = false), 1800);
+});
 
 /* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
 window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; } };

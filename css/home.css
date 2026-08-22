@@ -498,3 +498,84 @@ select.modal_input { appearance: none; }
 .reviews_head h2 { font-size: clamp(2rem, 3.6vw, 3.4rem); line-height: .98; }
 .reviews_note { max-width: 42rem; margin: var(--_spacing-sizing---element-padding--l) auto 0; text-align: center; font-size: .85rem; line-height: 1.5; color: var(--_primitives---opacity--white-60); }
 @media screen and (max-width: 991px) { .section.is-reviews { min-height: auto; padding: 3rem 0; } .reviews_note { padding: 0 1.2rem; } }
+
+/* ================= Détails Pulse (plus rien des ornements de la référence) ================= */
+.carousel_arrow { width: 3rem !important; height: 3rem !important; display: grid; place-items: center; }
+.arrow_ring { width: 100%; height: 100%; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--color-scheme-1--border); background: rgba(12, 11, 18, .55); color: #fff; transition: border-color .3s, background-color .3s, transform .3s cubic-bezier(.2, .7, .2, 1); }
+.arrow_ring svg { width: 1.15rem; height: 1.15rem; }
+.carousel_arrow:hover .arrow_ring { border-color: var(--color-scheme-1--taste-secondary); background: rgba(12, 11, 18, .85); }
+.carousel_arrow.is-prev:hover .arrow_ring { transform: translateX(-.18rem); }
+.carousel_arrow.is-next:hover .arrow_ring { transform: translateX(.18rem); }
+.carousel_arrow:focus-visible .arrow_ring { outline: 2px solid var(--color-scheme-1--taste-secondary); outline-offset: 3px; }
+
+.faq_plus { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--color-scheme-1--taste-secondary); transition: transform .35s cubic-bezier(.2, .7, .2, 1); }
+.faq_plus svg { width: 100%; height: 100%; }
+.faq_accordion.is-open .faq_plus, .faq_question[aria-expanded="true"] .faq_plus { transform: rotate(45deg); }
+
+/* HUD : lecture de section seule, aucun ornement */
+.hud_container { justify-content: flex-end; }
+.hud_right { align-items: flex-end; }
+
+/* Fluidité : les flous d'arrière-plan sont recomposés à chaque frame par-dessus le canvas */
+.navpill, .navbar_menu, .benefits_icon-wrapper, .method_mark { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.navpill { background: rgba(12, 11, 18, .82); }
+
+/* ================= Écran de fin (remplace la boucle infinie de la référence) ================= */
+.section.is-end { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.section.is-end > .end_container { flex: 1 1 auto; display: flex; align-items: center; }
+.end_footer-slot { flex: 0 0 auto; pointer-events: auto; padding-bottom: 2rem; }
+.end_container > .padding-global { width: 100%; }
+.end_container { width: 100%; pointer-events: auto; } /* remonte le texte SANS changer la hauteur de section (la timeline se cale dessus) */
+.end_logo { width: clamp(4rem, 7vw, 6rem); height: clamp(4rem, 7vw, 6rem); object-fit: contain; margin: 0 auto 1.4rem; display: block; filter: drop-shadow(0 0 26px color-mix(in srgb, var(--color-scheme-1--taste-secondary) 55%, transparent)); }
+.end_title { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase; font-size: clamp(2.4rem, 5vw, 4.4rem); line-height: .95; margin: 0 0 1.2rem; }
+.end_text { max-width: 34rem; margin: 0 auto; font-size: 1rem; line-height: 1.55; color: var(--_primitives---opacity--white-60); }
+.end_actions { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: center; margin-top: 2.2rem; }
+.end_top { appearance: none; background: transparent; border: 1px solid var(--color-scheme-1--border); border-radius: 999px; color: var(--_primitives---opacity--white-60); font-family: var(--_typography---font-styles--mono); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; padding: .95rem 1.35rem; cursor: pointer; transition: color .3s, border-color .3s; }
+.end_top:hover { color: #fff; border-color: var(--color-scheme-1--taste-secondary); }
+
+/* ================= Pied de page Pulse (la référence n'avait qu'une pilule à 3 éléments) ================= */
+.pulse_footer { pointer-events: auto; max-width: 68rem; margin: 0 auto; padding: 2.4rem 0 1.2rem; border-top: 1px solid var(--color-scheme-1--border); }
+.pulse_footer-main { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr); gap: 2.5rem; align-items: start; }
+.pulse_footer-brand { display: flex; align-items: flex-start; gap: .9rem; }
+.pulse_footer-logo { width: 2.8rem; height: 2.8rem; object-fit: contain; flex: 0 0 auto; }
+.pulse_footer-brand .navbar_logo-text { text-align: left; font-size: 1.15rem; }
+.pulse_footer-base { margin: .5rem 0 0; font-size: .82rem; line-height: 1.45; color: var(--_primitives---opacity--white-60); max-width: 18rem; }
+.pulse_footer-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.pulse_footer-col { display: flex; flex-direction: column; gap: .45rem; }
+.pulse_footer-title { font-family: var(--_typography---font-styles--mono); font-size: .62rem; letter-spacing: .18em; text-transform: uppercase; color: var(--color-scheme-1--taste-secondary); margin-bottom: .3rem; }
+.pulse_footer-col a { font-size: .86rem; color: var(--_primitives---opacity--white-60); text-decoration: none; transition: color .25s; }
+.pulse_footer-col a:hover { color: #fff; }
+.pulse_footer-bottom { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-scheme-1--border); font-family: var(--_typography---font-styles--mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--_primitives---opacity--white-30); }
+@media screen and (max-width: 991px) {
+  .pulse_footer-main { grid-template-columns: 1fr; gap: 1.6rem; }
+  .pulse_footer-cols { grid-template-columns: 1fr 1fr; }
+  .pulse_footer-bottom { flex-direction: column; align-items: center; text-align: center; }
+  .end_actions { flex-direction: column; }
+  .end_container { transform: none; }
+}
+.section.is-end .end_footer-slot { text-align: left; }
+.section.is-end .pulse_footer-col { align-items: flex-start; }
+@media screen and (max-width: 991px) { .section.is-end .end_footer-slot { text-align: center; } .section.is-end .pulse_footer-col { align-items: center; } .pulse_footer-brand { justify-content: center; } .pulse_footer-base { margin-left: auto; margin-right: auto; } }
+
+/* Écran de fin en mobile : la hauteur suit le contenu (sinon le centrage coupe le titre en haut) */
+@media screen and (max-width: 991px) {
+  .section.is-end { min-height: 100svh; height: auto; justify-content: flex-start; padding: 7rem 0 2.5rem; }
+  .section.is-end > .end_container { flex: 0 0 auto; display: block; margin-bottom: 3rem; }
+  .end_title { font-size: clamp(2rem, 9vw, 2.9rem); }
+  .end_text { font-size: .95rem; }
+  .end_actions { margin-top: 1.8rem; }
+  .pulse_footer { padding-top: 1.8rem; }
+  .pulse_footer-cols > .pulse_footer-col:nth-child(3) { grid-column: 1 / -1; }
+}
+/* ...et l'écran de fin tient dans un écran : au plus bas, le titre reste sous l'en-tête */
+@media screen and (max-width: 991px) {
+  .section.is-end { padding: 4.5rem 0 1.4rem; }
+  .section.is-end > .end_container { margin-bottom: 1.6rem; }
+  .end_logo { width: 3.2rem; height: 3.2rem; margin-bottom: .9rem; }
+  .end_actions { gap: .7rem; margin-top: 1.4rem; }
+  .pulse_footer { padding-top: 1.2rem; padding-bottom: 0; }
+  .pulse_footer-main { gap: 1.1rem; }
+  .pulse_footer-cols { gap: 1rem; }
+  .pulse_footer-bottom { margin-top: 1.2rem; gap: .4rem; }
+}
+@media screen and (max-width: 991px) { .pulse_footer-brand { flex-direction: column; align-items: center; gap: .5rem; } }
