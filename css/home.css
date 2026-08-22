@@ -369,7 +369,7 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 
 /* ---- Methode : rail fixe + panneau de lecture (le module reste au centre, immobile) ---- */
 .benefits_nav { display: none !important; }
-.method_side { position: fixed; top: 50%; right: var(--_spacing-sizing---page-padding--padding-global); transform: translateY(-50%); width: min(36vw, 30rem); display: grid; grid-template-columns: auto 1fr; gap: 1.6rem; align-items: center; pointer-events: auto; z-index: 3; }
+.method_side { position: fixed; top: 50%; right: var(--_spacing-sizing---page-padding--padding-global); transform: translateY(-50%); width: min(40vw, 33rem); display: grid; grid-template-columns: auto 1fr; gap: 1.6rem; align-items: center; pointer-events: auto; z-index: 3; }
 .method_rail { display: flex; flex-direction: column; gap: .55rem; position: relative; padding-left: 1.1rem; }
 .method_rail::before { content: ''; position: absolute; left: 0; top: .8rem; bottom: .8rem; width: 1px; background: var(--color-scheme-1--border); }
 .method_mark { appearance: none; border: 1px solid var(--color-scheme-1--border); background: rgba(12,11,18,.72); color: var(--_primitives---opacity--white-60); border-radius: 999px; padding: .5rem .85rem .5rem .55rem; display: flex; align-items: center; gap: .6rem; cursor: pointer; font: inherit; text-align: left; white-space: nowrap; transition: color .3s, border-color .3s, background-color .3s; position: relative; }
@@ -384,7 +384,7 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .method_item { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; opacity: 0; pointer-events: none; will-change: opacity, transform; }
 .method_item.is-active { visibility: visible; opacity: 1; pointer-events: auto; }
 .method_no { font-family: var(--_typography---font-styles--mono); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); text-decoration: line-through; margin-bottom: .6rem; }
-.method_title { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase; font-size: clamp(1.8rem, 2.6vw, 2.6rem); line-height: .98; margin-bottom: .8rem; }
+.method_title { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase; font-size: clamp(1.35rem, 1.85vw, 2.05rem); line-height: 1; margin-bottom: .8rem; text-wrap: balance; }
 .method_text { font-size: 1.02rem; line-height: 1.55; color: var(--color-scheme-1--text); max-width: 22rem; }
 @media screen and (max-width: 1280px) { .method_side { width: min(40vw, 26rem); gap: 1rem; } .method_mark-label { display: none; } .method_mark { padding: .4rem; } }
 @media screen and (max-width: 991px) {
