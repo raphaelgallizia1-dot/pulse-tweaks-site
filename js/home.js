@@ -683,19 +683,33 @@
       descs.forEach((el, i) => gsap.set(el, { autoAlpha: i === window.carousel.index ? 1 : 0 }));
       titles.forEach((el, i) => gsap.set(el, { autoAlpha: i === window.carousel.index ? 1 : 0 }));
 
+      /* Chaque changement de produit relançait SIX révélations caractère par caractère (titre,
+         description, visuel). En faisant tourner la gamme au doigt, elles s'empilaient : mesuré,
+         c'était la totalité des saccades de la première section. On les regroupe : pendant un
+         geste rapide, une seule révélation part, sur le produit où l'on s'arrête.
+         140 ms d'attente + 0,16 s de retard = les mêmes 0,3 s qu'avant pour un changement isolé. */
+      let revealTimer = null;
+      let revealFrom = null;
       window.carousel.changed.connect(({ index, previous }) => {
         fade(slides, index);
         fade(descs, index);
         fade(titles, index);
 
-        descReveals[previous]?.out();
-        descReveals[index]?.in({ delay: 0.3 });
-
-        titleReveals[previous]?.out();
-        titleReveals[index]?.in({ delay: 0.3 });
-
-        slideReveals[previous]?.out();
-        slideReveals[index]?.in({ delay: 0.3 });
+        if (revealFrom === null) revealFrom = previous;
+        clearTimeout(revealTimer);
+        revealTimer = setTimeout(() => {
+          const from = revealFrom;
+          const to = window.carousel.index;
+          revealFrom = null;
+          if (from !== to) {
+            descReveals[from]?.out();
+            titleReveals[from]?.out();
+            slideReveals[from]?.out();
+          }
+          descReveals[to]?.in({ delay: 0.16 });
+          titleReveals[to]?.in({ delay: 0.16 });
+          slideReveals[to]?.in({ delay: 0.16 });
+        }, 140);
       });
 
       slideReveals[window.carousel.index]?.in({ delay: 0.3 });
@@ -857,8 +871,12 @@
 
       applyColors(slides[window.carousel.index]);
 
+      /* Ces deux lignes reecrivent des variables CSS sur <html> : tout le document est alors
+         recalcule et repeint. Mesure : c'etait la TOTALITE des saccades quand on fait tourner la
+         gamme au doigt (p95 56 ms -> 16 ms sans elles). On attend donc que le geste soit fini. */
       const apply = debounce((index) => applyColors(slides[index]), 150);
-      window.carousel.changed.connect(({ index }) => apply(index));
+      window.carousel.changed.connect(({ index }) => { if (!window.carousel.isDragging?.()) apply(index); });
+      ['mouseup', 'touchend'].forEach((ev) => window.addEventListener(ev, () => apply(window.carousel.index), { passive: true }));
     };
 
     // Carousel Video
@@ -931,7 +949,10 @@
         },
       });
 
-      tl.to('.carousel_pagination, .carousel_arrow.is-prev, .scroll_discover, .gamme_gradient-wrapper', { autoAlpha: 0 });
+      /* fleches et reperes : bascule NETTE. A 0,5 s adoucie, elles mettaient pres d'une seconde
+         a disparaitre pendant le calage de section — Kouro les veut instantanees. */
+      tl.to('.carousel_arrow, .carousel_pagination', { autoAlpha: 0, duration: 0.08, ease: 'none' }, 0);
+      tl.to('.scroll_discover, .gamme_gradient-wrapper', { autoAlpha: 0 }, 0);
 
       if (isDesktop()) {
         tl.to('.carousel_title-collection', { autoAlpha: 0 }, '<');
@@ -939,7 +960,6 @@
       }
 
       if (isMobile()) {
-        tl.to('.carousel_arrow.is-next', { autoAlpha: 0 }, '<');
         tl.to('.carousel_title-collection', { y: '-2.5rem' }, '<');
       }
     };

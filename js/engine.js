@@ -46,7 +46,7 @@ const signal = () => {
   const connect = (callback) => callbacks.push(callback);
   const disconnect = (callback) => callbacks.splice(callbacks.indexOf(callback), 1);
   const emit = (data) => callbacks.forEach((callback) => callback(data));
-  return { connect, disconnect, emit };
+  return { connect, disconnect, emit, list: callbacks }; /* list : permet de mesurer le cout de chaque abonne */
 };
 function debounce(callback, limit, isImmediate = false) {
   var timeout;
@@ -352,7 +352,7 @@ await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
   items.forEach((item) => cans.push(item));
   /* le wrap de la reference place au centre le module n. cans.length/2 : cette moitie DOIT etre un multiple du nombre de produits
      (24/2 = 12 = 3 x 4 marchait par construction ; avec 5 produits : 30 clones, 15 = 3 x 5). Sinon aucun module n'est centre. */
-  const targetCount = PRODUCTS.length * 2 * (lowPower ? 1 : 3);
+  const targetCount = PRODUCTS.length * 2 * (lowPower ? 1 : 2); /* 20 au lieu de 30 : 10 de chaque cote, la rangee couvre deja bien plus que l'ecran */
   let i = 0;
   while (cans.length < targetCount) { cans.push(duplicateCan(cans[i % PRODUCTS.length])); i++; }
 });
@@ -361,33 +361,38 @@ await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
 // #region Raycaster / Cursor
 
 const raycast = new THREE.Raycaster();
+/* ce qui est reellement cliquable : ni glisse ni selection 3D ne doivent le court-circuiter */
+const notDraggable = (t) => !!(t && t.closest && t.closest('a, button, input, textarea, select, label, .modal, .navbar, .navpill'));
 on(window, 'click', (e) => {
-  /* uniquement les clics sur le canvas : les fleches/pagination sont posees au centre, sinon double action */
-  if (e.target !== renderer.domElement || pointer.prevent || swipe.direction != 0 || scroll.position > section.items[1].top) return;
+  /* on ecarte ce qui est reellement cliquable (fleches, menu, fenetres) ; le reste de l'ecran
+     selectionne un module, meme la ou un element d'une autre section couvre le canvas */
+  if (notDraggable(e.target) || pointer.prevent || swipe.direction != 0 || scroll.position > section.items[1].top) return;
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
-  cans.forEach((can) => {
-    if (raycast.intersectObject(can).length > 0) {
-      const delta = Math.round(can.position.x / carousel.spacing);
-      if (delta > 0) carousel.next();
-      if (delta < 0) carousel.previous();
-      if (delta == 0)
-        scroll.to(section.items[1].top, { duration: wheelPager.duration, lock: true, easing: easeSnap });
-    }
-  });
+  for (const can of cans) {
+    if (raycast.intersectObject(can).length === 0) continue;
+    const delta = Math.round(can.position.x / carousel.spacing);
+    /* le module clique vient AU CENTRE, meme s'il est a trois places (avant : un cran a la fois) */
+    if (delta !== 0) carousel.goTo(carousel.getIndex(false) + delta);
+    else scroll.to(section.items[1].top, { duration: wheelPager.duration, lock: true, easing: easeSnap });
+    break;
+  }
 });
 
 const isInGamme = () => scroll.position < section.items[1].top;
+/* Ecrire style.cursor salit le style de TOUT le document : on n'ecrit que si la valeur change. */
+let cursorNow = '';
+const setCursor = (v) => { if (v !== cursorNow) { cursorNow = v; document.body.style.cursor = v; } };
 
 let hoverPending = false;
 on(window, 'mousemove', (e) => {
-  if (!isInGamme()) { document.body.style.cursor = ''; return; }
+  if (!isInGamme()) { setCursor(''); return; }
   if (hoverPending) return;
   hoverPending = true;
   requestAnimationFrame(() => { hoverPending = false; hoverTest(e); });
 });
 const hoverTest = (e) => {
-  if (swipe.holding && swipe.direction === 1) { document.body.style.cursor = 'grabbing'; return; }
+  if (swipe.holding && swipe.direction === 1) { setCursor('grabbing'); return; }
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
   let hoverActive = false;
@@ -396,9 +401,9 @@ const hoverTest = (e) => {
       if (i % PRODUCTS.length === carousel.index) hoverActive = true;
     }
   });
-  document.body.style.cursor = hoverActive ? 'pointer' : 'grab';
+  setCursor(hoverActive ? 'pointer' : 'grab');
 };
-on(window, 'mouseup touchend', () => { if (isInGamme()) document.body.style.cursor = 'grab'; });
+on(window, 'mouseup touchend', () => { if (isInGamme()) setCursor('grab'); });
 
 // #endregion
 // #region Sections
@@ -427,11 +432,14 @@ section.resize();
 const swipe = { active: true, holding: false, startX: 0, startY: 0, lastX: 0, lastY: 0, deltaX: 0, deltaY: 0, direction: 0 };
 
 // Défilement automatique (demande Kouro 2026-08-20 : « les produits se scrollent toutes seules, pas vite »)
-const auto = { speed: reducedMotion ? 0 : 0.45, idleAfter: 3, lastInput: 0, running: false };
-auto.touch = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
-['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, auto.touch, { passive: true }));
+/* La derive demarre 2 s apres l'ouverture et s'arrete DEFINITIVEMENT des que le visiteur fait tourner
+   la gamme lui-meme (glisse ou fleches). Defiler la page, elle, ne l'arrete pas.
+   Elle ne depend plus de « mouvement reduit » : Kouro la veut visible sur sa machine, ou l'option est active. */
+const auto = { speed: 0.45, startAfter: 2, startedAt: 0, taken: false, running: false };
+auto.take = () => { auto.taken = true; auto.running = false; };
 const _goTo = carousel.goTo;
-carousel.goTo = (index) => { auto.touch(); _goTo(index); };
+carousel.goTo = (index) => { auto.take(); _goTo(index); };
+carousel.isDragging = () => swipe.holding && swipe.direction === 1; /* lu par home.js : voir la teinte du site */
 
 
 // #endregion
@@ -630,16 +638,18 @@ function animate(tick = 0) {
   pointer.smoothY = lerp(pointer.smoothY, pointer.y, delta * 10);
 
   if (!animation.paused) {
-    const idle = time - auto.lastInput > auto.idleAfter;
+    if (!auto.startedAt && !pointer.prevent) auto.startedAt = time; /* le compte a rebours part a la fin du chargement */
+    const started = auto.startedAt > 0 && time - auto.startedAt > auto.startAfter;
     const onHome = section.items.length > 1 && scroll.position < section.items[1].top * 0.5;
-    auto.running = idle && onHome && !swipe.holding && !pointer.prevent;
+    auto.running = started && !auto.taken && onHome && !swipe.holding && !pointer.prevent;
     if (auto.running) {
       /* derive lente ; position lissee (et non collee a la cible) : un clic recu pendant l'intro ne fait plus sauter la rangee */
       carousel.target += auto.speed * delta;
       carousel.position = lerp(carousel.position, carousel.target, Math.min(1, delta * 10));
     } else {
       if (!swipe.holding) carousel.target = carousel.getRounded(carousel.target);
-      carousel.position = lerp(carousel.position, carousel.target, delta * 10);
+      /* souris posee : la rangee colle au geste (a 10, elle trainait derriere) */
+      carousel.position = lerp(carousel.position, carousel.target, Math.min(1, delta * (swipe.holding ? 26 : 10)));
     }
   }
 
@@ -775,8 +785,12 @@ window.addEventListener('wheel', blockScrollWhilePrevented, { passive: false, ca
 window.addEventListener('touchmove', blockScrollWhilePrevented, { passive: false, capture: true });
 on(window, 'mousemove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; });
 
-on(renderer.domElement, 'mousedown touchstart', (e) => {
-  if (!swipe.active || pointer.prevent) return;
+/* Le glisse ecoutait le canvas : a droite de l'ecran, un paragraphe d'une AUTRE section (en position
+   fixe, invisible) captait le clic et le geste ne demarrait jamais. On ecoute la fenetre, en laissant
+   passer ce qui est reellement cliquable. */
+on(window, 'mousedown touchstart', (e) => {
+  if (!swipe.active || pointer.prevent || notDraggable(e.target)) return;
+  if (!e.touches) e.preventDefault(); /* sinon le geste selectionne le texte des sections voisines */
   swipe.holding = true;
   swipe.deltaX = 0;
   const x = e.touches ? e.touches[0].clientX : e.clientX;
@@ -793,9 +807,10 @@ on(window, 'mousemove touchmove', (e) => {
     if (Math.abs(swipe.startX - x) > 2 || Math.abs(swipe.startY - y) > 2) swipe.direction = Math.abs(deltaX) > Math.abs(deltaY) ? 1 : 2;
   }
   if (swipe.direction == 1) {
+    if (swipe.lastX === swipe.startX) lenis.stop(); /* une seule fois par geste, pas a chaque mouvement */
+    auto.take();                                   /* le visiteur prend la main : la derive s'arrete pour de bon */
     swipe.lastX = x;
     swipe.deltaX += deltaX;
-    lenis.stop();
     if (e.touches) document.body.style.overflow = 'hidden';
   }
 });
