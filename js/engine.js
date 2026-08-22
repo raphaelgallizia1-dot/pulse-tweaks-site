@@ -677,14 +677,18 @@ function animate(tick = 0) {
       const k = i % PRODUCTS.length, sst = data.stack;
       const gap = 1.5; /* ecart entre couches : on voit chaque module en entier */
       const sy = (k - (PRODUCTS.length - 1) / 2) * gap + data.canPosY;
-      const active = i < PRODUCTS.length && (k === carousel.index || (window.stackHighlight && window.stackHighlight.has(k)));
+      const filtered = !!(window.stackHighlight && window.stackHighlight.size);
+      const advised = filtered && window.stackHighlight.has(k);
+      const active = i < PRODUCTS.length && (advised || (!filtered && k === carousel.index));
+      /* filtre actif : ce qui n'est pas conseille recule et se reduit (lisible d'un coup d'oeil) */
+      can.userData.dim = lerp(can.userData.dim || 0, filtered && !advised ? 1 : 0, Math.min(1, delta * 6));
       /* la couche active s'avance, grossit et bascule vers la camera (en douceur, lerp par module) */
       can.userData.lift = lerp(can.userData.lift || 0, active ? 1 : 0, Math.min(1, delta * 7));
       const L = can.userData.lift;
       canPosX = lerp(canPosX, data.canPosX + L * 0.35, sst);
       canPosY = lerp(canPosY, sy, sst);
-      canPosZ = lerp(canPosZ, data.canPosZ + L * 1.6, sst);
-      canScale = lerp(canScale, 1 + L * 0.08, sst);
+      canPosZ = lerp(canPosZ, data.canPosZ + L * 1.6 - can.userData.dim * 1.5, sst);
+      canScale = lerp(canScale, (1 + L * 0.08) * (1 - can.userData.dim * 0.12), sst);
       canRotX = lerp(canRotX, 0, sst); /* pas de bascule : inclinee vers le spot, l'etiquette se couvrait d'un reflet blanc illisible */
       canRotY = lerp(canRotY, 0, sst);
       canRotZ = lerp(canRotZ, -Math.PI / 2, sst); /* -90 : l'etiquette se lit a l'endroit (a +90 elle est retournee) */

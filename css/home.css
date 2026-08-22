@@ -483,3 +483,9 @@ select.modal_input { appearance: none; }
 .rev_edit { appearance: none; background: transparent; border: 1px solid var(--color-scheme-1--border); border-radius: 999px; color: var(--_primitives---opacity--white-60); font-family: var(--_typography---font-styles--mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; padding: .25rem .5rem; cursor: pointer; }
 .rev_edit:hover { color: #fff; border-color: var(--color-scheme-1--taste-secondary); }
 .rev_row.is-editing { background: color-mix(in srgb, var(--color-scheme-1--taste-secondary) 12%, transparent); }
+
+/* Filtre par probleme : tout ce qui n'est pas conseille s'efface */
+.stack_list.is-filtered .stack_layer { filter: saturate(.35); transition: filter .35s; }
+.stack_list.is-filtered .stack_layer.is-suggested { filter: none; }
+.stack_list.is-filtered .stack_layer.is-suggested::before { transform: translateY(-50%) scale(1); }
+.stack_layer.is-suggested::after { content: 'conseillé'; font-family: var(--_typography---font-styles--mono); font-size: .58rem; letter-spacing: .16em; text-transform: uppercase; color: var(--c); }

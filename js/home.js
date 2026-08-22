@@ -1240,7 +1240,18 @@
       /* configurateur par symptome : chaque puce conseille des couches (liste + 3D via window.stackHighlight) */
       const chips = [...$$('.stack_chip', section)];
       window.stackHighlight = new Set();
-      const applySuggest = () => layers.forEach((l) => l.classList.toggle('is-suggested', window.stackHighlight.has(Number(l.dataset.index))));
+      const list = $('.stack_list', section);
+      /* l'opacite est pilotee par GSAP (il pose un style inline a l'entree de section,
+         qui ecraserait toute regle CSS) : ce qui n'est pas conseille s'efface vraiment */
+      const applySuggest = () => {
+        const on = window.stackHighlight.size > 0;
+        layers.forEach((l) => {
+          const adv = window.stackHighlight.has(Number(l.dataset.index));
+          l.classList.toggle('is-suggested', adv);
+          gsap.to(l, { opacity: on ? (adv ? 1 : 0.2) : 1, x: on && adv ? 10 : 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' });
+        });
+        if (list) list.classList.toggle('is-filtered', on);
+      };
       chips.forEach((chip) => chip.addEventListener('click', () => {
         const on = chip.classList.contains('is-on');
         chips.forEach((ch) => { ch.classList.remove('is-on'); ch.setAttribute('aria-pressed', 'false'); });
