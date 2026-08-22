@@ -942,6 +942,9 @@ if (indicator.el) {
   });
 }
 
+/* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
+window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; } };
+
 /* Mode QA (captures headless) : ?seek=<index de section> place la page sur une section sans animation */
 {
   const q = new URLSearchParams(location.search).get('seek');
@@ -955,7 +958,6 @@ if (indicator.el) {
     loopGuard.lastPos = window.QA_POS;
     window.dispatchEvent(new CustomEvent('pulse:qa', { detail: { pos: window.QA_POS, idx } }));
     /* sonde QA : lire l'etat reel du moteur depuis une page de test */
-    window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; } };
   }
 }
 
