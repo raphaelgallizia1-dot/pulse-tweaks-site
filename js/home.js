@@ -1074,14 +1074,24 @@
       const marks = [...$$('.method_mark', section)];
       const items = [...$$('.method_item', section)];
       const side = $('.method_side', section);
-      let cur = 0;
+      let cur = -1;
+      /* hauteur figee sur le texte le plus long : sans ca, le bloc changeait de taille a chaque survol (saccade) */
+      const lockHeight = () => {
+        const panel = $('.method_panel', section);
+        if (!panel) return;
+        panel.style.minHeight = '';
+        const max = Math.max(...items.map((it) => { const prev = it.style.cssText; it.style.cssText = 'position:absolute;visibility:hidden;opacity:0;left:0;right:0'; const h = it.scrollHeight; it.style.cssText = prev; return h; }));
+        if (max) panel.style.minHeight = Math.ceil(max) + 'px';
+      };
       const show = (i, animate = true) => {
-        cur = i;
+        if (i === cur) return;                 /* deja affiche : on ne rejoue rien */
+        const prev = cur; cur = i;
         marks.forEach((m, k) => { m.classList.toggle('is-active', k === i); m.setAttribute('aria-selected', k === i ? 'true' : 'false'); });
-        items.forEach((it, k) => {
-          if (k === i) { it.classList.add('is-active'); gsap.fromTo(it, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: animate ? 0.5 : 0, ease: 'power3.out', overwrite: true }); }
-          else { it.classList.remove('is-active'); gsap.to(it, { autoAlpha: 0, y: -8, duration: animate ? 0.25 : 0, overwrite: true }); }
-        });
+        items.forEach((it, k) => it.classList.toggle('is-active', k === i));
+        if (!animate) { gsap.set(items, { clearProps: 'all' }); return; }
+        /* seuls le sortant et l'entrant sont animes */
+        if (items[prev]) gsap.to(items[prev], { autoAlpha: 0, x: -12, duration: 0.18, ease: 'power2.in', overwrite: true });
+        gsap.fromTo(items[i], { autoAlpha: 0, x: 14 }, { autoAlpha: 1, x: 0, duration: 0.34, ease: 'power2.out', delay: 0.05, overwrite: true });
       };
       marks.forEach((m, i) => {
         m.addEventListener('pointerenter', () => show(i));
@@ -1090,6 +1100,9 @@
         m.setAttribute('role', 'tab');
       });
       show(0, false);
+      lockHeight();
+      window.addEventListener('resize', () => { clearTimeout(window.__mhT); window.__mhT = setTimeout(lockHeight, 300); });
+      document.fonts?.ready.then(lockHeight);
       gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
         scrollTrigger: {

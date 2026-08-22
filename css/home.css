@@ -380,8 +380,9 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .method_mark.is-active { color: var(--color-scheme-1--text); border-color: var(--color-scheme-1--taste-secondary); }
 .method_mark.is-active .method_mark-no { background: var(--color-scheme-1--taste-secondary); border-color: var(--color-scheme-1--taste-secondary); color: var(--color-scheme-1--taste-primary); }
 .method_panel { position: relative; min-height: 14rem; text-align: left; }
-.method_item { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
-.method_item.is-active { position: relative; }
+/* tous les textes restent en absolu (aucun reflow au changement) ; seule l'opacite/la position changent */
+.method_item { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; opacity: 0; pointer-events: none; will-change: opacity, transform; }
+.method_item.is-active { visibility: visible; opacity: 1; pointer-events: auto; }
 .method_no { font-family: var(--_typography---font-styles--mono); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); text-decoration: line-through; margin-bottom: .6rem; }
 .method_title { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase; font-size: clamp(1.8rem, 2.6vw, 2.6rem); line-height: .98; margin-bottom: .8rem; }
 .method_text { font-size: 1.02rem; line-height: 1.55; color: var(--color-scheme-1--text); max-width: 22rem; }
