@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b67-socle-lumiere · 2026-08-23';
+const BUILD = 'b68-socle-cone · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -221,7 +221,7 @@ scene.add(spot3, spot3.target);
    niveau de l'anneau lumineux et prend la couleur de l'opti affichee ; elle est declaree ici,
    avec les autres, pour que les nuanciers ne soient compiles qu'une fois. */
 const socleLampe = new THREE.PointLight(new THREE.Color(PRODUCTS[0].color), 0, 9, 2);
-socleLampe.position.set(0, -3.5, 1.9);
+socleLampe.position.set(0, -3.2, 2.1);
 scene.add(socleLampe);
 
 const renderPass = new RenderPass(scene, camera);
@@ -366,10 +366,28 @@ const base = new THREE.Group();
   const texHalo = masqueRond([[0, 0.62], [0.28, 0.20], [1, 0]]);
   const halo = nappe(texHalo, SOCLE_L * 1.30, SOCLE_L * 0.26, yPied, -0.7, 1, -4, THREE.AdditiveBlending);
 
-  /* la colonne : d'abord un rectangle degrade, mais ses bords se voyaient et cela faisait une
-     boite de brume. Une ellipse douce, elle, monte sans arete. */
-  const HAUTEUR_COLONNE = 4.2;
-  const colonne = nappe(masqueRond([[0, 0.40], [0.30, 0.13], [1, 0]]), SOCLE_L * 1.05, HAUTEUR_COLONNE, yAnneau + 1.25, -0.25, 1, 1, THREE.AdditiveBlending);
+  /* la colonne. Deux essais rates avant celui-ci : un rectangle degrade (ses bords se voyaient,
+     cela faisait une boite de brume), puis une ellipse centree en l'air — et une ellipse a son
+     point le plus vif en son centre, donc la lumiere avait l'air de naitre a mi-hauteur, autour
+     du module. Ici le degrade part du BAS de l'image : le point le plus vif tombe sur l'anneau
+     du socle, et tout ce qui monte s'eteint. La lumiere vient du socle. */
+  const texCone = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    /* rayon = 128, soit la MOITIE du cote : le degre s'eteint donc pile au bord de l'image.
+       Avec un rayon de 256, les bords gauche et droit restaient allumes et on voyait un
+       rectangle clair en plein ecran (vu sur capture, corrige). */
+    const gr = g.createRadialGradient(128, 256, 0, 128, 256, 128);
+    gr.addColorStop(0, 'rgba(255,255,255,0.62)');
+    gr.addColorStop(0.20, 'rgba(255,255,255,0.28)');
+    gr.addColorStop(0.50, 'rgba(255,255,255,0.09)');
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(c);
+  })();
+  const HAUTEUR_COLONNE = 6.0;
+  const colonne = nappe(texCone, SOCLE_L * 1.30, HAUTEUR_COLONNE, yAnneau + HAUTEUR_COLONNE / 2, -0.25, 1, 1, THREE.AdditiveBlending);
 
   /* le reflet du module sur le plateau. Un plateau sombre et parfaitement propre sous un objet
      lumineux, c'est ce qui trahissait l'image collee : rien ne se renvoyait. */
@@ -381,7 +399,7 @@ const base = new THREE.Group();
      image) : la pose du socle tient donc dans un sous-groupe. Il etait a ras du bas de l'ecran,
      sans un centimetre de sol dessous ; d'ou l'impression d'une image collee. */
   const pose = new THREE.Group();
-  pose.position.y = 0.45;
+  pose.position.y = 0.10;
   pose.scale.setScalar(0.93);
   pose.add(assise, large, halo, socle, reflet, colonne);
   bottom.add(pose);
@@ -445,7 +463,7 @@ const base = new THREE.Group();
   /* Les lumieres de la scene s'eteignent quand on quitte la gamme : ce que le socle projette
      doit s'eteindre avec elles, sinon il reste une tache de couleur sur une scene noire. */
   const ECLAT = { assise: 0.72, large: 1, halo: 1, colonne: 1, reflet: 1 };
-  const LAMPE_MAX = 26;
+  const LAMPE_MAX = 44;
   window.socleEclat = (part) => {
     const q = Math.max(0, Math.min(1, part));
     socleLampe.intensity = LAMPE_MAX * q;
