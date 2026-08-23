@@ -240,6 +240,14 @@ finalComposer.addPass(outputPass);
    rendu d'un cran ; si tout est propre pendant longtemps, il la remonte. Deux crans seulement,
    et uniquement sur le nombre de pixels : ni la geometrie, ni l'anticrenelage, ni les materiaux
    ne changent, donc aucune recompilation de shader (qui ferait justement un a-coup). */
+/* Plafond de cadence. Sur certaines configurations, requestAnimationFrame n'est pas cale sur
+   l'ecran et tourne a 280 images par seconde : on dessine alors quatre fois plus d'images que
+   l'ecran n'en affiche, on sature la file du GPU et le compositeur n'a plus son creneau — ce qui
+   se voit comme une saccade alors que le compteur d'images, lui, affiche 280.
+   On ne rend pas plus vite que 125 images par seconde : invisible en dessous, et ca rend au
+   compositeur la moitie du temps GPU. */
+const renderCap = { interval: 1 / 130, last: -1 };
+
 const quality = { level: 0, max: 3, base: pixelRatio, frames: 0, slow: 0, lastChange: 0, drops: 0 };
 quality.factor = () => [1, 0.82, 0.66, 0.66][quality.level];
 quality.apply = () => {
@@ -321,20 +329,22 @@ const mark = (n) => window.__t.push([n, Math.round(performance.now())]);
 /* Étiquette portée par la face avant (et l'arrière) */
 function labelTexture(p) {
   /* haute résolution : l'objet remplit l'écran sur les bénéfices, les textes doivent rester nets */
-  /* 1024x3072 : compare a chaud DANS LA MEME PAGE contre 2048x6144 puis 1440x4320 — ecart de
-     0,36 % puis 0,48 % des pixels, indiscernable a quatre fois le zoom. Six fois moins de pixels
-     a televerser vers le GPU, ce qui divise d'autant le gel de chargement. */
-  const W = 1024, H = 3072;
+  /* Le dessin ci-dessous est cale sur une planche de 2048x6144 (coordonnees en dur). La texture
+     peut etre plus petite : on met la planche a l'echelle, sinon tout est dessine trop gros et
+     l'etiquette devient une bouillie blanche. RES = taille reelle / taille de reference. */
+  const REF_W = 2048, REF_H = 6144, RES = 0.5;
+  const W = REF_W * RES, H = REF_H * RES;
   const t0 = performance.now();
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, W - 280, H - 280);
+  g.setTransform(RES, 0, 0, RES, 0, 0); /* on continue a dessiner en coordonnees 2048x6144 */
+  g.fillStyle = '#0b0a10'; g.fillRect(0, 0, REF_W, REF_H);
+  g.strokeStyle = 'rgba(255,255,255,.42)'; g.lineWidth = 8; g.strokeRect(140, 140, REF_W - 280, REF_H - 280);
   g.fillStyle = '#f4f3f6'; g.textAlign = 'center'; g.font = 'italic 210px Anton';
-  g.fillText('PULSE TWEAKS', W / 2, 470);
+  g.fillText('PULSE TWEAKS', REF_W / 2, 470);
   g.font = '78px Geistmono'; g.fillStyle = 'rgba(228,228,234,.85)';
-  g.fillText(p.tag, W / 2, 600);
-  g.save(); g.translate(520, H / 2 + 160); g.rotate(-Math.PI / 2);
+  g.fillText(p.tag, REF_W / 2, 600);
+  g.save(); g.translate(520, REF_H / 2 + 160); g.rotate(-Math.PI / 2);
   g.font = 'italic 620px Anton'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
   g.fillText(p.name, 0, 200); g.restore();
   g.textAlign = 'left'; g.font = '600 92px Geist, Geistmono'; /* petites lignes en blanc casse : pas de brulure */
@@ -347,8 +357,8 @@ function labelTexture(p) {
     if (parts[1]) g.fillText(parts[1], 980, y + 118);
   });
   g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(228,228,234,.9)';
-  g.fillText('OPTIMISATION MANUELLE', W / 2, H - 520);
-  g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 410);
+  g.fillText('OPTIMISATION MANUELLE', REF_W / 2, REF_H - 520);
+  g.fillText('ZÉRO RÉGLAGE INUTILE', REF_W / 2, REF_H - 410);
   mark('dessin etiquette ' + p.name + ' : ' + Math.round(performance.now() - t0) + ' ms');
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.premultiplyAlpha = false;
@@ -499,8 +509,8 @@ const swipe = { active: true, holding: false, startX: 0, startY: 0, lastX: 0, la
 /* La derive demarre 2 s apres l'ouverture et s'arrete DEFINITIVEMENT des que le visiteur fait tourner
    la gamme lui-meme (glisse ou fleches). Defiler la page, elle, ne l'arrete pas.
    Elle ne depend plus de « mouvement reduit » : Kouro la veut visible sur sa machine, ou l'option est active. */
-const auto = { speed: 0.45, startAfter: 2, startedAt: 0, taken: false, running: false };
-auto.take = () => { auto.taken = true; auto.running = false; };
+const auto = { speed: 0.45, startAfter: 2, resumeAfter: 3, startedAt: 0, lastInput: -1e9, running: false };
+auto.take = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
 const _goTo = carousel.goTo;
 carousel.goTo = (index) => { auto.take(); _goTo(index); };
 carousel.isDragging = () => swipe.holding && swipe.direction === 1; /* lu par home.js : voir la teinte du site */
@@ -703,9 +713,10 @@ function animate(tick = 0) {
 
   if (!animation.paused) {
     if (!auto.startedAt && !pointer.prevent) auto.startedAt = time; /* le compte a rebours part a la fin du chargement */
-    const started = auto.startedAt > 0 && time - auto.startedAt > auto.startAfter;
+    const demarre = auto.startedAt > 0 && time - auto.startedAt > auto.startAfter;   /* 2 s apres l'arrivee */
+    const libre = time - auto.lastInput > auto.resumeAfter;                           /* reprend 3 s apres la derniere manipulation */
     const onHome = section.items.length > 1 && scroll.position < section.items[1].top * 0.5;
-    auto.running = started && !auto.taken && onHome && !swipe.holding && !pointer.prevent;
+    auto.running = demarre && libre && onHome && !swipe.holding && !pointer.prevent;
     if (auto.running) {
       /* derive lente ; position lissee (et non collee a la cible) : un clic recu pendant l'intro ne fait plus sauter la rangee */
       carousel.target += auto.speed * delta;
@@ -815,8 +826,11 @@ function animate(tick = 0) {
   /* Sections ou la scene est HORS CHAMP (avis, FAQ, fin) : mesure faite, le canvas y est
      entierement vide (alpha 0). On ne paie ni les 30 objets ni les passes plein ecran. */
   const hidden = data.camPosY <= -5.2 && data.lightIntensity === 0 && data.spotIntensity === 0;
-  if (!contextLost) {
-    if (!hidden) { if (!window.__firstDone) { const a = performance.now(); finalComposer.render(); mark('1er rendu : ' + Math.round(performance.now() - a) + ' ms'); window.__firstDone = 1; } else finalComposer.render(); renderHidden = false; }
+  /* tolerance d une demi-image : sinon, avec une boucle a 280 Hz, on saute deux images sur trois */
+  const dessine = time - renderCap.last >= renderCap.interval - delta * 0.5;
+  if (dessine) renderCap.last = time;
+  if (!contextLost && dessine) {
+    if (!hidden) { window.__drawn++; if (!window.__firstDone) { const a = performance.now(); finalComposer.render(); mark('1er rendu : ' + Math.round(performance.now() - a) + ' ms'); window.__firstDone = 1; } else finalComposer.render(); renderHidden = false; }
     else if (!renderHidden) { renderer.setRenderTarget(null); renderer.clear(); renderHidden = true; }
   }
   carousel.lastPosition = carousel.position;
@@ -829,12 +843,15 @@ const fpsMeter = new URLSearchParams(location.search).has('fps') ? (() => {
   el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;font:12px/1.4 monospace;color:#fff;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:6px;pointer-events:none';
   document.body.appendChild(el);
   let frames = 0, last = 0, minFps = 999, since = 0;
+  window.__drawn = 0;
   return { tick(t) {
     frames++;
     if (t - last >= 1000) {
-      const fps = Math.round(frames * 1000 / (t - last)); frames = 0; last = t;
+      const fps = Math.round(frames * 1000 / (t - last));
+      const dessins = Math.round(window.__drawn * 1000 / (t - last)); window.__drawn = 0;
+      frames = 0; last = t;
       if (t - since > 5000) { minFps = fps; since = t; } else minFps = Math.min(minFps, fps);
-      el.textContent = fps + ' fps (min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2) + ' · qualite ' + quality.level + ' · images lentes ' + quality.drops + ' · ' + BUILD;
+      el.textContent = fps + ' fps (dessins ' + dessins + ', min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2) + ' · qualite ' + quality.level + ' · images lentes ' + quality.drops + ' · ' + BUILD;
     }
   } };
 })() : null;
@@ -1069,7 +1086,7 @@ window.__dbg = { get objets() { return cans; }, get scene() { return scene; }, g
     const idx = clamp(parseInt(q, 10) || 0, 0, section.items.length - 1);
     window.QA_POS = section.items[idx].top;
     window.QA_H = lenis.dimensions.scrollHeight;
-    auto.taken = true; /* captures deterministes : pas de derive auto */
+    auto.lastInput = Infinity; /* captures deterministes : pas de derive auto */
     pointer.prevent = false; swipe.active = true; animation.paused = false;
     carousel.target = carousel.getRounded(); carousel.position = carousel.target;
     loopGuard.lastPos = window.QA_POS;

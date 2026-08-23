@@ -588,3 +588,17 @@ select.modal_input { appearance: none; }
   .pulse_footer-bottom { margin-top: 1.2rem; gap: .4rem; }
 }
 @media screen and (max-width: 991px) { .pulse_footer-brand { flex-direction: column; align-items: center; gap: .5rem; } }
+
+/* ================= Compositeur : deux flous plein écran retirés =================
+   Ils étaient recalculés par le compositeur à CHAQUE image présentée (le fond derrière eux
+   change en permanence), et n'apportaient rien : mesuré par différence d'images, 4/255 et
+   7/255 d'écart maximum, soit zéro pixel visible. Ce coût n'apparaît dans aucune mesure de
+   requestAnimationFrame — il ne se voit que sur les images réellement affichées. */
+.gradient_overlay { filter: none; }
+.gamme_gradient-blur { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Le halo coloré du bas était flouté sur toute la surface de l'écran, à chaque image présentée.
+   On le floute maintenant sur seize fois moins de pixels puis on l'agrandit : un flou gaussien
+   agrandi donne exactement le même résultat. Mesuré par différence d'images : 2/255 d'écart
+   maximum, zéro pixel visible — pour seize fois moins de travail au compositeur. */
+.gamme_gradient-wrapper { width: 25%; height: 25%; filter: blur(1.5rem); transform-origin: top left; transform: scale(4); }
