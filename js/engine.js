@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b69-pose · 2026-08-23';
+const BUILD = 'b70-mobile · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -1047,7 +1047,9 @@ function animate(tick = 0) {
 
   /* Sections ou la scene est HORS CHAMP (avis, FAQ, fin) : mesure faite, le canvas y est
      entierement vide (alpha 0). On ne paie ni les 30 objets ni les passes plein ecran. */
-  const hidden = data.camPosY <= -5.2 && data.lightIntensity === 0 && data.spotIntensity === 0;
+  /* sur telephone, la page annonce elle-meme que la scene est sortie de l'ecran : inutile de
+     continuer a la dessiner derriere du texte opaque (batterie) */
+  const hidden = (window.__dbg && window.__dbg.pauseRendu) || (data.camPosY <= -5.2 && data.lightIntensity === 0 && data.spotIntensity === 0);
   /* tolerance d une demi-image : sinon, avec une boucle a 280 Hz, on saute deux images sur trois */
   const dessine = time - renderCap.last >= renderCap.interval - delta * 0.5;
   if (dessine) renderCap.last = time;
@@ -1121,6 +1123,10 @@ on(window, 'mouseup touchend', () => {
 
 const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 5 };
 const isMobile = () => window.innerWidth < 1024;
+/* Le calage par section se regle sur la MEME limite que la mise en page telephone (991 px du
+   CSS), pas sur celle du tactile : entre 992 et 1023 px on garde une mise en page de bureau,
+   donc des sections a hauteur pleine, donc le calage a du sens. */
+const petitEcran = () => window.innerWidth < 992;
 
 on(window, 'touchstart', (e) => {
   if (!isMobile() || pointer.prevent) return;
@@ -1164,6 +1170,10 @@ let wheelTimer;
 const inOverlay = (e) => !!(e.target && e.target.closest && e.target.closest('.modal:not([hidden])'));
 window.addEventListener('wheel', (e) => {
   if (pointer.prevent || inOverlay(e)) return;   /* fenetre admin ouverte : la molette lui appartient */
+  /* Petit ecran : la page y est un document normal (plusieurs sections y sont a hauteur zero).
+     Le calage par section trouvait alors plusieurs sections au MEME endroit et renvoyait le
+     visiteur en arriere alors qu'il ne faisait que descendre. On laisse defiler librement. */
+  if (petitEcran()) return;
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
   const dirNow = e.deltaY > 0 ? 1 : -1;
   if (anchor > wheelPager.lastSnap) {
@@ -1198,6 +1208,7 @@ window.addEventListener('wheel', (e) => {
 window.addEventListener('keydown', (e) => {
   if (pointer.prevent || e.altKey || e.ctrlKey || e.metaKey) return;
   if (document.querySelector('.modal:not([hidden])')) return;   /* saisie dans la fenetre admin */
+  if (petitEcran()) return; /* meme raison que la molette : pas de saut de section sur petit ecran */
   const tag = document.activeElement?.tagName || '';
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
   if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */

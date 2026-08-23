@@ -36,7 +36,19 @@
        d'un coup : c'est fluide au lieu d'etre joli et hache. Les machines normales gardent tout. */
     const machineEnPeine = () => (window.__dbg && window.__dbg.quality ? window.__dbg.quality.niveau : 0) >= 1;
 
+    /* Telephone : on ne decoupe plus le texte en lignes ni en caracteres. Ces masques calculent
+       une hauteur de ligne au moment du decoupage ; sur petit ecran, ou le meme texte se rejoue
+       sur plus de lignes, les derniers mots se faisaient couper (vu sur la fiche produit). Et
+       Kouro ne veut pas de ces animations-la sur telephone : le texte est simplement present. */
+    const petitEcran = () => window.innerWidth < 992;
+    /* Les blocs qui etaient en position fixe (pile des optis, protocole, bento) sont dans le flux
+       sur telephone : leurs apparitions au scroll etaient calees sur l'ancienne structure et les
+       laissaient a opacite 0 — donc des ecrans noirs. Ici, ils sont simplement la. */
+    const toujoursVisible = (el) => { if (el) gsap.set(el, { autoAlpha: 1, clearProps: 'visibility' }); };
+    const revelationNeutre = { in: () => {}, out: () => {}, revert: () => {} };
+
     const createLinesMask = (el, options = {}) => {
+      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.08, duration = 0.7, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -72,6 +84,7 @@
     };
 
     const createCharsMask = (el, options = {}) => {
+      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.01, duration = 0.6, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -415,6 +428,55 @@
       sounds.forEach((b) => b.addEventListener('click', toggle));
 
       start();
+    };
+
+    /* Telephone : le heros 3D est UN ecran, pas un decor permanent. Passe la premiere section,
+       son conteneur (nom du produit, fleches, socle, barre) doit disparaitre. Sur grand ecran
+       c'est la fiche produit qui s'en charge — elle n'existe plus sur telephone. */
+    const initHeroMobile = () => {
+      const g = $('.gamme_container');
+      if (!g || !window.lenis || !petitEcran()) return;
+      let sorti = null;
+      const cv = document.querySelector('canvas');
+      let voile = -1;
+      const maj = () => {
+        const h = window.innerHeight || 1;
+        const pos = window.lenis.animatedScroll;
+        /* le canvas est fixe : il ne peut pas s'en aller en defilant comme le conteneur. On le
+           fait donc disparaitre au meme rythme, sur les deux premiers tiers du premier ecran. */
+        const opacite = Math.max(0, Math.min(1, 1 - pos / (h * 0.42)));
+        if (cv && Math.abs(opacite - voile) > 0.01) { cv.style.opacity = opacite; voile = opacite; }
+        const dehors = pos > h * 0.65;
+        if (dehors === sorti) return;
+        sorti = dehors;
+        if (window.__dbg) window.__dbg.pauseRendu = dehors;
+        $('.navbar')?.classList.toggle('is-solid', dehors);
+      };
+      window.lenis.on('scroll', maj);
+      maj();
+    };
+
+    /* Bouton collant du telephone : le site n'a qu'une action, ouvrir un ticket. Il apparait une
+       fois la premiere section passee, pour ne pas couvrir le carrousel d'entree, et se retire
+       sur l'ecran de fin, qui a deja son bouton. */
+    const initCtaMobile = () => {
+      const cta = $('.cta_mobile');
+      if (!cta || !window.lenis) return;
+      const lien = $('a', cta);
+      const maj = () => {
+        const items = window.__dbg?.section?.items;
+        if (!items || items.length < 2) return;
+        const pos = window.lenis.animatedScroll;
+        /* Sur telephone les sections ont une hauteur nulle : leurs reperes se retrouvent tous au
+           meme endroit et ne disent plus rien. La fin de page, elle, se mesure directement. */
+        const reste = document.documentElement.scrollHeight - (pos + window.innerHeight);
+        const visible = pos > items[0].height * 0.8 && reste > 420;
+        cta.classList.toggle('is-on', visible);
+        cta.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        if (lien) lien.tabIndex = visible ? 0 : -1;
+      };
+      window.lenis.on('scroll', maj);
+      maj();
     };
 
     // Menu Button
@@ -1273,7 +1335,12 @@
         });
       });
 
-      gsap.timeline({
+      if (petitEcran()) {
+        /* dans le flux : ce bloc n'a pas a apparaitre au scroll. Il restait a opacite zero,
+           d'ou les ecrans noirs signales par Kouro. */
+        toujoursVisible(container);
+        gsap.set(layers, { x: 0, autoAlpha: 1 });
+      } else gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
         scrollTrigger: {
           trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
@@ -1362,6 +1429,14 @@
           logTl.to(o, { n: text.length, duration: 0.035 * text.length, ease: 'none', onUpdate: () => { l.textContent = text.slice(0, Math.round(o.n)); }, onComplete: () => l.classList.add('is-done') }, i === 0 ? 0 : '+=0.25');
         });
       };
+      if (petitEcran()) {
+        toujoursVisible(container);
+        gsap.set(cards, { autoAlpha: 1, y: 0 });
+        section.classList.add('is-live');
+        /* le journal se joue quand le bloc arrive a l'ecran, pas au chargement */
+        ScrollTrigger.create({ trigger: section, start: 'top 80%', once: true, onEnter: playLog });
+        return;
+      }
       gsap.set(cards, { autoAlpha: 0, y: 22 });
       gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
@@ -1412,6 +1487,8 @@
     initSectionStack();
     initProtocol();
     initHudReadout();
+    initHeroMobile();
+    initCtaMobile();
     initSectionBento();
     };
     Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]).then(boot);
