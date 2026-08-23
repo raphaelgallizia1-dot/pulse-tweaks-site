@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b62-opt · 2026-08-23';
+const BUILD = 'b66-socle · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -286,13 +286,94 @@ applyEnvironmentTint(baseMaterial);
 
 const base = new THREE.Group();
 {
-  // enfant 0 : piédestal (disque y ≈ -5.3 → -3.4, rayon 2.07)
+  /* enfant 0 : le socle. Ce n'etait qu'un cylindre ; c'est desormais le socle rendu fourni par
+     Kouro, en cinq versions de couleur (une par opti), detourees. Une seule surface porte les
+     deux textures a la fois et les melange : le changement de produit se fait en fondu, sans
+     saut. Un halo teinte, lui, se contente d'un changement de couleur progressif. */
   const bottom = new THREE.Group();
-  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(2.07, 2.07, 1.9, 96), baseMaterial);
-  pedestal.position.y = -4.3;
-  const pedestalRing = new THREE.Mesh(new THREE.TorusGeometry(2.07, 0.03, 12, 128), new THREE.MeshBasicMaterial({ color: 0xf4f3f6 }));
-  pedestalRing.rotation.x = Math.PI / 2; pedestalRing.position.y = -3.36;
-  bottom.add(pedestal, pedestalRing);
+
+  const socleTex = PRODUCTS.map((prod) => {
+    const t = new THREE.TextureLoader().load('assets/socles/socle-' + prod.key + '.webp');
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    t.generateMipmaps = true;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    return t;
+  });
+
+  const SOCLE_L = 5.4;                       /* largeur en unites de scene */
+  const SOCLE_H = SOCLE_L * (394 / 1200);    /* proportions du fichier */
+  const socleMat = new THREE.ShaderMaterial({
+    uniforms: { tA: { value: socleTex[0] }, tB: { value: socleTex[0] }, melange: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform sampler2D tA; uniform sampler2D tB; uniform float melange; varying vec2 vUv; void main(){ vec4 a = texture2D(tA, vUv); vec4 b = texture2D(tB, vUv); vec4 c = mix(a, b, melange); if (c.a < 0.004) discard; gl_FragColor = c; }',
+    transparent: true, depthWrite: false,
+  });
+  const socle = new THREE.Mesh(new THREE.PlaneGeometry(SOCLE_L, SOCLE_H), socleMat);
+  socle.position.y = -3.36 - SOCLE_H / 2 + 0.10;   /* le plateau arrive au niveau de l'ancien anneau */
+  socle.renderOrder = -1;
+
+  /* halo au sol : un simple degrade radial teinte a la couleur du produit, en addition */
+  const haloCanvas = document.createElement('canvas');
+  haloCanvas.width = haloCanvas.height = 256;
+  {
+    const g = haloCanvas.getContext('2d');
+    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(255,255,255,0.55)');
+    grad.addColorStop(0.30, 'rgba(255,255,255,0.16)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+  }
+  const haloTex = new THREE.CanvasTexture(haloCanvas);
+  const haloMat = new THREE.MeshBasicMaterial({ map: haloTex, color: new THREE.Color(PRODUCTS[0].color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  /* le halo reste SOUS le socle : c'est la lumiere qui deborde sur le sol, pas un voile par-dessus */
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(SOCLE_L * 1.25, SOCLE_L * 0.34), haloMat);
+  halo.position.set(0, socle.position.y - SOCLE_H * 0.42, -0.6);
+  halo.renderOrder = -2;
+
+  bottom.add(halo, socle);
+
+  /* Changement de produit : on charge la nouvelle texture dans l'emplacement B et on fond vers elle.
+     Le halo, lui, glisse d'une couleur a l'autre. Rien ne saute. */
+  const socleFondu = { t: 1, duree: 0.55, cible: 0, courant: 0 };
+  const haloDe = new THREE.Color(PRODUCTS[0].color);
+  const haloVers = new THREE.Color(PRODUCTS[0].color);
+  window.socleVersProduit = (i) => {
+    const n = ((i % PRODUCTS.length) + PRODUCTS.length) % PRODUCTS.length;
+    if (n === socleFondu.cible) return;
+    socleMat.uniforms.tA.value = socleTex[socleFondu.cible];
+    socleMat.uniforms.tB.value = socleTex[n];
+    socleMat.uniforms.melange.value = 0;
+    socleFondu.cible = n; socleFondu.t = 0;
+    haloDe.copy(haloMat.color); haloVers.set(PRODUCTS[n].color);
+  };
+  /* Les quatre autres socles ne partiraient vers le GPU qu'au premier changement de produit,
+     ce qui couterait une image a ce moment-la. On les televerse un par un une fois le site en
+     main, quand plus personne ne regarde. */
+  {
+    let i = 0;
+    let essais = 0;
+    const prechauffe = () => {
+      if (i >= socleTex.length || essais > 200) return;
+      const t = socleTex[i];
+      if (t.image && t.image.width) {
+        try { renderer.initTexture(t); } catch (err) { /* version sans initTexture */ }
+        i += 1;
+      }
+      essais += 1;
+      setTimeout(prechauffe, 140);
+    };
+    setTimeout(prechauffe, 3000);
+  }
+
+  window.socleAvance = (delta) => {
+    if (socleFondu.t >= 1) return;
+    socleFondu.t = Math.min(1, socleFondu.t + delta / socleFondu.duree);
+    const k = socleFondu.t < 0.5 ? 2 * socleFondu.t * socleFondu.t : 1 - Math.pow(-2 * socleFondu.t + 2, 2) / 2;
+    socleMat.uniforms.melange.value = k;
+    haloMat.color.copy(haloDe).lerp(haloVers, k);
+    if (socleFondu.t >= 1) { socleMat.uniforms.tA.value = socleTex[socleFondu.cible]; socleMat.uniforms.melange.value = 0; }
+  };
   // enfant 1 : luminaire (cloche y ≈ 3.4 → 5.4, rayon 1.87)
   const top = new THREE.Group();
   const lamp = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.87, 1.96, 96), baseMaterial);
@@ -303,6 +384,8 @@ const base = new THREE.Group();
   base.add(bottom, top);
 }
 scene.add(base);
+/* le socle suit le produit affiche */
+carousel.changed.connect(({ index }) => { if (window.socleVersProduit) window.socleVersProduit(index); });
 
 // #endregion
 // #region Module Pulse (remplace can.glb : même repère — axe long = Z local, enfants tournés de +90° en X)
@@ -840,6 +923,7 @@ function animate(tick = 0) {
     can.visible = canScale > 0.01 && (data.stack > 0 || Math.abs(canPosX - data.camPosX) < demiLargeur);
   });
 
+  if (window.socleAvance) window.socleAvance(delta);
   base.children[0].position.y = -1 * data.baseOffset;
   base.children[1].position.y = 1 * data.baseOffset;
 

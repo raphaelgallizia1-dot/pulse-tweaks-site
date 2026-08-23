@@ -602,3 +602,17 @@ select.modal_input { appearance: none; }
    agrandi donne exactement le même résultat. Mesuré par différence d'images : 2/255 d'écart
    maximum, zéro pixel visible — pour seize fois moins de travail au compositeur. */
 .gamme_gradient-wrapper { width: 25%; height: 25%; filter: blur(1.5rem); transform-origin: top left; transform: scale(4); }
+
+/* ================= Socle rendu (2026-08-23) =================
+   Le socle du carrousel n'est plus un cylindre procédural mais le socle rendu fourni par Kouro,
+   décliné en cinq couleurs (une par opti) et fondu d'une couleur à l'autre dans la scène 3D.
+   Deux conséquences côté page :
+   - il porte sa propre plaque « PULSE TWEAKS », donc le nom du produit et la barre de progression
+     remontent au-dessus de lui : sinon les deux textes se superposent ;
+   - le grand halo violet passait par-dessus le canvas et lavait complètement le socle (comparaison
+     avec et sans : le socle passe de délavé à noir profond). On le dose au lieu de le retirer. */
+@media screen and (min-width: 992px) {
+  .carousel_title-collection, .carousel_pagination { transform: translateY(-8.5rem); }
+  .carousel_pagination { margin-top: 1rem; }
+  .gamme_gradient { opacity: .45; }
+}
