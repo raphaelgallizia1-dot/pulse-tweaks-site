@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b36 · 2026-08-23';
+const BUILD = 'b53 · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
