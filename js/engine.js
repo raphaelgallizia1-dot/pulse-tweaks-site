@@ -513,7 +513,8 @@ const auto = { speed: 0.45, startAfter: 2, resumeAfter: 3, startedAt: 0, lastInp
 auto.take = () => { auto.lastInput = performance.now() / 1000; auto.running = false; };
 const _goTo = carousel.goTo;
 carousel.goTo = (index) => { auto.take(); _goTo(index); };
-carousel.isDragging = () => swipe.holding && swipe.direction === 1; /* lu par home.js : voir la teinte du site */
+carousel.isDragging = () => swipe.holding && swipe.direction === 1;
+/* lu par home.js : voir la teinte du site */
 
 
 // #endregion
