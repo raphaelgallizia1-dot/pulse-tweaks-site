@@ -1099,11 +1099,11 @@
           defaults: { duration: 0.5, ease: 'power2.inOut' },
           scrollTrigger: {
             trigger: section,
-            /* Sur grand ecran la fiche apparait des que sa section entre par le bas, parce que le
-               heros est encore loin. Sur telephone les deux occupent le meme ecran : le nom du
-               heros et le texte de la fiche se retrouvaient l'un sous l'autre. On resserre donc
-               le passage de main a la moitie de l'ecran. */
-            start: petitEcran() ? 'top 55%' : 'top bottom',
+            /* 'top bottom' faisait entrer la fiche des que sa section touchait le bas de la
+               fenetre, soit un ecran entier trop tot : son texte, son prix et son bouton se
+               posaient sur la gamme encore affichee (capture du 24/08). Le passage de main se
+               fait maintenant quand la section arrive vraiment, sur les deux tailles d'ecran. */
+            start: petitEcran() ? 'top 55%' : 'top 45%',
             end: petitEcran() ? 'bottom 45%' : 'bottom bottom',
             toggleActions: 'play reverse play reverse',
             onEnter: () => {
@@ -1128,8 +1128,8 @@
             },
           },
         })
-        .fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1 })
-        .fromTo('.carousel_title-bis-wrapper', { autoAlpha: 0 }, { autoAlpha: 1 }, '<');
+        .fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1 });
+        /* les grandes lettres dispersees sont retirees du site : plus rien a animer ici */
     };
 
     // Section Benefits

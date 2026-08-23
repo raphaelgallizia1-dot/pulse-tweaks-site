@@ -846,3 +846,9 @@ select.modal_input { appearance: none; }
   }
 }
 @media screen and (min-width: 992px) { .rail_mobile { display: none; } }
+
+
+/* Retour du 24/08 : « tu as mis des lettres qui forment les mots TIMER, TUNER, PULSE, ça ne sert
+   à rien, enlève ça ». Ce sont les grandes lettres dispersées derrière la fiche produit, héritées
+   du moteur d'origine. Elles disparaissent partout, y compris sur ordinateur. */
+.carousel_title-bis-wrapper { display: none !important; }
