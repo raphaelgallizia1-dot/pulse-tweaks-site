@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b68-socle-cone · 2026-08-23';
+const BUILD = 'b69-pose · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -399,7 +399,7 @@ const base = new THREE.Group();
      image) : la pose du socle tient donc dans un sous-groupe. Il etait a ras du bas de l'ecran,
      sans un centimetre de sol dessous ; d'ou l'impression d'une image collee. */
   const pose = new THREE.Group();
-  pose.position.y = 0.10;
+  pose.position.y = -0.25;
   pose.scale.setScalar(0.93);
   pose.add(assise, large, halo, socle, reflet, colonne);
   bottom.add(pose);

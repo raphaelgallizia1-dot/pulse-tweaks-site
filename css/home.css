@@ -614,7 +614,7 @@ select.modal_input { appearance: none; }
 @media screen and (min-width: 992px) {
   /* en vh, pas en rem : la scène 3D est cadrée par un champ vertical, donc le socle grandit
      avec la hauteur de la fenêtre. En rem, le nom retombait sur le module sur un écran court. */
-  .carousel_title-collection, .carousel_pagination { transform: translateY(-16vh); }
+  .carousel_title-collection, .carousel_pagination { transform: translateY(-11vh); }
   .carousel_pagination { margin-top: 1rem; }
   .gamme_gradient { opacity: .45; }
 }
