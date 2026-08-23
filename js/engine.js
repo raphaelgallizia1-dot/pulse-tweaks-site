@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b66-socle · 2026-08-23';
+const BUILD = 'b67-socle-lumiere · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -216,6 +216,14 @@ const spot3 = new THREE.SpotLight(white, 0, 15, Math.PI / 8, 1, 0.1);
 spot3.position.set(0, 3, 5); spot3.target.position.set(0, 0.5, 0);
 scene.add(spot3, spot3.target);
 
+/* La lampe du socle. Les LED du socle ne sont qu'une image : sans source reelle, elles
+   n'eclairent rien et le socle a l'air decoupe et pose sur le fond. Cette lampe se tient au
+   niveau de l'anneau lumineux et prend la couleur de l'opti affichee ; elle est declaree ici,
+   avec les autres, pour que les nuanciers ne soient compiles qu'une fois. */
+const socleLampe = new THREE.PointLight(new THREE.Color(PRODUCTS[0].color), 0, 9, 2);
+socleLampe.position.set(0, -3.5, 1.9);
+scene.add(socleLampe);
+
 const renderPass = new RenderPass(scene, camera);
 
 // #endregion
@@ -304,40 +312,98 @@ const base = new THREE.Group();
   const SOCLE_L = 5.4;                       /* largeur en unites de scene */
   const SOCLE_H = SOCLE_L * (394 / 1200);    /* proportions du fichier */
   const socleMat = new THREE.ShaderMaterial({
-    uniforms: { tA: { value: socleTex[0] }, tB: { value: socleTex[0] }, melange: { value: 0 } },
+    uniforms: { tA: { value: socleTex[0] }, tB: { value: socleTex[0] }, melange: { value: 0 }, gain: { value: 1.32 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: 'uniform sampler2D tA; uniform sampler2D tB; uniform float melange; varying vec2 vUv; void main(){ vec4 a = texture2D(tA, vUv); vec4 b = texture2D(tB, vUv); vec4 c = mix(a, b, melange); if (c.a < 0.004) discard; gl_FragColor = c; }',
+    fragmentShader: 'uniform sampler2D tA; uniform sampler2D tB; uniform float melange; uniform float gain; varying vec2 vUv; void main(){ vec4 a = texture2D(tA, vUv); vec4 b = texture2D(tB, vUv); vec4 c = mix(a, b, melange); if (c.a < 0.004) discard; gl_FragColor = vec4(c.rgb * gain, c.a); }',
     transparent: true, depthWrite: false,
   });
   const socle = new THREE.Mesh(new THREE.PlaneGeometry(SOCLE_L, SOCLE_H), socleMat);
   socle.position.y = -3.36 - SOCLE_H / 2 + 0.10;   /* le plateau arrive au niveau de l'ancien anneau */
   socle.renderOrder = -1;
 
-  /* halo au sol : un simple degrade radial teinte a la couleur du produit, en addition */
-  const haloCanvas = document.createElement('canvas');
-  haloCanvas.width = haloCanvas.height = 256;
-  {
-    const g = haloCanvas.getContext('2d');
+  /* --- ce que le socle projette -------------------------------------------------------
+     Retour du 23/08 : les faisceaux du socle ne projetaient rien, on ne voyait qu'une ombre
+     de lumiere posee dessus. Quatre pieces repondent maintenant a l'anneau, toutes reglees
+     sur la couleur de l'opti :
+       assise   : le sol est un degrade clair ; sans le creuser sous le socle, la plaque noire
+                  du socle tranche et il a l'air colle sur un mur.
+       nappes   : la lumiere qui deborde au sol autour du pied (une large, une serree).
+       colonne  : ce qui monte de l'anneau vers le module.
+     La lampe, elle, est declaree avec les autres lumieres : c'est elle qui eclaire vraiment. */
+
+  const masqueRond = (arrets) => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
     const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    grad.addColorStop(0, 'rgba(255,255,255,0.55)');
-    grad.addColorStop(0.30, 'rgba(255,255,255,0.16)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    arrets.forEach(([q, a]) => grad.addColorStop(q, 'rgba(255,255,255,' + a + ')'));
     g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
-  }
-  const haloTex = new THREE.CanvasTexture(haloCanvas);
-  const haloMat = new THREE.MeshBasicMaterial({ map: haloTex, color: new THREE.Color(PRODUCTS[0].color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-  /* le halo reste SOUS le socle : c'est la lumiere qui deborde sur le sol, pas un voile par-dessus */
-  const halo = new THREE.Mesh(new THREE.PlaneGeometry(SOCLE_L * 1.25, SOCLE_L * 0.34), haloMat);
-  halo.position.set(0, socle.position.y - SOCLE_H * 0.42, -0.6);
-  halo.renderOrder = -2;
+    return new THREE.CanvasTexture(c);
+  };
 
-  bottom.add(halo, socle);
+  const nappe = (tex, l, h, y, z, opacite, ordre, blend) => {
+    const m = new THREE.MeshBasicMaterial({
+      map: tex, color: new THREE.Color(PRODUCTS[0].color), transparent: true,
+      opacity: opacite, blending: blend, depthWrite: false,
+    });
+    const o = new THREE.Mesh(new THREE.PlaneGeometry(l, h), m);
+    o.position.set(0, y, z);
+    o.renderOrder = ordre;
+    return o;
+  };
 
-  /* Changement de produit : on charge la nouvelle texture dans l'emplacement B et on fond vers elle.
-     Le halo, lui, glisse d'une couleur a l'autre. Rien ne saute. */
-  const socleFondu = { t: 1, duree: 0.55, cible: 0, courant: 0 };
-  const haloDe = new THREE.Color(PRODUCTS[0].color);
-  const haloVers = new THREE.Color(PRODUCTS[0].color);
+  /* reperes mesures dans l'image : pied du socle a v = 0.04, anneau du plateau a v = 0.58 */
+  const yPied = socle.position.y - SOCLE_H * 0.46;
+  const yAnneau = socle.position.y + SOCLE_H * 0.08;
+
+  const texAssise = masqueRond([[0, 0.85], [0.45, 0.55], [1, 0]]);
+  const assise = nappe(texAssise, SOCLE_L * 2.30, SOCLE_L * 0.62, yPied + 0.06, -0.9, 0.72, -6, THREE.NormalBlending);
+  assise.material.color.setHex(0x05040a);          /* le sol se creuse, il ne se teinte pas */
+
+  const texLarge = masqueRond([[0, 0.30], [0.35, 0.11], [1, 0]]);
+  const large = nappe(texLarge, SOCLE_L * 2.60, SOCLE_L * 0.70, yPied, -0.8, 1, -5, THREE.AdditiveBlending);
+
+  const texHalo = masqueRond([[0, 0.62], [0.28, 0.20], [1, 0]]);
+  const halo = nappe(texHalo, SOCLE_L * 1.30, SOCLE_L * 0.26, yPied, -0.7, 1, -4, THREE.AdditiveBlending);
+
+  /* la colonne : d'abord un rectangle degrade, mais ses bords se voyaient et cela faisait une
+     boite de brume. Une ellipse douce, elle, monte sans arete. */
+  const HAUTEUR_COLONNE = 4.2;
+  const colonne = nappe(masqueRond([[0, 0.40], [0.30, 0.13], [1, 0]]), SOCLE_L * 1.05, HAUTEUR_COLONNE, yAnneau + 1.25, -0.25, 1, 1, THREE.AdditiveBlending);
+
+  /* le reflet du module sur le plateau. Un plateau sombre et parfaitement propre sous un objet
+     lumineux, c'est ce qui trahissait l'image collee : rien ne se renvoyait. */
+  const reflet = nappe(masqueRond([[0, 0.50], [0.35, 0.16], [1, 0]]), SOCLE_L * 0.46, SOCLE_H * 0.40, socle.position.y + SOCLE_H * 0.28, 0.02, 1, 0, THREE.AdditiveBlending);
+
+  const teintes = [assise, large, halo, colonne, reflet];
+
+  /* bottom lui-meme sert de rail vertical a la ligne du temps (position.y ecrite a chaque
+     image) : la pose du socle tient donc dans un sous-groupe. Il etait a ras du bas de l'ecran,
+     sans un centimetre de sol dessous ; d'ou l'impression d'une image collee. */
+  const pose = new THREE.Group();
+  pose.position.y = 0.45;
+  pose.scale.setScalar(0.93);
+  pose.add(assise, large, halo, socle, reflet, colonne);
+  bottom.add(pose);
+  window.__socle = { socle, assise, large, halo, colonne, reflet, pose, lampe: socleLampe };
+
+
+  /* Changement de produit : on charge la nouvelle texture dans l'emplacement B et on fond vers
+     elle. Tout ce que le socle projette suit le meme fondu : nappes, colonne, lampe, et le spot
+     du bas de la scene, qui est justement celui qui vient d'ou se tient le socle. Rien ne saute. */
+  const socleFondu = { t: 1, duree: 0.55, cible: 0 };
+  const teinteDe = new THREE.Color(PRODUCTS[0].color);
+  const teinteVers = new THREE.Color(PRODUCTS[0].color);
+  const teinteNow = new THREE.Color(PRODUCTS[0].color);
+  const BLANC = new THREE.Color(0xffffff);
+  /* le spot du bas ne prend qu'une part de la couleur : au-dela, les modules virent au monochrome */
+  const PART_SPOT = 0.40;
+  const poseTeinte = () => {
+    teintes.forEach((o) => { if (o !== assise) o.material.color.copy(teinteNow); });
+    socleLampe.color.copy(teinteNow);
+    spot2.color.copy(BLANC).lerp(teinteNow, PART_SPOT);
+  };
+  poseTeinte();
   window.socleVersProduit = (i) => {
     const n = ((i % PRODUCTS.length) + PRODUCTS.length) % PRODUCTS.length;
     if (n === socleFondu.cible) return;
@@ -345,7 +411,7 @@ const base = new THREE.Group();
     socleMat.uniforms.tB.value = socleTex[n];
     socleMat.uniforms.melange.value = 0;
     socleFondu.cible = n; socleFondu.t = 0;
-    haloDe.copy(haloMat.color); haloVers.set(PRODUCTS[n].color);
+    teinteDe.copy(teinteNow); teinteVers.set(PRODUCTS[n].color);
   };
   /* Les quatre autres socles ne partiraient vers le GPU qu'au premier changement de produit,
      ce qui couterait une image a ce moment-la. On les televerse un par un une fois le site en
@@ -371,8 +437,25 @@ const base = new THREE.Group();
     socleFondu.t = Math.min(1, socleFondu.t + delta / socleFondu.duree);
     const k = socleFondu.t < 0.5 ? 2 * socleFondu.t * socleFondu.t : 1 - Math.pow(-2 * socleFondu.t + 2, 2) / 2;
     socleMat.uniforms.melange.value = k;
-    haloMat.color.copy(haloDe).lerp(haloVers, k);
+    teinteNow.copy(teinteDe).lerp(teinteVers, k);
+    poseTeinte();
     if (socleFondu.t >= 1) { socleMat.uniforms.tA.value = socleTex[socleFondu.cible]; socleMat.uniforms.melange.value = 0; }
+  };
+
+  /* Les lumieres de la scene s'eteignent quand on quitte la gamme : ce que le socle projette
+     doit s'eteindre avec elles, sinon il reste une tache de couleur sur une scene noire. */
+  const ECLAT = { assise: 0.72, large: 1, halo: 1, colonne: 1, reflet: 1 };
+  const LAMPE_MAX = 26;
+  window.socleEclat = (part) => {
+    const q = Math.max(0, Math.min(1, part));
+    socleLampe.intensity = LAMPE_MAX * q;
+    assise.material.opacity = ECLAT.assise * q;
+    large.material.opacity = ECLAT.large * q;
+    halo.material.opacity = ECLAT.halo * q;
+    colonne.material.opacity = ECLAT.colonne * q;
+    reflet.material.opacity = ECLAT.reflet * q;
+    const v = q > 0.01;
+    teintes.forEach((o) => { o.visible = v; });
   };
   // enfant 1 : luminaire (cloche y ≈ 3.4 → 5.4, rayon 1.87)
   const top = new THREE.Group();
@@ -924,6 +1007,8 @@ function animate(tick = 0) {
   });
 
   if (window.socleAvance) window.socleAvance(delta);
+  /* 14 : l'eclairage de la gamme, la seule section ou le socle est en vue */
+  if (window.socleEclat) window.socleEclat(data.lightIntensity / 14);
   base.children[0].position.y = -1 * data.baseOffset;
   base.children[1].position.y = 1 * data.baseOffset;
 

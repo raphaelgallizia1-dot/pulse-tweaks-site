@@ -611,8 +611,14 @@ select.modal_input { appearance: none; }
      remontent au-dessus de lui : sinon les deux textes se superposent ;
    - le grand halo violet passait par-dessus le canvas et lavait complètement le socle (comparaison
      avec et sans : le socle passe de délavé à noir profond). On le dose au lieu de le retirer. */
+/* Retour du 23/08 : « la petite barre, le nom, ensuite le socle, ça fait une vraie surcharge ».
+   La barre de progression disparaît : elle empilait une troisième bande entre le nom et le socle,
+   et la position dans la gamme est déjà lisible en haut à droite (« GAMME 01 / 05 »). */
+.carousel_pagination { display: none; }
+
 @media screen and (min-width: 992px) {
-  .carousel_title-collection, .carousel_pagination { transform: translateY(-8.5rem); }
-  .carousel_pagination { margin-top: 1rem; }
+  /* en vh, pas en rem : la scène 3D est cadrée par un champ vertical, donc le socle grandit
+     avec la hauteur de la fenêtre. En rem, le nom retombait sur le module sur un écran court. */
+  .carousel_title-collection { transform: translateY(-27vh); }
   .gamme_gradient { opacity: .45; }
 }
