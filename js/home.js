@@ -30,7 +30,15 @@
 
     // SplitText
 
+    /* Sur petit ecran, on ne decoupe plus le texte en lignes ni en caracteres. Ces masques
+       calculent une hauteur de ligne au moment du decoupage ; sur mobile, ou le texte se
+       rejoue sur plus de lignes, les derniers mots se faisaient couper (fiche produit). Et
+       Kouro ne veut pas de ces animations la sur telephone. Le texte est simplement present. */
+    const petitEcran = () => window.innerWidth < 992;
+    const revelationNeutre = { in: () => {}, out: () => {}, revert: () => {} };
+
     const createLinesMask = (el, options = {}) => {
+      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.08, duration = 0.7, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -66,6 +74,7 @@
     };
 
     const createCharsMask = (el, options = {}) => {
+      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.01, duration = 0.6, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -409,6 +418,26 @@
       sounds.forEach((b) => b.addEventListener('click', toggle));
 
       start();
+    };
+
+    /* Bouton collant du telephone : le site n'a qu'une action, ouvrir un ticket. Il apparait
+       une fois la premiere section passee, pour ne pas couvrir le carrousel d'entree. */
+    const initCtaMobile = () => {
+      const cta = $('.cta_mobile');
+      if (!cta || !window.lenis) return;
+      const lien = $('a', cta);
+      const maj = () => {
+        const items = window.__dbg?.section?.items;
+        if (!items || items.length < 2) return;
+        const pos = window.lenis.animatedScroll;
+        /* pas sur le carrousel d'entree, pas sur l'ecran de fin (qui a deja son bouton) */
+        const visible = pos > items[1].top * 0.6 && pos < items[items.length - 1].top - 240;
+        cta.classList.toggle('is-on', visible);
+        cta.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        if (lien) lien.tabIndex = visible ? 0 : -1;
+      };
+      window.lenis.on('scroll', maj);
+      maj();
     };
 
     // Menu Button
@@ -1406,6 +1435,7 @@
     initSectionStack();
     initProtocol();
     initHudReadout();
+    initCtaMobile();
     initSectionBento();
     };
     Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]).then(boot);

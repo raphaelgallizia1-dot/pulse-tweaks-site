@@ -602,3 +602,89 @@ select.modal_input { appearance: none; }
    agrandi donne exactement le même résultat. Mesuré par différence d'images : 2/255 d'écart
    maximum, zéro pixel visible — pour seize fois moins de travail au compositeur. */
 .gamme_gradient-wrapper { width: 25%; height: 25%; filter: blur(1.5rem); transform-origin: top left; transform: scale(4); }
+
+/* =====================================================================================
+   TÉLÉPHONE — mise au propre (2026-08-23)
+   Le site est conçu comme un parcours 3D où le texte est posé par-dessus un canvas fixe.
+   Sur un écran étroit, texte et objet occupent la même place : titres superposés, phrases
+   coupées, blocs illisibles. Sur téléphone on empile, on aère, et on laisse la 3D là où
+   elle a de la place.
+   ===================================================================================== */
+@media screen and (max-width: 991px) {
+
+  /* ---- Fiche produit : le texte descend sous le module, aligné à gauche, lisible ---- */
+  .profile_container .padding-section-medium { display: flex; align-items: flex-end; padding-bottom: 6.5rem; }
+  .carousel_desc .max-width-custom { max-width: none; text-align: left; }
+  .profile_desc p { font-size: 1rem; line-height: 1.5; color: var(--color-scheme-1--text); }
+  .profile_cta { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
+  .profile_price { font-size: 1.9rem; }
+  /* un voile sous le texte : le module passe derrière sans jamais gêner la lecture */
+  .profile_container .padding-section-medium::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+    background: linear-gradient(to top, var(--color-scheme-1--background) 34%, color-mix(in srgb, var(--color-scheme-1--background) 82%, transparent) 62%, transparent);
+    pointer-events: none;
+  }
+  .profile_container .carousel_desc-collection { position: relative; z-index: 1; }
+
+  /* ---- Méthode : tout s'empile, plus rien en position fixe l'un sur l'autre ---- */
+  .benefits_container { display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 1.6rem; padding: 5.5rem 0 2rem; }
+  .benefits_container > .padding-global { flex: 0 0 auto; }
+  .benefits_container .padding-section-medium { padding-top: 0; padding-bottom: 0; }
+  .benefits_text { text-align: left; }
+  .benefits_container h2 { font-size: clamp(1.9rem, 8.5vw, 2.6rem); line-height: 1; }
+  .method_side { position: static; inset: auto; transform: none; width: auto; display: block;
+    padding-left: var(--_spacing-sizing---page-padding--padding-global); padding-right: var(--_spacing-sizing---page-padding--padding-global); }
+  .method_rail { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem; margin-bottom: 1.4rem; }
+  .method_mark { justify-content: flex-start; }
+  .method_mark-label { display: block; font-size: .72rem; line-height: 1.15; text-align: left; } /* la regle 1280px les masquait : ici les pastilles font 176 px, le libelle tient */
+  .method_mark { padding: .45rem .7rem .45rem .45rem; gap: .5rem; }
+  .method_panel { min-height: 11rem; }
+  .method_title { font-size: 1.6rem; }
+  .method_text { font-size: .95rem; max-width: none; }
+
+  /* ---- Flèches du carrousel : cible tactile confortable et bien visible ---- */
+  .carousel_arrow { width: 3.4rem !important; height: 3.4rem !important; }
+  .arrow_mark { width: 1.5rem; height: 1.5rem; color: rgba(255, 255, 255, .9); }
+
+  /* ---- Bento : le titre passait sous l'en-tête ---- */
+  .section.is-bento { padding-top: 5rem; }
+
+  /* ---- Titres de section : jamais collés au bord ---- */
+  .section h2 { text-wrap: balance; }
+}
+
+@media screen and (max-width: 991px) {
+  /* ---- Avis : les cartes ne doivent plus être coupées en plein mot ---- */
+  .reviews_track .review { width: min(20rem, 78vw); }
+  .reviews_marquee { -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent); }
+
+  /* ---- Accès permanent au ticket : la seule action du site, toujours à portée de pouce ---- */
+  .cta_mobile { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; justify-content: center;
+    padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); pointer-events: none;
+    background: linear-gradient(to top, var(--color-scheme-1--background) 55%, transparent);
+    opacity: 0; transform: translateY(120%); transition: opacity .3s, transform .35s cubic-bezier(.2, .7, .2, 1); }
+  .cta_mobile.is-on { opacity: 1; transform: none; }
+  .cta_mobile a { pointer-events: auto; display: flex; align-items: center; justify-content: center; gap: .6rem;
+    width: 100%; max-width: 22rem; padding: .95rem 1.2rem; border-radius: 999px;
+    background: #fff; color: #0c0b12; font-family: var(--_typography---font-styles--mono); font-size: .78rem;
+    letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
+}
+@media screen and (min-width: 992px) { .cta_mobile { display: none; } }
+
+@media screen and (max-width: 991px) {
+  /* Le bouton collant occupe ~4,5 rem en bas : aucun contenu ne doit passer dessous. */
+  .argument_container, .stack_container, .full-gamme_container { padding-bottom: 4.5rem; }
+  .section.is-bento .bento_container, .section.is-faq, .section.is-reviews { padding-bottom: 4.5rem; }
+}
+
+@media screen and (max-width: 991px) {
+  /* Le claim était posé bas dans l'écran (mise en page de bureau) : le bouton collant le mangeait. */
+  .argument_svg-container { transform: translateY(-15vh); }
+}
+
+@media screen and (max-width: 991px) {
+  /* Le « packshot » est une image de composition : une diagonale qui ne rentre pas dans un écran
+     portrait, et qui ne porte aucun texte. Sur téléphone c'est un écran de défilement pour rien —
+     on le sort du parcours. La gamme complète est de toute façon détaillée deux sections plus loin. */
+  .section.is-full-gamme { display: none; }
+}

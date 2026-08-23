@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b56 · 2026-08-23';
+const BUILD = 'b60 · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -530,13 +530,14 @@ const _v3 = new THREE.Vector3();
 const D = Math.PI / 180;
 
 const createTimeline = () => {
+  const mob = window.innerWidth < 992; /* telephone : la scene doit laisser la place au texte */
   let i = 0;
   const tl = gsap.timeline({ defaults: { ease: 'power1.inOut' } });
   /* denominateur = somme des sections (pas lenis.dimensions, remesure avec 250 ms de retard au resize) */
   const dur = () => section.items[i].height / section.total();
 
   // Gamme (carrousel)
-  tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 40, canScale: 1, canPosX: 0.5, canPosY: -0.5, canPosZ: 0,
+  tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: mob ? 9.6 : 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: mob ? 34 : 40, canScale: 1, canPosX: 0.5, canPosY: mob ? 1.5 : -0.5, canPosZ: 0,
     canRotX: D * -37.5, canRotY: D * 15, canRotZ: D * 22.5, canSpin: 0, spacing: 3.5, wave: 0, swirl: 0, baseOffset: 3,
     lightIntensity: 14, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
   i += 1;
@@ -547,7 +548,14 @@ const createTimeline = () => {
     canPosX: 0, canPosY: posY, canPosZ: 0, canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: D * spin, spacing: 2.2, wave: 0, swirl: 0, baseOffset: 3,
     lightIntensity: 0, lightWidth: 1, tintStrength: 0.2, spotIntensity: 35, spotY: 2.2, pointerInfluence: 0, swipeSpeed: 1 });
   /* une seule section "methode" : les 4 points defilent DANS la section (stepper), le module pivote par point via stepFx */
-  tl.to(data, { ...adv(-6, -0.3, 120), duration: dur() }); i += 1;
+  /* Telephone : le module remplissait l'ecran et le titre, les reperes et le texte se
+     superposaient dessus. La scene sort du champ, la section devient un bloc qui se lit. */
+  tl.to(data, mob
+    ? { camPosX: 0, camPosY: -5.5, camPosZ: 10, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
+        canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.6, wave: 0, swirl: 1, baseOffset: 20,
+        lightIntensity: 0, lightWidth: 3, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }
+    : { ...adv(-6, -0.3, 120), duration: dur() });
+  i += 1;
 
   // Claim (« zéro réglage inutile »)
   tl.to(data, { camPosX: -3.4, camPosY: 0, camPosZ: 8, camRotX: 0, camRotY: 0, camRotZ: 0, fov: 45, canScale: 0.7, canPosX: 0, canPosY: -1.3, canPosZ: -0.5, /* camera a gauche : le module passe a droite du texte geant (canPosX n'est pas lu sur l'axe X) */
@@ -557,13 +565,12 @@ const createTimeline = () => {
   tl.set(swipe, { active: true });
 
   // Packshot (gamme debout en diagonale, swirl)
-  tl.to(data, { camPosX: -3, camPosY: -3.5, camPosZ: 20, camRotX: D * 10, camRotY: D * -9, camRotZ: D * -10, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
+  tl.to(data, { camPosX: mob ? 2.6 : -3, camPosY: mob ? -1.2 : -3.5, camPosZ: mob ? 34 : 20, camRotX: D * 10, camRotY: D * -9, camRotZ: D * -10, fov: 30, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: -0.4,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 1, baseOffset: 20,
     lightIntensity: 8, lightWidth: 3, tintStrength: 1.25, /* 2 : reflet blanc qui effacait l'etiquette TIMERTUNER */ spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 2, duration: dur() });
   i += 1;
 
   // Couches (section signature Pulse) : les 4 modules s'empilent a gauche, BIOS en bas, reseau en haut
-  const mob = window.innerWidth < 992; /* mobile : la pile se loge en haut, au-dessus du texte (colonne unique) */
   tl.to(data, { camPosX: mob ? 0 : 4.2, camPosY: mob ? -40 : 0.1, camPosZ: mob ? 74 : 29, /* mobile : pile hors champ, la liste suffit (pas la place a 390 px) */ camRotX: 0, camRotY: 0, camRotZ: 0, fov: 22, canScale: 1, canPosX: 0, canPosY: 0, canPosZ: 0,
     canRotX: 0, canRotY: 0, canRotZ: 0, canSpin: 0, spacing: 0.47, wave: 0, swirl: 0, baseOffset: 20, stack: 1,
     lightIntensity: 0, lightWidth: 2.4, tintStrength: 1.9, spotIntensity: 0, spotY: 3, pointerInfluence: 0, swipeSpeed: 1, duration: dur() }); /* spots coupes : seul l'environnement eclaire, uniformement -> aucun reflet sur les etiquettes */
