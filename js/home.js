@@ -35,6 +35,10 @@
        rejoue sur plus de lignes, les derniers mots se faisaient couper (fiche produit). Et
        Kouro ne veut pas de ces animations la sur telephone. Le texte est simplement present. */
     const petitEcran = () => window.innerWidth < 992;
+    /* Sur petit ecran, les blocs qui etaient en position fixe (pile des optis, bento) sont
+       maintenant dans le flux : leurs apparitions au scroll etaient calees sur l'ancienne
+       structure et les laissaient a opacite 0 — donc des ecrans noirs. Ici ils sont simplement la. */
+    const toujoursVisible = (el) => { if (el) gsap.set(el, { autoAlpha: 1, clearProps: 'visibility' }); };
     const revelationNeutre = { in: () => {}, out: () => {}, revert: () => {} };
 
     const createLinesMask = (el, options = {}) => {
@@ -1316,16 +1320,23 @@
         });
       });
 
-      gsap.timeline({
-        defaults: { duration: 0.5, ease: 'power2.inOut' },
-        scrollTrigger: {
-          trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
-          onEnter: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
-          onEnterBack: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
-          onLeave: () => reveal?.out(),
-          onLeaveBack: () => reveal?.out(),
-        },
-      }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.35 });
+      if (petitEcran()) {
+        /* petit ecran : ce bloc est dans le flux, il n'a pas a apparaitre au scroll — il etait
+           reste a opacite zero, d'ou les ecrans noirs signales par Kouro */
+        toujoursVisible(container);
+        gsap.set(layers, { x: 0, autoAlpha: 1 });
+      } else {
+        gsap.timeline({
+          defaults: { duration: 0.5, ease: 'power2.inOut' },
+          scrollTrigger: {
+            trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
+            onEnter: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+            onEnterBack: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+            onLeave: () => reveal?.out(),
+            onLeaveBack: () => reveal?.out(),
+          },
+        }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.35 });
+      }
     };
 
     // Protocole (FAQ) : relevé numéroté qui s'écrit à l'arrivée
@@ -1405,8 +1416,14 @@
           logTl.to(o, { n: text.length, duration: 0.035 * text.length, ease: 'none', onUpdate: () => { l.textContent = text.slice(0, Math.round(o.n)); }, onComplete: () => l.classList.add('is-done') }, i === 0 ? 0 : '+=0.25');
         });
       };
-      gsap.set(cards, { autoAlpha: 0, y: 22 });
-      gsap.timeline({
+      if (petitEcran()) {
+        toujoursVisible(container);
+        gsap.set(cards, { autoAlpha: 1, y: 0 });
+        section.classList.add('is-live');
+        playLog();
+      }
+      if (!petitEcran()) gsap.set(cards, { autoAlpha: 0, y: 22 });
+      if (!petitEcran()) gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
         scrollTrigger: {
           trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
@@ -1416,6 +1433,7 @@
           onLeaveBack: () => { reveal?.out(); section.classList.remove('is-live'); },
         },
       }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.3 });
+      /* sur petit ecran, aucune de ces revelations n'est creee : le bloc est simplement present */
     };
 
     // #region Init

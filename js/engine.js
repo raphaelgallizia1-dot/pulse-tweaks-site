@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b62 · 2026-08-23';
+const BUILD = 'b64 · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -950,6 +950,10 @@ let wheelTimer;
 const inOverlay = (e) => !!(e.target && e.target.closest && e.target.closest('.modal:not([hidden])'));
 window.addEventListener('wheel', (e) => {
   if (pointer.prevent || inOverlay(e)) return;   /* fenetre admin ouverte : la molette lui appartient */
+  /* Petit ecran : la page est un document normal (quatre sections y sont a hauteur zero). Le calage
+     par section y trouvait plusieurs sections au MEME endroit et renvoyait le visiteur en arriere
+     alors qu'il ne faisait que descendre. On laisse defiler librement. */
+  if (isMobile()) return;
   const anchor = closest(section.items, scroll.position, (item) => item.top).index;
   const dirNow = e.deltaY > 0 ? 1 : -1;
   if (anchor > wheelPager.lastSnap) {
@@ -984,6 +988,7 @@ window.addEventListener('wheel', (e) => {
 window.addEventListener('keydown', (e) => {
   if (pointer.prevent || e.altKey || e.ctrlKey || e.metaKey) return;
   if (document.querySelector('.modal:not([hidden])')) return;   /* saisie dans la fenetre admin */
+  if (isMobile()) return; /* meme raison que la molette : pas de saut de section sur petit ecran */
   const tag = document.activeElement?.tagName || '';
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
   if ((e.key === ' ' || e.key === 'Enter') && /^(BUTTON|A)$/.test(tag)) return; /* activation native du bouton focalise */
