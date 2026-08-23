@@ -438,19 +438,69 @@
       if (!g || !window.lenis || !petitEcran()) return;
       let sorti = null;
       const cv = document.querySelector('canvas');
+      const fiche = $('.section.is-profile');
       let voile = -1;
+      /* Systeme releve sur Ciao : l'objet 3D n'est pas un decor d'entree, c'est le FOND de toute
+         la partie scenographique. Il ne s'en va donc qu'a la fin de la fiche produit — au-dela,
+         la page devient un document et n'a plus besoin de lui. */
+      const finScene = () => (fiche ? fiche.offsetTop + fiche.offsetHeight : window.innerHeight);
       const maj = () => {
         const h = window.innerHeight || 1;
         const pos = window.lenis.animatedScroll;
-        /* le canvas est fixe : il ne peut pas s'en aller en defilant comme le conteneur. On le
-           fait donc disparaitre au meme rythme, sur les deux premiers tiers du premier ecran. */
-        const opacite = Math.max(0, Math.min(1, 1 - pos / (h * 0.42)));
+        const bord = finScene();
+        /* le canvas est fixe : il ne peut pas s'en aller en defilant comme un bloc. Il s'efface
+           donc sur le dernier demi-ecran de la partie scenographique. */
+        const opacite = Math.max(0, Math.min(1, (bord - pos) / (h * 0.5)));
         if (cv && Math.abs(opacite - voile) > 0.01) { cv.style.opacity = opacite; voile = opacite; }
-        const dehors = pos > h * 0.65;
+        const dehors = pos > bord - h * 0.25;
         if (dehors === sorti) return;
         sorti = dehors;
         if (window.__dbg) window.__dbg.pauseRendu = dehors;
         $('.navbar')?.classList.toggle('is-solid', dehors);
+      };
+      window.lenis.on('scroll', maj);
+      maj();
+    };
+
+    /* Le rail. Sur Ciao, quatre pastilles rondes alignees a droite donnent acces aux quatre idees
+       de la section sans defiler : c'est ce qui rend l'ecran unique navigable au pouce. Ici, les
+       cinq optis. Il n'apparait que sur la partie scenographique, ou il a un sens. */
+    const initRailMobile = () => {
+      if (!petitEcran() || !window.lenis) return;
+      const noms = (window.PULSE_PRODUCTS || []).map((p, i) => p.short || String(i + 1).padStart(2, '0'));
+      if (noms.length < 2) return;
+      const rail = document.createElement('div');
+      rail.className = 'rail_mobile';
+      rail.setAttribute('role', 'tablist');
+      rail.setAttribute('aria-label', 'Choisir une opti');
+      noms.forEach((n, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = n;
+        b.setAttribute('role', 'tab');
+        b.setAttribute('aria-label', (window.PULSE_PRODUCTS[i]?.name || 'Opti ' + n));
+        b.addEventListener('click', () => { window.carousel?.goTo(i); window.pulseSound?.play('click'); });
+        rail.appendChild(b);
+      });
+      document.body.appendChild(rail);
+      const boutons = [...rail.children];
+      const actif = (i) => boutons.forEach((b, k) => {
+        b.classList.toggle('is-active', k === i);
+        b.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      });
+      const brancher = () => { actif(window.carousel.index); window.carousel.changed.connect(({ index }) => actif(index)); };
+      if (window.carousel) brancher(); else window.addEventListener('carousel:ready', brancher, { once: true });
+
+      const fiche = $('.section.is-profile');
+      let etat = null;
+      const maj = () => {
+        const pos = window.lenis.animatedScroll;
+        const bord = fiche ? fiche.offsetTop + fiche.offsetHeight : window.innerHeight;
+        /* pas sur le tout premier ecran : le heros a deja son nom et sa barre, deux reperes suffisent */
+        const on = pos > window.innerHeight * 0.5 && pos < bord - window.innerHeight * 0.45;
+        if (on === etat) return;
+        etat = on;
+        rail.classList.toggle('is-on', on);
       };
       window.lenis.on('scroll', maj);
       maj();
@@ -1049,8 +1099,12 @@
           defaults: { duration: 0.5, ease: 'power2.inOut' },
           scrollTrigger: {
             trigger: section,
-            start: 'top bottom',
-            end: 'bottom bottom',
+            /* Sur grand ecran la fiche apparait des que sa section entre par le bas, parce que le
+               heros est encore loin. Sur telephone les deux occupent le meme ecran : le nom du
+               heros et le texte de la fiche se retrouvaient l'un sous l'autre. On resserre donc
+               le passage de main a la moitie de l'ecran. */
+            start: petitEcran() ? 'top 55%' : 'top bottom',
+            end: petitEcran() ? 'bottom 45%' : 'bottom bottom',
             toggleActions: 'play reverse play reverse',
             onEnter: () => {
               document.body.classList.add('is-profile-active');
@@ -1488,6 +1542,7 @@
     initProtocol();
     initHudReadout();
     initHeroMobile();
+    initRailMobile();
     initCtaMobile();
     initSectionBento();
     };
