@@ -420,6 +420,26 @@
       start();
     };
 
+    /* Telephone : le heros 3D est UN ecran, pas un decor permanent. Passe la premiere section,
+       son conteneur (nom du produit, fleches, podium, pagination) doit disparaitre. Sur grand
+       ecran c'est la fiche produit qui s'en charge — elle n'existe plus sur telephone. */
+    const initHeroMobile = () => {
+      const g = $('.gamme_container');
+      if (!g || !window.lenis || window.innerWidth >= 992) return;
+      let sorti = null;
+      const maj = () => {
+        const items = window.__dbg?.section?.items;
+        if (!items || !items.length) return;
+        const dehors = window.lenis.animatedScroll > items[0].height * 0.7;
+        if (dehors === sorti) return;
+        sorti = dehors;
+        gsap.to(g, { autoAlpha: dehors ? 0 : 1, duration: 0.3, ease: 'power2.out', overwrite: true });
+        $('.navbar')?.classList.toggle('is-solid', dehors);
+      };
+      window.lenis.on('scroll', maj);
+      maj();
+    };
+
     /* Bouton collant du telephone : le site n'a qu'une action, ouvrir un ticket. Il apparait
        une fois la premiere section passee, pour ne pas couvrir le carrousel d'entree. */
     const initCtaMobile = () => {
@@ -1435,6 +1455,7 @@
     initSectionStack();
     initProtocol();
     initHudReadout();
+    initHeroMobile();
     initCtaMobile();
     initSectionBento();
     };

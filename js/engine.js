@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b60 · 2026-08-23';
+const BUILD = 'b62 · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -537,7 +537,9 @@ const createTimeline = () => {
   const dur = () => section.items[i].height / section.total();
 
   // Gamme (carrousel)
-  tl.to(data, { camPosX: 0, camPosY: 0, camPosZ: mob ? 9.6 : 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: mob ? 34 : 40, canScale: 1, canPosX: 0.5, canPosY: mob ? 1.5 : -0.5, canPosZ: 0,
+  /* Telephone : la fiche produit n'existe plus (son contenu est dans la liste des optis).
+     La scene quitte donc l'ecran pendant le defilement du heros, puis la page est normale. */
+  tl.to(data, { camPosX: 0, camPosY: mob ? -5.5 : 0, camPosZ: mob ? 10 : 6, camRotX: 0, camRotY: 0, camRotZ: 0, fov: mob ? 30 : 40, canScale: 1, canPosX: mob ? 0 : 0.5, canPosY: mob ? 0 : -0.5, canPosZ: 0,
     canRotX: D * -37.5, canRotY: D * 15, canRotZ: D * 22.5, canSpin: 0, spacing: 3.5, wave: 0, swirl: 0, baseOffset: 3,
     lightIntensity: 14, lightWidth: 1, tintStrength: 1, spotIntensity: 0, spotY: 3, pointerInfluence: 0.2, swipeSpeed: 1, duration: dur() });
   i += 1;

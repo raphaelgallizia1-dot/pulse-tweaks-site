@@ -688,3 +688,40 @@ select.modal_input { appearance: none; }
      on le sort du parcours. La gamme complète est de toute façon détaillée deux sections plus loin. */
   .section.is-full-gamme { display: none; }
 }
+
+/* =====================================================================================
+   TÉLÉPHONE — CHANGEMENT DE STRUCTURE (2026-08-23)
+   Régler les détails ne suffisait pas : sur un écran étroit, l'architecture elle-même est
+   fausse. Le site empile des conteneurs en position fixe au-dessus d'un canvas, sur dix
+   sections de 125 % de hauteur — d'où les superpositions et la longueur.
+   Sur téléphone : UN héros 3D d'un écran, puis une page qui coule normalement. Les quatre
+   sections qui n'existaient que pour la mise en scène 3D (fiche, rail méthode, claim,
+   packshot) sortent du parcours : leur contenu est déjà couvert, en mieux, par la liste des
+   optis et par le bento. Reste six écrans utiles au lieu de dix.
+   ===================================================================================== */
+@media screen and (max-width: 991px) {
+  /* plus de hauteur imposée : chaque bloc fait la taille de son contenu */
+  .section { min-height: 0; }
+  .section.is-gamme { min-height: 100svh; }
+  .section.is-end { min-height: 100svh; }
+
+  /* les quatre écrans de mise en scène sortent du parcours mobile */
+  .section.is-profile, .section.is-benefits, .section.is-argument, .section.is-full-gamme { display: none; }
+
+  /* la liste des optis rejoint le flux normal (elle était en position fixe) */
+  .section.is-stack { padding: 4.5rem 0 1rem; }
+  .stack_container { position: relative; inset: auto; pointer-events: auto; }
+
+  /* respirations entre blocs, cohérentes */
+  .section.is-bento { padding-top: 3.5rem; }
+  .section.is-reviews { padding: 3.5rem 0; }
+  .section.is-faq { padding: 1rem 0 4.5rem; }
+}
+
+@media screen and (max-width: 991px) {
+  /* Le contenu défilait derrière l'en-tête sans fond : les titres traversaient le logo. Un simple
+     dégradé ne suffisait pas (le texte restait lisible au travers). Passé le héros, l'en-tête devient
+     franchement opaque — c'est aussi ce qui aide à savoir où l'on est. */
+  .navbar { transition: background-color .25s, border-color .25s; border-bottom: 1px solid transparent; }
+  .navbar.is-solid { background: var(--color-scheme-1--background); border-bottom-color: var(--color-scheme-1--border); }
+}
