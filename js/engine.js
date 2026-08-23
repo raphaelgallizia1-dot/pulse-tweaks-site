@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b56 · 2026-08-23';
+const BUILD = 'b62-opt · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -444,6 +444,9 @@ on(window, 'click', (e) => {
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
   for (const can of cans) {
+    can.getWorldPosition(hoverVec);
+    hoverSphere.set(hoverVec, HOVER_RAYON * Math.abs(can.scale.x));
+    if (!raycast.ray.intersectsSphere(hoverSphere)) continue;
     if (raycast.intersectObject(can).length === 0) continue;
     const delta = Math.round(can.position.x / carousel.spacing);
     /* le module clique vient AU CENTRE, meme s'il est a trois places (avant : un cran a la fois) */
@@ -458,22 +461,42 @@ const isInGamme = () => scroll.position < section.items[1].top;
 let cursorNow = '';
 const setCursor = (v) => { if (v !== cursorNow) { cursorNow = v; document.body.style.cursor = v; } };
 
+/* Survol du carrousel — le poste le plus cher du site avant cette version.
+   Il testait la GEOMETRIE REELLE des 20 modules (des milliers de triangles chacun) a chaque
+   image, soit jusqu'a 280 fois par seconde, pour un simple changement de curseur : 12 % du
+   temps processeur mesure au profileur, 16 % avec ses fonctions filles.
+   Trois economies qui ne changent rien au comportement :
+     1. 20 fois par seconde suffisent pour un curseur (au lieu de 280) ;
+     2. seuls les exemplaires du produit CENTRE peuvent changer le curseur : 4 modules sur 20 ;
+     3. une sphere englobante ecarte d'abord ceux que le rayon ne peut pas toucher ; le test
+        precis ne tourne que sur les survivants, donc la detection reste exacte. */
+const hoverSphere = new THREE.Sphere();
+const hoverVec = new THREE.Vector3();
+const HOVER_RAYON = 2.2;   /* demi-diagonale d'un module */
+const HOVER_PAUSE = 50;    /* ms entre deux tests */
+let hoverLast = 0;
+let hoverEvt = null;
 let hoverPending = false;
 on(window, 'mousemove', (e) => {
   if (!isInGamme()) { setCursor(''); return; }
+  hoverEvt = e;
   if (hoverPending) return;
+  const reste = HOVER_PAUSE - (performance.now() - hoverLast);
   hoverPending = true;
-  requestAnimationFrame(() => { hoverPending = false; hoverTest(e); });
+  setTimeout(() => { hoverPending = false; hoverLast = performance.now(); if (hoverEvt) hoverTest(hoverEvt); }, Math.max(0, reste));
 });
 const hoverTest = (e) => {
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
   let hoverActive = false;
-  cans.forEach((can, i) => {
-    if (raycast.intersectObject(can).length > 0) {
-      if (i % PRODUCTS.length === carousel.index) hoverActive = true;
-    }
-  });
+  for (let i = 0; i < cans.length; i += 1) {
+    if (i % PRODUCTS.length !== carousel.index) continue;
+    const can = cans[i];
+    can.getWorldPosition(hoverVec);
+    hoverSphere.set(hoverVec, HOVER_RAYON * Math.abs(can.scale.x));
+    if (!raycast.ray.intersectsSphere(hoverSphere)) continue;
+    if (raycast.intersectObject(can).length > 0) { hoverActive = true; break; }
+  }
   setCursor(hoverActive ? 'pointer' : ''); /* plus de main ouverte : on ne glisse plus, on clique */
 };
 
@@ -701,6 +724,10 @@ function animate(tick = 0) {
     }
   }
 
+  /* demi-largeur visible au plan des modules, plus 60 % de marge : on ne masque que ce qui est
+     tres largement hors cadre, jamais un module qui pourrait apparaitre */
+  const demiLargeur = Math.abs(Math.tan((data.fov * Math.PI) / 360) * Math.max(1, data.camPosZ) * camera.aspect) * 2 + 6;
+
   const minX = cans.length * -0.5 * carousel.spacing;
   const maxX = cans.length * 0.5 * carousel.spacing;
 
@@ -802,6 +829,15 @@ function animate(tick = 0) {
     can.children.forEach((child) => {
       if (child.isMesh) child.rotation.z = (can.rotation.y * 0.6 + (data.canSpin + window.stepFx.spin) * p) * (1 - data.stack);
     });
+
+    /* Un module trop loin du centre ne peut pas etre a l'ecran. En le declarant invisible, three.js
+       le saute au parcours de la scene et a la preparation du rendu : autant de travail par image
+       en moins, sans rien changer a l'image. Le cadre est centre sur la CAMERA (qui n'est pas
+       toujours en x=0 : premiere version fausse, elle masquait un module de la pile des optis).
+       Dans la pile, les positions sortent de la logique de rangee : on ne masque rien. */
+    /* et un module reduit a une taille nulle (la pile des optis en met 15 sur 20 a zero) n'a
+       aucune raison d'etre dessine : mesure, la section passait 141 appels de rendu au lieu de 36. */
+    can.visible = canScale > 0.01 && (data.stack > 0 || Math.abs(canPosX - data.camPosX) < demiLargeur);
   });
 
   base.children[0].position.y = -1 * data.baseOffset;

@@ -30,6 +30,12 @@
 
     // SplitText
 
+    /* Machine qui peine : le garde-fou du moteur a deja baisse la qualite. Les revelations de
+       texte (lettre par lettre, ligne par ligne) coutent alors 62 images lentes par transition
+       contre 18 sans elles (mesure a processeur bride x6). Sur ces machines-la, le texte arrive
+       d'un coup : c'est fluide au lieu d'etre joli et hache. Les machines normales gardent tout. */
+    const machineEnPeine = () => (window.__dbg && window.__dbg.quality ? window.__dbg.quality.niveau : 0) >= 1;
+
     const createLinesMask = (el, options = {}) => {
       const { stagger = 0.08, duration = 0.7, ease = 'power3.out' } = options;
 
@@ -44,7 +50,7 @@
 
       return {
         in: ({ delay = 0 } = {}) =>
-          gsap.to(targets, {
+          machineEnPeine() ? gsap.set(targets, { yPercent: 0 }) : gsap.to(targets, {
             yPercent: 0,
             duration,
             ease,
@@ -53,7 +59,7 @@
             overwrite: true,
           }),
         out: ({ delay = 0 } = {}) =>
-          gsap.to(targets, {
+          machineEnPeine() ? gsap.set(targets, { yPercent: -110 }) : gsap.to(targets, {
             yPercent: -110,
             duration,
             ease,
@@ -79,7 +85,7 @@
 
       return {
         in: ({ delay = 0 } = {}) =>
-          gsap.to(targets, {
+          machineEnPeine() ? gsap.set(targets, { yPercent: 0 }) : gsap.to(targets, {
             yPercent: 0,
             duration,
             ease,
@@ -88,7 +94,7 @@
             overwrite: true,
           }),
         out: ({ delay = 0 } = {}) =>
-          gsap.to(targets, {
+          machineEnPeine() ? gsap.set(targets, { yPercent: -110 }) : gsap.to(targets, {
             yPercent: -110,
             duration,
             ease,
