@@ -314,10 +314,18 @@ applyEnvironmentTint(bodyMaterial);
 const capMaterial = makeMaterial({ color: 0x15141c, metalness: 0.9, roughness: 0.25, clearcoat: 0.4, envMapIntensity: 1 });
 applyEnvironmentTint(capMaterial);
 
-/* Étiquette : canvas 1024×3072, portée par la face avant (et l'arrière) */
+/* Reperes de chargement : sert a savoir ce qui bloque, sans cout mesurable */
+window.__t = [];
+const mark = (n) => window.__t.push([n, Math.round(performance.now())]);
+
+/* Étiquette portée par la face avant (et l'arrière) */
 function labelTexture(p) {
   /* haute résolution : l'objet remplit l'écran sur les bénéfices, les textes doivent rester nets */
-  const W = 2048, H = 6144;
+  /* 1024x3072 : compare a chaud DANS LA MEME PAGE contre 2048x6144 puis 1440x4320 — ecart de
+     0,36 % puis 0,48 % des pixels, indiscernable a quatre fois le zoom. Six fois moins de pixels
+     a televerser vers le GPU, ce qui divise d'autant le gel de chargement. */
+  const W = 1024, H = 3072;
+  const t0 = performance.now();
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
   g.fillStyle = '#0b0a10'; g.fillRect(0, 0, W, H);
@@ -341,6 +349,7 @@ function labelTexture(p) {
   g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(228,228,234,.9)';
   g.fillText('OPTIMISATION MANUELLE', W / 2, H - 520);
   g.fillText('ZÉRO RÉGLAGE INUTILE', W / 2, H - 410);
+  mark('dessin etiquette ' + p.name + ' : ' + Math.round(performance.now() - t0) + ' ms');
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.premultiplyAlpha = false;
   return t;
@@ -386,6 +395,7 @@ const createCan = async (p) => {
 
 const duplicateCan = (item) => { const can = item.clone(); scene.add(can); return can; };
 
+mark('debut creation des modules');
 await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
   items.forEach((item) => cans.push(item));
   /* le wrap de la reference place au centre le module n. cans.length/2 : cette moitie DOIT etre un multiple du nombre de produits
@@ -393,7 +403,23 @@ await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
   const targetCount = PRODUCTS.length * 2 * (lowPower ? 1 : 2); /* 20 au lieu de 30 : 10 de chaque cote, la rangee couvre deja bien plus que l'ecran */
   let i = 0;
   while (cans.length < targetCount) { cans.push(duplicateCan(cans[i % PRODUCTS.length])); i++; }
+  mark('modules prets');
 });
+
+/* Le premier rendu televersait les cinq etiquettes vers le GPU d'un seul coup : 1040 ms de gel
+   mesures, en plein sur la premiere section. On les envoie une par image, pendant le chargeur,
+   ou une pause de 150 ms ne se voit pas. */
+{
+  const textures = [];
+  cans.forEach((c) => c.traverse((o) => {
+    if (o.isMesh && o.material && o.material.map && textures.indexOf(o.material.map) < 0) textures.push(o.material.map);
+  }));
+  for (const t of textures) {
+    try { renderer.initTexture(t); } catch (err) { /* version sans initTexture : le premier rendu s'en chargera */ }
+    await new Promise((r) => requestAnimationFrame(r));
+  }
+  mark('etiquettes televersees (' + textures.length + ')');
+}
 
 // #endregion
 // #region Raycaster / Cursor
@@ -790,7 +816,7 @@ function animate(tick = 0) {
      entierement vide (alpha 0). On ne paie ni les 30 objets ni les passes plein ecran. */
   const hidden = data.camPosY <= -5.2 && data.lightIntensity === 0 && data.spotIntensity === 0;
   if (!contextLost) {
-    if (!hidden) { finalComposer.render(); renderHidden = false; }
+    if (!hidden) { if (!window.__firstDone) { const a = performance.now(); finalComposer.render(); mark('1er rendu : ' + Math.round(performance.now() - a) + ' ms'); window.__firstDone = 1; } else finalComposer.render(); renderHidden = false; }
     else if (!renderHidden) { renderer.setRenderTarget(null); renderer.clear(); renderHidden = true; }
   }
   carousel.lastPosition = carousel.position;
@@ -982,8 +1008,29 @@ window.addEventListener('keydown', (e) => {
 // #endregion
 // #region Resize / Start
 
+/* Programmes GL prets avant la premiere image (sinon chaque section compile a la volee et
+   fait un a-coup). Jamais bloquant plus de 3 s, et jamais fatal : le site doit demarrer. */
+try {
+  if (renderer.compileAsync) {
+    await Promise.race([renderer.compileAsync(scene, camera), new Promise((r) => setTimeout(r, 3000))]);
+  } else renderer.compile(scene, camera);
+} catch (err) { console.warn('precompilation ignoree', err); }
+mark('shaders prets');
+
+/* Rendu de chauffe sur une cible minuscule : il lie les programmes du composeur et alloue les
+   cibles sans payer le remplissage. Sans lui, la toute premiere vraie image coutait ~460 ms. */
+try {
+  const plein = pixelRatio;
+  renderer.setPixelRatio(0.05); finalComposer.setPixelRatio(0.05); finalComposer.setSize(window.innerWidth, window.innerHeight);
+  finalComposer.render();
+  renderer.setPixelRatio(plein); finalComposer.setPixelRatio(plein); finalComposer.setSize(window.innerWidth, window.innerHeight);
+  mark('rendu de chauffe');
+} catch (err) { console.warn('chauffe ignoree', err); }
+
 animate();
-renderer.compile(scene, camera); /* les 10 programmes GL sont prets avant le premier defilement, plus d'a-coup a l'entree d'une section */
+/* Programmes GL prets avant la premiere image : sinon le premier rendu de chaque section
+   compile a la volee et fait un a-coup. */
+mark('compilation des shaders');
 
 let lastResizeWidth = window.innerWidth;
 const coarse = matchMedia('(pointer: coarse)').matches;
@@ -1013,7 +1060,7 @@ document.querySelector('[data-scroll-top]')?.addEventListener('click', () => {
 });
 
 /* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
-window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get build() { return BUILD; }, get quality() { return { niveau: quality.level, dpr: +pixelRatio.toFixed(2), imagesLentes: quality.drops, fenetre: quality.frames, lentesFenetre: quality.slow, depuis: +(time - quality.lastChange).toFixed(1) }; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
+window.__dbg = { get objets() { return cans; }, get scene() { return scene; }, get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get build() { return BUILD; }, get quality() { return { niveau: quality.level, dpr: +pixelRatio.toFixed(2), imagesLentes: quality.drops, fenetre: quality.frames, lentesFenetre: quality.slow, depuis: +(time - quality.lastChange).toFixed(1) }; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
 
 /* Mode QA (captures headless) : ?seek=<index de section> place la page sur une section sans animation */
 {
