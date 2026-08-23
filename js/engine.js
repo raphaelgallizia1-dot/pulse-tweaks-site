@@ -80,6 +80,11 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // #region Setup
 
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
+/* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
+   dans le navigateur du visiteur (le cache peut en servir une ancienne). */
+const BUILD = 'b36 · 2026-08-23';
+console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
+
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
 window.lenis = lenis;
 
@@ -228,6 +233,39 @@ const finalRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth * pixelR
 const finalComposer = new EffectComposer(renderer, finalRenderTarget);
 finalComposer.addPass(renderPass);
 finalComposer.addPass(outputPass);
+
+/* Garde-fou de fluidite.
+   Je ne peux pas garantir la fluidite sur une machine que je ne vois pas : le moteur se surveille.
+   Si plus d'un quart des images d'une fenetre de 90 depassent 22 ms, il baisse la resolution de
+   rendu d'un cran ; si tout est propre pendant longtemps, il la remonte. Deux crans seulement,
+   et uniquement sur le nombre de pixels : ni la geometrie, ni l'anticrenelage, ni les materiaux
+   ne changent, donc aucune recompilation de shader (qui ferait justement un a-coup). */
+const quality = { level: 0, max: 3, base: pixelRatio, frames: 0, slow: 0, lastChange: 0, drops: 0 };
+quality.factor = () => [1, 0.82, 0.66, 0.66][quality.level];
+quality.apply = () => {
+  pixelRatio = Math.max(0.6, quality.base * quality.factor());
+  renderer.setPixelRatio(pixelRatio);
+  /* dernier cran : on lache l'anticrenelage. C'est le plus gros poste de bande passante sur un
+     GPU integre, et un bord legerement plus dur vaut mieux qu'une image sur trois perdue. */
+  const samples = quality.level >= 3 ? 0 : lowPower ? 0 : 4;
+  [finalComposer.renderTarget1, finalComposer.renderTarget2].forEach((rt) => {
+    if (rt && rt.samples !== samples) { rt.samples = samples; rt.dispose(); }
+  });
+  finalComposer.setPixelRatio(pixelRatio);
+  finalComposer.setSize(window.innerWidth, window.innerHeight);
+};
+quality.watch = (delta, now) => {
+  if (delta > 0.022) { quality.slow += 1; quality.drops += 1; }
+  quality.frames += 1;
+  if (quality.frames < 90) return;
+  const part = quality.slow / quality.frames;
+  quality.frames = 0; quality.slow = 0;
+  if (part > 0.25 && quality.level < quality.max && now - quality.lastChange > 2.5) {
+    quality.level += 1; quality.apply(); quality.lastChange = now;
+  } else if (part === 0 && quality.level > 0 && now - quality.lastChange > 8) {
+    quality.level -= 1; quality.apply(); quality.lastChange = now;
+  }
+};
 
 // #endregion
 // #region Base (socle bas + luminaire haut, procéduraux — mêmes cotes que la référence)
@@ -583,7 +621,6 @@ loader.play = async () => {
   animation.paused = false;
   loopGuard.lastPos = scroll.position;
   loopGuard.snapping = false;
-  auto.lastInput = performance.now() / 1000 - auto.idleAfter; /* démarre tout de suite après l'intro */
   loader.ended.emit();
 };
 
@@ -609,6 +646,7 @@ function animate(tick = 0) {
     lenis.animatedScroll = 0;
     if (lenis.animate) lenis.animate.to = 0;
   }
+  if (!animation.paused && !pointer.prevent) quality.watch(delta, time);
   lenis.raf(time * 1000);
   if (window.QA_POS !== undefined) scroll.position = window.QA_POS;
 
@@ -770,7 +808,7 @@ const fpsMeter = new URLSearchParams(location.search).has('fps') ? (() => {
     if (t - last >= 1000) {
       const fps = Math.round(frames * 1000 / (t - last)); frames = 0; last = t;
       if (t - since > 5000) { minFps = fps; since = t; } else minFps = Math.min(minFps, fps);
-      el.textContent = fps + ' fps (min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2);
+      el.textContent = fps + ' fps (min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2) + ' · qualite ' + quality.level + ' · images lentes ' + quality.drops + ' · ' + BUILD;
     }
   } };
 })() : null;
@@ -955,10 +993,8 @@ on(window, 'resize', () => {
   lastResizeWidth = window.innerWidth;
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  pixelRatio = computePixelRatio();
-  renderer.setPixelRatio(pixelRatio);
-  finalComposer.setPixelRatio(pixelRatio);
-  finalComposer.setSize(window.innerWidth, window.innerHeight);
+  quality.base = computePixelRatio();
+  quality.apply();
   renderer.setSize(window.innerWidth, window.innerHeight);
   rebuildTimeline();
 });
@@ -977,7 +1013,7 @@ document.querySelector('[data-scroll-top]')?.addEventListener('click', () => {
 });
 
 /* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
-window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
+window.__dbg = { get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get build() { return BUILD; }, get quality() { return { niveau: quality.level, dpr: +pixelRatio.toFixed(2), imagesLentes: quality.drops, fenetre: quality.frames, lentesFenetre: quality.slow, depuis: +(time - quality.lastChange).toFixed(1) }; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
 
 /* Mode QA (captures headless) : ?seek=<index de section> place la page sur une section sans animation */
 {
@@ -986,7 +1022,7 @@ window.__dbg = { get data() { return data; }, get timeline() { return timeline; 
     const idx = clamp(parseInt(q, 10) || 0, 0, section.items.length - 1);
     window.QA_POS = section.items[idx].top;
     window.QA_H = lenis.dimensions.scrollHeight;
-    auto.lastInput = Infinity; /* captures deterministes : pas de derive auto */
+    auto.taken = true; /* captures deterministes : pas de derive auto */
     pointer.prevent = false; swipe.active = true; animation.paused = false;
     carousel.target = carousel.getRounded(); carousel.position = carousel.target;
     loopGuard.lastPos = window.QA_POS;
