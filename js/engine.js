@@ -82,7 +82,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b53 · 2026-08-23';
+const BUILD = 'b56 · 2026-08-23';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
 const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
@@ -466,7 +466,6 @@ on(window, 'mousemove', (e) => {
   requestAnimationFrame(() => { hoverPending = false; hoverTest(e); });
 });
 const hoverTest = (e) => {
-  if (swipe.holding && swipe.direction === 1) { setCursor('grabbing'); return; }
   const mouse = new THREE.Vector2((e.clientX / renderer.domElement.clientWidth) * 2 - 1, -(e.clientY / renderer.domElement.clientHeight) * 2 + 1);
   raycast.setFromCamera(mouse, camera);
   let hoverActive = false;
@@ -475,9 +474,8 @@ const hoverTest = (e) => {
       if (i % PRODUCTS.length === carousel.index) hoverActive = true;
     }
   });
-  setCursor(hoverActive ? 'pointer' : 'grab');
+  setCursor(hoverActive ? 'pointer' : ''); /* plus de main ouverte : on ne glisse plus, on clique */
 };
-on(window, 'mouseup touchend', () => { if (isInGamme()) setCursor('grab'); });
 
 // #endregion
 // #region Sections
@@ -835,29 +833,8 @@ function animate(tick = 0) {
     else if (!renderHidden) { renderer.setRenderTarget(null); renderer.clear(); renderHidden = true; }
   }
   carousel.lastPosition = carousel.position;
-  if (fpsMeter) fpsMeter.tick(tick);
 }
 
-/* ?fps=1 : compteur en haut a gauche (FPS sur 1 s, minimum sur 5 s, DPR, resolution) — pour mesurer sur un vrai GPU */
-const fpsMeter = new URLSearchParams(location.search).has('fps') ? (() => {
-  const el = document.createElement('div');
-  el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;font:12px/1.4 monospace;color:#fff;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:6px;pointer-events:none';
-  document.body.appendChild(el);
-  let frames = 0, last = 0, minFps = 999, since = 0;
-  window.__drawn = 0;
-  return { tick(t) {
-    frames++;
-    if (t - last >= 1000) {
-      const fps = Math.round(frames * 1000 / (t - last));
-      const dessins = Math.round(window.__drawn * 1000 / (t - last)); window.__drawn = 0;
-      frames = 0; last = t;
-      if (t - since > 5000) { minFps = fps; since = t; } else minFps = Math.min(minFps, fps);
-      el.textContent = fps + ' fps (dessins ' + dessins + ', min 5 s : ' + minFps + ') · ' + window.innerWidth + 'x' + window.innerHeight + ' · DPR ' + pixelRatio.toFixed(2) + ' · qualite ' + quality.level + ' · images lentes ' + quality.drops + ' · ' + BUILD;
-    }
-  } };
-})() : null;
-
-// #endregion
 // #region Pointer / Swipe
 
 const pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2, smoothX: window.innerWidth / 2, smoothY: window.innerHeight / 2, prevent: true };
@@ -870,19 +847,28 @@ on(window, 'mousemove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; }
 /* Le glisse ecoutait le canvas : a droite de l'ecran, un paragraphe d'une AUTRE section (en position
    fixe, invisible) captait le clic et le geste ne demarrait jamais. On ecoute la fenetre, en laissant
    passer ce qui est reellement cliquable. */
+/* Plus de glisse a la souris (demande de Kouro 2026-08-23 : « clairement ca bug, aucun interet a le
+   garder »). La gamme se parcourt aux fleches, au clic sur un module, et toute seule. Le geste tactile
+   reste, lui : sur telephone il n'y a pas de clic gauche, et c'est la facon normale de faire defiler. */
+const touchXY = (e) => (e.touches && e.touches[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null);
 on(window, 'mousedown touchstart', (e) => {
+  if (!e.touches) return;
   if (!swipe.active || pointer.prevent || notDraggable(e.target)) return;
-  if (!e.touches) e.preventDefault(); /* sinon le geste selectionne le texte des sections voisines */
+  const pt = touchXY(e);
+  if (!pt) return; /* liste de touches vide : rien a suivre */
   swipe.holding = true;
   swipe.deltaX = 0;
-  const x = e.touches ? e.touches[0].clientX : e.clientX;
-  const y = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = pt.x;
+  const y = pt.y;
   swipe.startX = x; swipe.lastX = x; swipe.startY = y; swipe.lastY = y;
 });
 on(window, 'mousemove touchmove', (e) => {
+  if (!e.touches) return; /* la souris ne fait plus tourner la gamme */
   if (!swipe.active || !swipe.holding || pointer.prevent) return;
-  const x = e.touches ? e.touches[0].clientX : e.clientX;
-  const y = e.touches ? e.touches[0].clientY : e.clientY;
+  const pt = touchXY(e);
+  if (!pt) return;
+  const x = pt.x;
+  const y = pt.y;
   const deltaX = x - swipe.lastX;
   const deltaY = y - swipe.lastY;
   if (swipe.direction == 0) {

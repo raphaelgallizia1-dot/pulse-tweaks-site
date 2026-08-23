@@ -952,7 +952,7 @@
       /* fleches et reperes : bascule NETTE. A 0,5 s adoucie, elles mettaient pres d'une seconde
          a disparaitre pendant le calage de section — Kouro les veut instantanees. */
       tl.to('.carousel_arrow, .carousel_pagination', { autoAlpha: 0, duration: 0.08, ease: 'none' }, 0);
-      tl.to('.scroll_discover, .gamme_gradient-wrapper', { autoAlpha: 0 }, 0);
+      tl.to('.gamme_gradient-wrapper', { autoAlpha: 0 }, 0);
 
       if (isDesktop()) {
         tl.to('.carousel_title-collection', { autoAlpha: 0 }, '<');
