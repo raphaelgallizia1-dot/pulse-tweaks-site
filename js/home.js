@@ -30,19 +30,7 @@
 
     // SplitText
 
-    /* Sur petit ecran, on ne decoupe plus le texte en lignes ni en caracteres. Ces masques
-       calculent une hauteur de ligne au moment du decoupage ; sur mobile, ou le texte se
-       rejoue sur plus de lignes, les derniers mots se faisaient couper (fiche produit). Et
-       Kouro ne veut pas de ces animations la sur telephone. Le texte est simplement present. */
-    const petitEcran = () => window.innerWidth < 992;
-    /* Sur petit ecran, les blocs qui etaient en position fixe (pile des optis, bento) sont
-       maintenant dans le flux : leurs apparitions au scroll etaient calees sur l'ancienne
-       structure et les laissaient a opacite 0 — donc des ecrans noirs. Ici ils sont simplement la. */
-    const toujoursVisible = (el) => { if (el) gsap.set(el, { autoAlpha: 1, clearProps: 'visibility' }); };
-    const revelationNeutre = { in: () => {}, out: () => {}, revert: () => {} };
-
     const createLinesMask = (el, options = {}) => {
-      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.08, duration = 0.7, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -78,7 +66,6 @@
     };
 
     const createCharsMask = (el, options = {}) => {
-      if (petitEcran()) return revelationNeutre;
       const { stagger = 0.01, duration = 0.6, ease = 'power3.out' } = options;
 
       const split = new SplitText(el, {
@@ -422,46 +409,6 @@
       sounds.forEach((b) => b.addEventListener('click', toggle));
 
       start();
-    };
-
-    /* Telephone : le heros 3D est UN ecran, pas un decor permanent. Passe la premiere section,
-       son conteneur (nom du produit, fleches, podium, pagination) doit disparaitre. Sur grand
-       ecran c'est la fiche produit qui s'en charge — elle n'existe plus sur telephone. */
-    const initHeroMobile = () => {
-      const g = $('.gamme_container');
-      if (!g || !window.lenis || window.innerWidth >= 992) return;
-      let sorti = null;
-      const maj = () => {
-        const items = window.__dbg?.section?.items;
-        if (!items || !items.length) return;
-        const dehors = window.lenis.animatedScroll > items[0].height * 0.7;
-        if (dehors === sorti) return;
-        sorti = dehors;
-        gsap.to(g, { autoAlpha: dehors ? 0 : 1, duration: 0.3, ease: 'power2.out', overwrite: true });
-        $('.navbar')?.classList.toggle('is-solid', dehors);
-      };
-      window.lenis.on('scroll', maj);
-      maj();
-    };
-
-    /* Bouton collant du telephone : le site n'a qu'une action, ouvrir un ticket. Il apparait
-       une fois la premiere section passee, pour ne pas couvrir le carrousel d'entree. */
-    const initCtaMobile = () => {
-      const cta = $('.cta_mobile');
-      if (!cta || !window.lenis) return;
-      const lien = $('a', cta);
-      const maj = () => {
-        const items = window.__dbg?.section?.items;
-        if (!items || items.length < 2) return;
-        const pos = window.lenis.animatedScroll;
-        /* pas sur le carrousel d'entree, pas sur l'ecran de fin (qui a deja son bouton) */
-        const visible = pos > items[1].top * 0.6 && pos < items[items.length - 1].top - 240;
-        cta.classList.toggle('is-on', visible);
-        cta.setAttribute('aria-hidden', visible ? 'false' : 'true');
-        if (lien) lien.tabIndex = visible ? 0 : -1;
-      };
-      window.lenis.on('scroll', maj);
-      maj();
     };
 
     // Menu Button
@@ -1320,23 +1267,16 @@
         });
       });
 
-      if (petitEcran()) {
-        /* petit ecran : ce bloc est dans le flux, il n'a pas a apparaitre au scroll — il etait
-           reste a opacite zero, d'ou les ecrans noirs signales par Kouro */
-        toujoursVisible(container);
-        gsap.set(layers, { x: 0, autoAlpha: 1 });
-      } else {
-        gsap.timeline({
-          defaults: { duration: 0.5, ease: 'power2.inOut' },
-          scrollTrigger: {
-            trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
-            onEnter: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
-            onEnterBack: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
-            onLeave: () => reveal?.out(),
-            onLeaveBack: () => reveal?.out(),
-          },
-        }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.35 });
-      }
+      gsap.timeline({
+        defaults: { duration: 0.5, ease: 'power2.inOut' },
+        scrollTrigger: {
+          trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
+          onEnter: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+          onEnterBack: () => { reveal?.in({ delay: 0.35 }); gsap.fromTo(layers, { x: -16, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, delay: 0.5, ease: 'power3.out', overwrite: true }); },
+          onLeave: () => reveal?.out(),
+          onLeaveBack: () => reveal?.out(),
+        },
+      }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.35 });
     };
 
     // Protocole (FAQ) : relevé numéroté qui s'écrit à l'arrivée
@@ -1416,14 +1356,8 @@
           logTl.to(o, { n: text.length, duration: 0.035 * text.length, ease: 'none', onUpdate: () => { l.textContent = text.slice(0, Math.round(o.n)); }, onComplete: () => l.classList.add('is-done') }, i === 0 ? 0 : '+=0.25');
         });
       };
-      if (petitEcran()) {
-        toujoursVisible(container);
-        gsap.set(cards, { autoAlpha: 1, y: 0 });
-        section.classList.add('is-live');
-        playLog();
-      }
-      if (!petitEcran()) gsap.set(cards, { autoAlpha: 0, y: 22 });
-      if (!petitEcran()) gsap.timeline({
+      gsap.set(cards, { autoAlpha: 0, y: 22 });
+      gsap.timeline({
         defaults: { duration: 0.5, ease: 'power2.inOut' },
         scrollTrigger: {
           trigger: section, start: 'top bottom', end: 'bottom bottom', toggleActions: 'play reverse play reverse',
@@ -1433,7 +1367,6 @@
           onLeaveBack: () => { reveal?.out(); section.classList.remove('is-live'); },
         },
       }).fromTo(container, { autoAlpha: 0 }, { autoAlpha: 1, delay: 0.3 });
-      /* sur petit ecran, aucune de ces revelations n'est creee : le bloc est simplement present */
     };
 
     // #region Init
@@ -1473,8 +1406,6 @@
     initSectionStack();
     initProtocol();
     initHudReadout();
-    initHeroMobile();
-    initCtaMobile();
     initSectionBento();
     };
     Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]).then(boot);
