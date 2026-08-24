@@ -82,17 +82,38 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* duree 0.9 au lieu du defaut 1.2 : la page repond plus vite a la molette sans perdre le lisse */
 /* Repere de version : permet de savoir, depuis une capture d'ecran, quelle version tourne vraiment
    dans le navigateur du visiteur (le cache peut en servir une ancienne). */
-const BUILD = 'b72-nettoyage · 2026-08-24';
+const BUILD = 'b73-seo-geo · 2026-08-24';
 console.info('%cPulse Tweaks ' + BUILD, 'color:#8b5cf6;font-weight:700');
 
-const lenis = new Lenis({ autoRaf: false, infinite: true, syncTouch: true, duration: 0.9 });
+/* `syncTouch` fait piloter le defilement tactile par Lenis : il bloque le defilement natif et
+   deplace la page lui-meme. Consequence sur iPhone — signalee par Raphael le 24/08 : Safari ne
+   voit aucun defilement de l'utilisateur, donc il ne replie JAMAIS sa barre en pastille
+   compacte. Elle reste en version haute et occupe un gros bloc en bas de l'ecran.
+   Sur telephone il n'y a plus d'effet de defilement a synchroniser (decision du meme jour) :
+   on rend la main au systeme. L'ordinateur, lui, garde son defilement lisse. */
+const SUR_TELEPHONE = window.innerWidth < 992;
+/* `infinite` doit tomber avec `syncTouch`. Mesure du 24/08 : en defilement natif, arrive au
+   bas de page Lenis reboucle sa position interne a 0 pendant que le navigateur, lui, reste en
+   bas — la page se fige alors sur l etat du haut, 3D revenue a pleine opacite. Sur telephone
+   la page est un document : elle a une fin, elle ne boucle pas. */
+const lenis = new Lenis({ autoRaf: false, duration: 0.9,
+  infinite: !SUR_TELEPHONE, syncTouch: !SUR_TELEPHONE });
 window.lenis = lenis;
 
 // #endregion Setup
 // #region Scroll
 
 const scroll = { position: 0 };
-scroll.wrapped = (position) => wrap(position, 0, lenis.dimensions.scrollHeight - lenis.dimensions.height);
+/* Enrouler la position n'a de sens qu'en mode infini. Sur telephone la page a une fin : on
+   BORNE. Sans ca, le rebond d'iOS fait depasser le maximum d'un cheveu, l'enroulement renvoie
+   la position pres de zero, et le garde-fou en dessous croit a un tour complet : la page
+   repartait au debut toutes les trois ou quatre glisses (mesure du 24/08). */
+scroll.wrapped = (position) => {
+  const max = lenis.dimensions.scrollHeight - lenis.dimensions.height;
+  if (max <= 0) return 0;
+  if (SUR_TELEPHONE) return Math.max(0, Math.min(max, position));
+  return wrap(position, 0, max);
+};
 scroll.to = (pos, options) => { if (pos !== 0) pos -= 2; lenis.scrollTo(pos, options); }; /* -2 et non -10 : a 10 px du debut, des revelations calees sur le top ne se declenchaient pas */
 scroll.distanceTo = (target, position = scroll.position) => {
   const min = position;
@@ -621,6 +642,19 @@ await Promise.all(PRODUCTS.map((p) => createCan(p))).then((items) => {
 const raycast = new THREE.Raycaster();
 /* ce qui est reellement cliquable : ni glisse ni selection 3D ne doivent le court-circuiter */
 const notDraggable = (t) => !!(t && t.closest && t.closest('a, button, input, textarea, select, label, .modal, .navbar, .navpill'));
+/* Ce qui empeche un GESTE de demarrer n'est pas la meme chose que ce qui empeche un CLIC.
+   Les deux fleches de la gamme sont des <button> : un pouce qui commencait sa glisse dessus ne
+   faisait rien du tout — la glisse etait refusee par notDraggable, et le clic ne partait pas non
+   plus puisque le doigt s'etait deplace. Mesure du 24/08 en 390x844 : zone morte x 285-345,
+   y 375-445, soit exactement la fleche « suivant » — pile ou un pouce droitier commence son
+   geste vers la gauche. Les boutons restent cliquables (un appui sans deplacement garde
+   direction = 0, le clic part normalement) ; seul le glisse-depuis-un-bouton est desormais
+   permis. Le menu, la pilule et les fenetres restent exclus : la, un geste ne doit rien faire. */
+const notSwipable = (t) => {
+  if (t && t.closest && t.closest('a, input, textarea, select, label, .modal, .navbar, .navpill, .navbar_menu-wrapper, .opti_sheet')) return true;
+  const bouton = document.querySelector('.navbar_menu-button');
+  return !!(bouton && bouton.getAttribute('aria-expanded') === 'true'); /* menu ouvert : la gamme ne tourne pas */
+};
 on(window, 'click', (e) => {
   /* on ecarte ce qui est reellement cliquable (fleches, menu, fenetres) ; le reste de l'ecran
      selectionne un module, meme la ou un element d'une autre section couvre le canvas */
@@ -898,7 +932,8 @@ function animate(tick = 0) {
     const cur = scroll.position;
     if (pointer.prevent) loopGuard.lastPos = cur;
     else {
-      if (total > 0 && prev - cur > total * 0.6 && !loopGuard.snapping) {
+      /* le garde-fou rattrape le saut du mode infini : sans boucle, il n'a rien a rattraper */
+      if (!SUR_TELEPHONE && total > 0 && prev - cur > total * 0.6 && !loopGuard.snapping) {
         loopGuard.snapping = true;
         scroll.to(section.items[0].top, { duration: 1.2, lock: true, easing: easeInOut });
         clearTimeout(loopGuard.timer);
@@ -1075,20 +1110,50 @@ on(window, 'mousemove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; }
 /* Plus de glisse a la souris (demande de Kouro 2026-08-23 : « clairement ca bug, aucun interet a le
    garder »). La gamme se parcourt aux fleches, au clic sur un module, et toute seule. Le geste tactile
    reste, lui : sur telephone il n'y a pas de clic gauche, et c'est la facon normale de faire defiler. */
-const touchXY = (e) => (e.touches && e.touches[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null);
-on(window, 'mousedown touchstart', (e) => {
-  if (!e.touches) return;
-  if (!swipe.active || pointer.prevent || notDraggable(e.target)) return;
+/* Le geste ne doit pas dependre du modele d'evenements du navigateur. Les gestionnaires
+   n'ecoutaient que les TouchEvent (`e.touches`) : partout ou le navigateur n'en emet pas et
+   n'envoie que des PointerEvent de type « touch » (certains modes d'emulation, certaines
+   machines a ecran tactile), la gamme ne repondait pas au doigt du tout.
+   On accepte donc les deux, en ne retenant qu'UNE source par geste pour ne pas compter le
+   deplacement deux fois — Chrome emet souvent les deux familles pour le meme doigt.
+   La souris reste exclue (retrait demande par Kouro le 23/08) : un PointerEvent de type
+   « mouse » n'est jamais pris. */
+/* Chrome emet `pointerdown` PUIS bascule sur `touchmove` : releve du 24/08 sur une seule glisse,
+   pointerdown, touchstart, 2 pointermove, puis 8 touchmove et touchend. Deux impasses evitees :
+   verrouiller la source au premier evenement jette tout le mouvement (les 8 touchmove) ; et la
+   trancher au CHARGEMENT se trompe des que le mode telephone des outils de developpement est
+   active apres coup, sans rechargement — le cas ou l'on essaie justement le site.
+   Regle retenue : le TouchEvent fait foi des qu'il y en a un ; les PointerEvent ne servent que
+   la ou le navigateur n'emet pas de TouchEvent du tout. La souris n'est prise dans aucun cas
+   (retrait demande par Kouro le 23/08). */
+let vuTouch = -1e9;
+const marquerTouch = (e) => { if (e && e.touches) vuTouch = performance.now(); };
+['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach((n) =>
+  window.addEventListener(n, marquerTouch, { passive: true, capture: true }));
+const estDoigt = (e) => {
+  if (e.touches) return true;
+  if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return false;
+  return performance.now() - vuTouch > 1000;   /* un TouchEvent recent : c'est lui qui pilote */
+};
+const touchXY = (e) => {
+  if (e.touches) return e.touches[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  if (e.pointerType === 'touch' || e.pointerType === 'pen') return { x: e.clientX, y: e.clientY };
+  return null;
+};
+on(window, 'mousedown touchstart pointerdown', (e) => {
+  if (!estDoigt(e)) return;
+  if (!swipe.active || pointer.prevent || notSwipable(e.target)) return;
   const pt = touchXY(e);
   if (!pt) return; /* liste de touches vide : rien a suivre */
+  /* une seule famille d'evenements par geste : la premiere arrivee gagne */
   swipe.holding = true;
   swipe.deltaX = 0;
   const x = pt.x;
   const y = pt.y;
   swipe.startX = x; swipe.lastX = x; swipe.startY = y; swipe.lastY = y;
 });
-on(window, 'mousemove touchmove', (e) => {
-  if (!e.touches) return; /* la souris ne fait plus tourner la gamme */
+on(window, 'mousemove touchmove pointermove', (e) => {
+  if (!estDoigt(e)) return; /* la souris ne fait plus tourner la gamme */
   if (!swipe.active || !swipe.holding || pointer.prevent) return;
   const pt = touchXY(e);
   if (!pt) return;
@@ -1104,13 +1169,21 @@ on(window, 'mousemove touchmove', (e) => {
     auto.take();                                   /* le visiteur prend la main : la derive s'arrete pour de bon */
     swipe.lastX = x;
     swipe.deltaX += deltaX;
-    if (e.touches) document.body.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
   }
 });
-on(window, 'mouseup touchend', () => {
+on(window, 'mouseup touchend pointerup pointercancel', (e) => {
+  if (e && e.pointerType && e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+  if (e && e.pointerType && performance.now() - vuTouch < 1000) return; /* touchend a la main */
   if (!swipe.holding) return;
   setTimeout(() => {
-    swipe.deltaX = clamp(swipe.deltaX * 8, -90, 90); /* 90 x 0.02 = 1.8 < 3.5 : un geste deplace au plus d'un produit */
+    /* Le plafond doit valoir EXACTEMENT un produit, pas moins. Il etait fige a 90, or la boucle
+       applique `deltaX * 0.02 * swipeSpeed` et un produit vaut `carousel.spacing` (3,5) : 90 ne
+       deplacait donc que 1,8 / 3,5 = un demi-produit, que l'arrondi ramenait une fois sur deux au
+       point de depart. Mesure du 24/08 au doigt : 120 px de glisse -> 1 opti, 250 px -> 0, 350 px
+       -> 2. Un geste franc doit avancer d'une opti, toujours la meme chose. */
+    const pasProduit = carousel.spacing / (0.02 * (data.swipeSpeed || 1));
+    swipe.deltaX = clamp(swipe.deltaX * 8, -pasProduit, pasProduit);
     swipe.holding = false;
     swipe.direction = 0;
     lenis.start();
@@ -1121,23 +1194,74 @@ on(window, 'mouseup touchend', () => {
 // #endregion
 // #region Mobile Paging
 
-const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 5 };
+const paging = { startX: 0, startY: 0, anchor: 0, axis: 0, active: false, threshold: 24, lastSnap: 5, stops: null };
 const isMobile = () => window.innerWidth < 1024;
 /* Le calage par section se regle sur la MEME limite que la mise en page telephone (991 px du
    CSS), pas sur celle du tactile : entre 992 et 1023 px on garde une mise en page de bureau,
    donc des sections a hauteur pleine, donc le calage a du sens. */
 const petitEcran = () => window.innerWidth < 992;
 
+/* Les ARRETS du calage tactile. Le pager avancait d'une SECTION par geste. Tant que chaque
+   section faisait un ecran, section = ecran = idee, et tout allait bien. La fiche produit fait
+   maintenant cinq ecrans (une opti par ecran) : un seul glissement les sautait toutes les cinq
+   d'un coup — mesure du 24/08 a 390 px, une glisse emmenait de 620 a 3892, soit directement au
+   bas de la fiche. Un arret vaut donc un ECRAN a l'interieur d'une section haute, et reste la
+   section entiere partout ailleurs. Les sections de hauteur nulle (celles qui sortent du
+   parcours telephone) n'ont pas d'arret : sinon plusieurs arrets tombent au meme endroit et le
+   geste ne semble rien faire. */
+paging.arrets = () => {
+  const h = Math.max(1, lenis.dimensions ? lenis.dimensions.height : window.innerHeight);
+  const out = [];
+  section.items.forEach((it, i) => {
+    if (i > paging.lastSnap) return;
+    if (it.height < h * 0.5) return;
+    const n = Math.max(1, Math.round(it.height / h));
+    for (let k = 0; k < n; k++) out.push(it.top + k * h);
+  });
+  if (!out.length) out.push(0);
+  return out;
+};
+const arretLePlusProche = (liste, y) => {
+  let best = 0, d = Infinity;
+  liste.forEach((v, i) => { const e = Math.abs(v - y); if (e < d) { d = e; best = i; } });
+  return best;
+};
+
+/* Le calage tactile captait les gestes PARTOUT, y compris par-dessus le menu ouvert et les
+   fenetres. Deux consequences sur un vrai iPhone : le panneau du menu ne pouvait pas defiler
+   (ses derniers liens, « Ouvrir un ticket » et « Charte », sont hors ecran), et surtout, un
+   `preventDefault` sur touchmove annule le clic qui suit sous iOS — or un vrai doigt bouge
+   toujours de quelques pixels en tapant. D'ou des liens de menu qui « ne relient a rien ».
+   La molette avait deja sa garde equivalente (`inOverlay`) ; le tactile ne l'avait pas. */
+const dansPanneau = (e) => {
+  const t = e && e.target;
+  if (t && t.closest && t.closest('.navbar, .navbar_menu-wrapper, .modal:not([hidden]), .opti_sheet')) return true;
+  const bouton = document.querySelector('.navbar_menu-button');
+  return !!(bouton && bouton.getAttribute('aria-expanded') === 'true');
+};
+
+/* Decision de Raphael (24/08) : plus d'effet de defilement sur telephone. « Je pense que c'est
+   plus chiant qu'autre chose. » Le calage par section disparait donc entierement sous 992 px —
+   la page y defile comme un document, librement, du haut jusqu'en bas. Il reste actif entre 992
+   et 1023 px, ou la mise en page est celle de l'ordinateur. */
 on(window, 'touchstart', (e) => {
-  if (!isMobile() || pointer.prevent) return;
+  if (!isMobile() || petitEcran() || pointer.prevent || dansPanneau(e)) { paging.active = false; return; }
   paging.startX = e.touches[0].clientX;
   paging.startY = e.touches[0].clientY;
   paging.axis = 0;
-  paging.anchor = closest(section.items, scroll.position, (item) => item.top).index;
-  paging.active = paging.anchor <= paging.lastSnap;
+  paging.stops = paging.arrets();
+  paging.anchor = arretLePlusProche(paging.stops, scroll.position);
+  /* Le calage ne vaut que pour la partie scenographique (accueil + fiche). Passe le dernier
+     arret, la page redevient un document et doit defiler librement — c'est deja ce que fait la
+     molette (voir wheelPager, « petitEcran() return »), le tactile ne le faisait pas.
+     Consequence mesuree du 24/08 sur la version PUBLIEE : au doigt on restait bloque a la fin
+     de la fiche (1686 px), parce que trois sections de hauteur nulle partagent le meme haut et
+     que la cible calculee retombait au meme endroit. */
+  const dernier = paging.stops[paging.stops.length - 1];
+  paging.active = scroll.position < dernier - 40;
 });
 window.addEventListener('touchmove', (e) => {
-  if (!isMobile() || pointer.prevent || !paging.active) return;
+  if (!isMobile() || petitEcran() || pointer.prevent || !paging.active || dansPanneau(e)) return;
   const x = e.touches[0].clientX, y = e.touches[0].clientY;
   if (paging.axis === 0) {
     const dx = Math.abs(x - paging.startX), dy = Math.abs(y - paging.startY);
@@ -1146,14 +1270,17 @@ window.addEventListener('touchmove', (e) => {
   if (paging.axis === 2) { e.preventDefault(); lenis.stop(); }
 }, { passive: false });
 on(window, 'touchend', (e) => {
-  if (!isMobile() || pointer.prevent || !paging.active || paging.axis !== 2) return;
+  if (!isMobile() || petitEcran() || pointer.prevent || !paging.active || paging.axis !== 2) return;
+  if (dansPanneau(e)) { paging.active = false; paging.axis = 0; return; }
   const endY = (e.changedTouches && e.changedTouches[0].clientY) || paging.startY;
   const delta = endY - paging.startY;
+  const stops = paging.stops || paging.arrets();
   let target = paging.anchor;
   if (Math.abs(delta) > paging.threshold) target = paging.anchor + (delta < 0 ? 1 : -1);
-  target = clamp(target, 0, section.items.length - 1);
+  target = clamp(target, 0, stops.length - 1);
   lenis.start();
-  scroll.to(section.items[target].top, { duration: 1.5, easing: easeSnap });
+  /* un cran = un ecran : sur la fiche, une glisse = une opti */
+  scroll.to(stops[target], { duration: 1.5, easing: easeSnap });
   paging.active = false;
   paging.axis = 0;
 });
@@ -1298,7 +1425,7 @@ document.querySelector('[data-scroll-top]')?.addEventListener('click', () => {
 });
 
 /* Sonde de diagnostic, toujours disponible (getters seuls, aucun cout) */
-window.__dbg = { get objets() { return cans; }, get scene() { return scene; }, get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get build() { return BUILD; }, get quality() { return { niveau: quality.level, dpr: +pixelRatio.toFixed(2), imagesLentes: quality.drops, fenetre: quality.frames, lentesFenetre: quality.slow, depuis: +(time - quality.lastChange).toFixed(1) }; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
+window.__dbg = { get objets() { return cans; }, get scene() { return scene; }, get data() { return data; }, get timeline() { return timeline; }, get section() { return section; }, get scroll() { return scroll; }, get lenis() { return lenis; }, get pixelRatio() { return pixelRatio; }, get cans() { return cans.map((c) => [+c.position.x.toFixed(2), +c.position.y.toFixed(2), +c.position.z.toFixed(2), +c.scale.x.toFixed(2)]); }, get contextLost() { return contextLost; }, get swipe() { return { holding: swipe.holding, direction: swipe.direction, deltaX: swipe.deltaX, active: swipe.active }; }, get auto() { return { running: auto.running, lastInput: auto.lastInput }; }, get carousel() { return { target: carousel.target, position: carousel.position, index: carousel.index, spacing: carousel.spacing, offset: carousel.offset }; }, get paused() { return animation.paused; }, get renderer() { return renderer; }, get composer() { return finalComposer; }, get build() { return BUILD; }, get quality() { return { niveau: quality.level, dpr: +pixelRatio.toFixed(2), imagesLentes: quality.drops, fenetre: quality.frames, lentesFenetre: quality.slow, depuis: +(time - quality.lastChange).toFixed(1) }; }, get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, progs: renderer.info.programs.length, tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }; } };
 
 /* Mode QA (captures headless) : ?seek=<index de section> place la page sur une section sans animation */
 {

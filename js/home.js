@@ -438,21 +438,28 @@
       if (!g || !window.lenis || !petitEcran()) return;
       let sorti = null;
       const cv = document.querySelector('canvas');
-      const fiche = $('.section.is-profile');
       let voile = -1;
-      /* Systeme releve sur Ciao : l'objet 3D n'est pas un decor d'entree, c'est le FOND de toute
-         la partie scenographique. Il ne s'en va donc qu'a la fin de la fiche produit — au-dela,
-         la page devient un document et n'a plus besoin de lui. */
-      const finScene = () => (fiche ? fiche.offsetTop + fiche.offsetHeight : window.innerHeight);
+      /* Plus d'effet de defilement sur telephone (decision Raphael, 24/08). La 3D n'est plus le
+         fond d'une partie scenographique : elle occupe le PREMIER ECRAN, ou elle sert a choisir
+         l'opti au pouce, puis elle s'efface et la page devient un document. */
+      const finScene = () => {
+        const g = $('.section.is-gamme');
+        return g ? g.offsetTop + g.offsetHeight : window.innerHeight;
+      };
       const maj = () => {
         const h = window.innerHeight || 1;
         const pos = window.lenis.animatedScroll;
         const bord = finScene();
-        /* le canvas est fixe : il ne peut pas s'en aller en defilant comme un bloc. Il s'efface
-           donc sur le dernier demi-ecran de la partie scenographique. */
-        const opacite = Math.max(0, Math.min(1, (bord - pos) / (h * 0.5)));
+        /* Le canvas est fixe : il ne defile pas. Le bloc qui vient apres, lui, defile et il est
+           OPAQUE. Si l'effacement ne commence qu'a la fin de l'accueil, ce bloc monte du bas et
+           TRANCHE le module d'un bord net — c'est le « bloc noir » signale par Raphael, mesure
+           sur son iPhone : panneau a mi-ecran, canvas encore a 0,96.
+           L'effacement suit donc EXACTEMENT la couverture du bloc : sous l'ecran, la 3D est
+           pleine ; a mi-ecran, elle est a moitie ; ecran rempli, elle a disparu. */
+        const couverture = Math.max(0, Math.min(1, (pos + h - bord) / h));
+        const opacite = 1 - couverture;
         if (cv && Math.abs(opacite - voile) > 0.01) { cv.style.opacity = opacite; voile = opacite; }
-        const dehors = pos > bord - h * 0.25;
+        const dehors = couverture > 0.6;   /* l'en-tete devient opaque quand le bloc domine */
         if (dehors === sorti) return;
         sorti = dehors;
         if (window.__dbg) window.__dbg.pauseRendu = dehors;
@@ -462,23 +469,49 @@
       maj();
     };
 
+    /* Un picto par opti. Trace au trait, 20 px dans une pastille de 44, couleur heritee du bouton
+       (currentColor) pour que l'etat actif suffise a le faire passer en blanc. */
+    const P = (d) => '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" '
+      + 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+      + d + '</svg>';
+    const PICTOS = {
+      /* BIOS / firmware : la carte mere et sa puce */
+      bios: P('<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>'),
+      /* CPU / chipset : le processeur et ses broches */
+      chipset: P('<rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M10 2v4M14 2v4M10 18v4M14 18v4M2 10h4M2 14h4M18 10h4M18 14h4"/>'),
+      /* systeme : la fenetre */
+      os: P('<rect x="2.5" y="4" width="19" height="14" rx="2"/><path d="M2.5 8.5h19M8 21h8"/>'),
+      /* kernel / input : le curseur, ce qui repond a la main */
+      timer: P('<path d="M5 3l6.5 16 2.2-6.3 6.3-2.2z"/><path d="M13.8 13.8L19 19"/>'),
+      /* reseau : l onde */
+      flux: P('<path d="M12 19h.01"/><path d="M8.5 15.5a5 5 0 017 0"/><path d="M5.5 12.2a9.2 9.2 0 0113 0"/><path d="M2.5 9a13.4 13.4 0 0119 0"/>'),
+    };
+
     /* Le rail. Sur Ciao, quatre pastilles rondes alignees a droite donnent acces aux quatre idees
        de la section sans defiler : c'est ce qui rend l'ecran unique navigable au pouce. Ici, les
        cinq optis. Il n'apparait que sur la partie scenographique, ou il a un sens. */
     const initRailMobile = () => {
+      /* Le rail des cinq pastilles servait l'ecran scenographique de la fiche, retire le 24/08.
+         La gamme se parcourt au pouce et aux fleches, et la liste des optis donne l'acces
+         direct : plus rien a poser ici. */
+      if (true) return;
       if (!petitEcran() || !window.lenis) return;
-      const noms = (window.PULSE_PRODUCTS || []).map((p, i) => p.short || String(i + 1).padStart(2, '0'));
-      if (noms.length < 2) return;
+      const produits = window.PULSE_PRODUCTS || [];
+      if (produits.length < 2) return;
       const rail = document.createElement('div');
       rail.className = 'rail_mobile';
       rail.setAttribute('role', 'tablist');
       rail.setAttribute('aria-label', 'Choisir une opti');
-      noms.forEach((n, i) => {
+      produits.forEach((prod, i) => {
         const b = document.createElement('button');
         b.type = 'button';
-        b.textContent = n;
+        /* Releve du 24/08 sur Ciao : leurs quatre pastilles ne portent AUCUN chiffre, seulement
+           un picto (canne a sucre, goutte, grain de cafe, plante). Un « 01 » se lit, un picto se
+           reconnait — et sur cinq pastilles, celle qui est allumee dit deja ou l'on en est.
+           Le nom complet reste dans l'etiquette d'accessibilite. */
+        b.innerHTML = PICTOS[prod.key] || PICTOS.bios;
         b.setAttribute('role', 'tab');
-        b.setAttribute('aria-label', (window.PULSE_PRODUCTS[i]?.name || 'Opti ' + n));
+        b.setAttribute('aria-label', prod.name || 'Opti ' + (i + 1));
         b.addEventListener('click', () => { window.carousel?.goTo(i); window.pulseSound?.play('click'); });
         rail.appendChild(b);
       });
@@ -506,6 +539,197 @@
       maj();
     };
 
+    /* ---------------------------------------------------------------------------------
+       LES SECTIONS PROPRES A CHAQUE OPTI (telephone)
+       Retour Raphael du 24/08 : « chaque produit n'a rien », « les produits sont super mal
+       presentes », « les autres sites sont tout plats mais on comprend ce que leurs produits
+       font ». Et decision du meme jour : plus d'effet de defilement sur telephone.
+       Consequence : sous le heros 3D, le produit choisi deploie SES sections, dans le flux
+       normal de la page. Elles changent avec le produit ; aucun autre produit n'est affiche.
+       La matiere : le tag, la description longue et les trois points existaient deja ; les
+       symptomes viennent de la correspondance du configurateur (data-layers) ; « ce que ca
+       change » vient de PULSE_RESULTATS, dicte par Raphael depuis ses propres essais.
+       --------------------------------------------------------------------------------- */
+    const initPageOpti = () => {
+      if (!petitEcran()) return;
+      const produits = window.PULSE_PRODUCTS || [];
+      const gamme = $('.section.is-gamme');
+      if (!produits.length || !gamme) return;
+
+      /* on lit la matiere deja presente dans la page, on ne la duplique pas */
+      const longues = [...$$('.carousel_desc')].map((d) => {
+        const q = $('.profile_desc > p:not(.profile_desc-court)', d);
+        return q ? q.textContent.trim() : '';
+      });
+      const prix = [...$$('.profile_price')].map((e) => e.textContent.trim());
+      /* la liste des optis est affichee de 05 a 01 : on la remet dans l'ordre des produits */
+      const ouAgit = [...$$('.stack_what')].map((e) => e.textContent.trim()).reverse();
+      /* symptomes : chaque puce porte les optis qu'elle concerne, on inverse la table */
+      const symptomes = produits.map(() => []);
+      $$('.stack_chip').forEach((chip) => {
+        const nom = chip.textContent.trim();
+        String(chip.dataset.layers || '').split(',').forEach((n) => {
+          const i = Number(n);
+          if (!Number.isNaN(i) && symptomes[i]) symptomes[i].push(nom);
+        });
+      });
+
+      const esc = (t) => String(t == null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      /* PIEGE : le moteur bat sa timeline 3D sur document.querySelectorAll('section') et
+         rebuildTimeline la refait au moindre resize. Inserer une VRAIE <section> ici decalait
+         toutes les correspondances d un cran sur telephone. C est un div. */
+      const page = document.createElement('div');
+      page.className = 'opti_page';
+      page.id = 'opti';
+      gamme.insertAdjacentElement('afterend', page);
+
+      const rendre = (i) => {
+        const prod = produits[i];
+        if (!prod) return;
+        const res = (window.PULSE_RESULTATS || {})[prod.key] || null;
+
+        /* 1. LE RESULTAT — c'est ce qui decide, donc c'est ce qui vient en premier et en grand. */
+        var tete = '';
+        if (res && res.titre) {
+          tete += '<p class="opti_page-resultat">' + esc(res.titre) + '</p>';
+        }
+        if (res && res.releve) {
+          tete += '<div class="opti_page-releve">'
+            + '<div><span>Avant</span><strong>' + esc(res.releve.avant) + '</strong></div>'
+            + '<div class="is-apres"><span>Apr\u00e8s</span><strong>' + esc(res.releve.apres) + '</strong></div>'
+            + '</div>'
+            + '<p class="opti_page-cadre">' + esc(res.releve.cadre) + '. Pas une promesse.</p>';
+        } else if (res && res.etat === 'en-refonte') {
+          tete += '<p class="opti_page-texte">' + esc(res.texte) + '</p>';
+        } else if (res) {
+          tete += '<p class="opti_page-texte">' + esc(res.texte) + '</p>';
+        }
+
+        /* 2. POUR QUOI — les symptomes, sans phrase autour : les puces se lisent d'un coup d'oeil. */
+        const puces = (symptomes[i] || [])
+          .map(function (x) { return '<li class="opti_page-sym">' + esc(x) + '</li>'; }).join('');
+
+        /* 3. LE DETAIL TECHNIQUE — replie. Il rassure celui qui veut savoir, il n'encombre pas
+              celui qui veut comprendre. */
+        const points = (prod.lines || []).map(function (l) {
+          const b = String(l).split('/');
+          return '<li><span class="opti_page-pt">' + esc(b[0].trim()) + '</span>'
+            + (b[1] ? '<span class="opti_page-pt2">' + esc(b[1].trim()) + '</span>' : '') + '</li>';
+        }).join('');
+
+        page.style.setProperty('--c', prod.css || '#8b5cf6');
+        page.innerHTML =
+            '<p class="opti_page-tag">' + esc(prod.tag) + '</p>'
+          + '<h2 class="opti_page-nom">' + esc(prod.name) + '</h2>'
+          + tete
+          + (puces ? '<ul class="opti_page-syms"><li class="opti_page-pour">Pour</li>' + puces + '</ul>' : '')
+          + '<div class="opti_page-achat">'
+          + (prix[i] ? '<span class="opti_page-prix">' + esc(prix[i]) + '</span>' : '')
+          + '<a class="opti_page-cta" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">'
+          + 'Ouvrir un ticket</a></div>'
+          + '<details class="opti_page-detail">'
+          + '<summary>Le d\u00e9tail technique</summary>'
+          + (longues[i] ? '<p class="opti_page-texte">' + esc(longues[i]) + '</p>' : '')
+          + (ouAgit[i] ? '<p class="opti_page-ou">' + esc(ouAgit[i]) + '</p>' : '')
+          + (points ? '<ul class="opti_page-points">' + points + '</ul>' : '')
+          + '</details>';
+      };
+
+
+      const brancher = () => {
+        rendre(window.carousel.index);
+        window.carousel.changed.connect(function (e) { rendre(e.index); });
+      };
+      if (window.carousel) brancher();
+      else window.addEventListener('carousel:ready', brancher, { once: true });
+
+      /* depuis la liste des optis : choisir une opti ramene a SES sections */
+      $$('.stack_layer').forEach((li) => {
+        if ($('.opti_detail-plus', li)) return;
+        const idx = Number(li.dataset.index);
+        if (Number.isNaN(idx)) return;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'opti_detail-plus';
+        b.setAttribute('aria-label', 'Voir le detail de ' + (produits[idx] ? produits[idx].name : 'cette opti'));
+        b.textContent = 'D\u00e9tail';
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (window.carousel) window.carousel.goTo(idx);
+          const base = window.lenis ? window.lenis.animatedScroll : window.scrollY;
+          const y = page.getBoundingClientRect().top + base;
+          if (window.lenis) window.lenis.scrollTo(y - 60, { duration: 1 });
+          else window.scrollTo({ top: y - 60, behavior: 'smooth' });
+        });
+        li.appendChild(b);
+      });
+    };
+
+    /* Le bandeau d'avis sur telephone : il avance tout seul, et le doigt peut le prendre.
+       Retour Raphael (24/08) : « les avis ne defilent pas tout seul ou ne sont pas scrollable »,
+       puis « ils defilent mais on peut pas les faire defiler manuellement ».
+       Une animation CSS donne l'un et interdit l'autre : un doigt ne peut rien contre un
+       `transform`. On fait donc avancer le conteneur lui-meme, image par image. Le doigt et
+       l'automatique agissent alors sur la MEME grandeur et cohabitent sans se battre. */
+    const initAvisMobile = () => {
+      if (!petitEcran()) return;
+      const bande = $('.reviews_marquee');
+      const piste = $('.reviews_track', bande || document);
+      if (!bande || !piste) return;
+
+      /* PIEGE : compter en pixels PAR IMAGE lie l'allure a la frequence de l'ecran. Mesure du
+         24/08 sur banc headless (~370 images/s) : 280 px/s au lieu des 45 voulus. On compte donc
+         en px PAR SECONDE, et on multiplie par le temps ecoule. Meme allure sur un 60 Hz, un
+         120 Hz d'iPhone Pro, ou un banc d'essai qui s'emballe. */
+      const VITESSE = 45;            /* px par seconde : la meme allure que l'animation CSS */
+      let dernierTemps = 0;
+      const REPRISE = 3000;          /* on rend la main 3 s apres le dernier contact */
+      let dernierContact = -1e9;
+      let doigt = false;
+
+      /* les copies doublent la piste : arrive a la moitie, on revient au debut sans couture */
+      const demiTour = () => {
+        const moitie = piste.scrollWidth / 2;
+        if (moitie > 10 && bande.scrollLeft >= moitie) bande.scrollLeft -= moitie;
+        if (bande.scrollLeft < 0) bande.scrollLeft += moitie;
+      };
+
+      const enPause = () => doigt
+        || bande.classList.contains('is-paused')
+        || performance.now() - dernierContact < REPRISE
+        || document.hidden;
+
+      /* PIEGE : `scrollLeft += 0,72` ne franchit jamais le pixel entier — l arrondi mange
+         l avance et le bandeau reste immobile. On tient donc la position au dixieme dans une
+         variable, et on la resynchronise des que le doigt a bouge le conteneur. */
+      let pos = bande.scrollLeft;
+      const avancer = (t) => {
+        const dt = dernierTemps ? Math.min(0.05, (t - dernierTemps) / 1000) : 0;
+        dernierTemps = t;
+        if (Math.abs(bande.scrollLeft - pos) > 1.5) pos = bande.scrollLeft;  /* le doigt a pris la main */
+        if (!enPause() && dt > 0) {
+          pos += VITESSE * dt;
+          const moitie = piste.scrollWidth / 2;
+          if (moitie > 10 && pos >= moitie) pos -= moitie;
+          bande.scrollLeft = pos;
+        }
+        requestAnimationFrame(avancer);
+      };
+      requestAnimationFrame(avancer);
+
+      /* le doigt prend la main ; on ne bloque rien, on se contente de ne pas pousser */
+      ['touchstart', 'pointerdown', 'mousedown'].forEach((n) =>
+        bande.addEventListener(n, () => { doigt = true; dernierContact = performance.now(); },
+          { passive: true }));
+      ['touchend', 'touchcancel', 'pointerup', 'pointercancel', 'mouseup'].forEach((n) =>
+        bande.addEventListener(n, () => { doigt = false; dernierContact = performance.now(); },
+          { passive: true }));
+      bande.addEventListener('scroll', () => { if (doigt) dernierContact = performance.now(); },
+        { passive: true });
+    };
+
     /* Bouton collant du telephone : le site n'a qu'une action, ouvrir un ticket. Il apparait une
        fois la premiere section passee, pour ne pas couvrir le carrousel d'entree, et se retire
        sur l'ecran de fin, qui a deja son bouton. */
@@ -520,6 +744,17 @@
         /* Sur telephone les sections ont une hauteur nulle : leurs reperes se retrouvent tous au
            meme endroit et ne disent plus rien. La fin de page, elle, se mesure directement. */
         const reste = document.documentElement.scrollHeight - (pos + window.innerHeight);
+        /* Sur l'ecran des optis le bouton collant fait doublon — la section a le sien — et il
+           mangeait 63 px de haut, ceux qui manquaient pour voir la section entiere d'un coup
+           (mesure iPhone 24/08). On le retire le temps de cet ecran. */
+        /* Deux endroits portent deja leur propre « Ouvrir un ticket » : la liste des optis et
+           les sections de l'opti choisie. Le bouton collant y ferait doublon et recouvrirait la
+           fin du bloc — on le retire le temps de ces ecrans. */
+        const h = window.innerHeight;
+        const surBloc = (el) => !!el && pos + h > el.offsetTop + h * 0.25
+                                     && pos < el.offsetTop + el.offsetHeight - h * 0.15;
+        document.body.classList.toggle('is-optis',
+          surBloc($('.section.is-stack')) || surBloc($('.opti_page')));
         const visible = pos > items[0].height * 0.8 && reste > 420;
         cta.classList.toggle('is-on', visible);
         cta.setAttribute('aria-hidden', visible ? 'false' : 'true');
@@ -1487,8 +1722,11 @@
         toujoursVisible(container);
         gsap.set(cards, { autoAlpha: 1, y: 0 });
         section.classList.add('is-live');
-        /* le journal se joue quand le bloc arrive a l'ecran, pas au chargement */
-        ScrollTrigger.create({ trigger: section, start: 'top 80%', once: true, onEnter: playLog });
+        /* Le journal s'ecrivait lettre par lettre. Dans la mosaique a deux colonnes, la hauteur de
+           sa carte grandissait a mesure, et les colonnes se reorganisaient sous les yeux du
+           visiteur pendant qu'il lisait. Sur telephone il est donc ecrit d'emblee : la carte a sa
+           hauteur definitive des le depart, et rien ne bouge. */
+        lines.forEach((l) => { l.textContent = l.dataset.line; l.classList.add('is-done'); });
         return;
       }
       gsap.set(cards, { autoAlpha: 0, y: 22 });
@@ -1543,6 +1781,8 @@
     initHudReadout();
     initHeroMobile();
     initRailMobile();
+    initPageOpti();
+    initAvisMobile();
     initCtaMobile();
     initSectionBento();
     };

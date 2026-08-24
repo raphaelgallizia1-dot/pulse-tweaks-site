@@ -284,6 +284,17 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 .navbar_sound-wrapper.is-mobile { display: none; }
 @media screen and (min-width: 992px) { .navbar_menu-wrapper { display: none; } }
 @media screen and (max-width: 991px) {
+  /* Le panneau du menu fait un ecran de haut ; sur les telephones courts ses derniers elements
+     (« Ouvrir un ticket », Discord, Charte) tombaient hors cadre sans moyen d'y acceder, car
+     rien ne pouvait defiler dedans. Il defile maintenant, et son defilement lui reste : ni la
+     page ni le calage tactile ne le recuperent. */
+  /* Mesure du 24/08 sur iPhone 15 Pro : `.navbar_menu` porte 860 px de contenu pour 659 px de
+     haut, en `overflow-y: hidden` — 201 px etaient clippes sans aucun moyen d'y acceder, dont
+     « Ouvrir un ticket », Discord et Charte. `!important` parce que la valeur vient de
+     l'animation d'ouverture, posee en style INLINE, qui bat une regle ordinaire. */
+  .navbar_menu { overflow-y: auto !important; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; scrollbar-width: none; }
+  .navbar_menu::-webkit-scrollbar { width: 0; height: 0; }
   .navpill { display: none; }
   .navbar_sound-wrapper.is-mobile { display: flex; flex: 0 0 auto; margin-right: 1.1rem; }
   .navbar_menu-wrapper { flex: 0 0 auto; }
@@ -344,11 +355,39 @@ html[data-fallback="1"] .section { pointer-events: auto; }
 @media screen and (max-width: 991px) {
   .section.is-bento { min-height: auto; }
   .bento_container { position: relative; inset: auto; display: block; padding: 3rem 0; }
-  .bento_grid { grid-template-columns: 1fr; grid-template-rows: none; height: auto; }
-  .bento_card { min-height: 14rem; }
+  /* Mosaïque à deux colonnes (référence donnée par Raphael le 24/08). Une seule colonne de
+     cartes pleine largeur, c'était six écrans de défilement pour six idées. En colonnes CSS,
+     chaque carte fait la hauteur de son contenu et les deux colonnes s'équilibrent toutes
+     seules : la page respire et on embrasse trois cartes d'un coup d'œil. */
+  .bento_grid { display: block; columns: 2; column-gap: .7rem; height: auto; max-width: none; }
   .bento_col { display: contents; }
-  .bento_card.is-tall, .bento_card.is-safe { grid-row: auto; grid-column: auto; }
-  .bento_scan { min-height: 6rem; }
+  .bento_card {
+    break-inside: avoid; -webkit-column-break-inside: avoid;
+    margin: 0 0 .7rem; min-height: 0; height: auto;
+    padding: 1.3rem .95rem 1.4rem; border-radius: 1.4rem; gap: .55rem;
+  }
+  .bento_card.is-tall, .bento_card.is-safe { flex: none; grid-row: auto; grid-column: auto; }
+  .bento_card-title { font-size: 1.12rem; }
+  .bento_card-big { font-size: 1.6rem; }
+  .bento_card-text { font-size: .8rem; line-height: 1.42; }
+  .bento_icon { font-size: 1rem; }
+  .bento_tags { gap: .3rem; }
+  .bento_tags span { font-size: .62rem; padding: .3rem .5rem; }
+  .bento_layers { gap: .32rem; padding: .2rem 0; }
+  .bento_layers span { font-size: .68rem; padding: .4rem .55rem; gap: .45rem; min-height: 0; letter-spacing: .02em; }
+  .bento_layers span i { flex: 0 0 1.1rem; }
+  .bento_log { font-size: .66rem; line-height: 1.75; }
+  .bento_log-line { padding-left: 1rem; }
+  /* la pastille était posée en absolu au bas de la carte, avec interdiction de retourner à la
+     ligne : dans une colonne deux fois plus étroite elle sortait du cadre */
+  .bento_pill { position: static; transform: none; white-space: normal; margin-top: .7rem;
+    font-size: .58rem; line-height: 1.35; padding: .4rem .7rem; letter-spacing: .08em; }
+  /* une hauteur en pourcentage n'a pas de sens quand la carte se dimensionne sur son contenu */
+  .bento_graph { height: 5.5rem; }
+  .bento_card.is-graph { padding: 1.1rem .85rem 1.25rem; }
+  .bento_card.is-log { align-items: center; text-align: center; }
+  .bento_card.is-log .bento_log { text-align: left; }
+  .bento_scan { min-height: 4.5rem; }
 }
 
 .bento_tags { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; padding: .3rem 0; }
@@ -568,7 +607,10 @@ select.modal_input { appearance: none; }
 
 /* Écran de fin en mobile : la hauteur suit le contenu (sinon le centrage coupe le titre en haut) */
 @media screen and (max-width: 991px) {
-  .section.is-end { min-height: 100svh; height: auto; justify-content: flex-start; padding: 7rem 0 2.5rem; }
+  /* Mesure sur l iPhone de Raphael (24/08) : 100svh = 635 px, 100lvh = 735 px. Une section en
+     svh s arrete donc 100 px trop tot des que la barre de Safari se replie, et on voit du vide
+     sous elle. dvh suit la hauteur REELLEMENT visible : plus de vide, quelle que soit la barre. */
+  .section.is-end { min-height: 100dvh; height: auto; justify-content: flex-start; padding: 7rem 0 2.5rem; }
   .section.is-end > .end_container { flex: 0 0 auto; display: block; margin-bottom: 3rem; }
   .end_title { font-size: clamp(2rem, 9vw, 2.9rem); }
   .end_text { font-size: .95rem; }
@@ -728,8 +770,11 @@ select.modal_input { appearance: none; }
 
   /* plus de hauteur imposée : chaque bloc fait la taille de son contenu */
   .section { min-height: 0; }
-  .section.is-gamme { min-height: 100svh; }
-  .section.is-end { min-height: 100svh; }
+  /* `svh` est la hauteur quand les barres de Safari sont AFFICHEES. Des qu'elles se
+     retractent, la zone visible devient plus haute et le bloc suivant apparaissait sous le
+     heros. `dvh` suit la hauteur reellement visible : le heros remplit toujours l'ecran. */
+  .section.is-gamme { min-height: 100dvh; }
+  .section.is-end { min-height: 100dvh; }
 
   /* les quatre écrans de mise en scène sortent du parcours mobile */
   .section.is-benefits, .section.is-argument, .section.is-full-gamme { display: none; }
@@ -739,7 +784,19 @@ select.modal_input { appearance: none; }
      au-dessus du bloc suivant, celui-ci entrait par le bas alors que la fiche était encore
      pleinement là — les deux textes se sont retrouvés l'un sur l'autre (vu sur capture).
      Un demi-écran de silence laisse la fiche s'en aller avant que le document commence. */
-  .section.is-stack { padding: 42svh 0 1rem; }
+  /* 42svh de blanc avaient ete poses quand la fiche produit se comportait autrement. Mesure du
+     24/08 sur iPhone 15 Pro (393x659) : la section « Cinq optis » faisait 1009 px, soit 1,53
+     ecran, dont 277 px de ce seul padding — le contenu, lui, ne fait que 718 px. D'ou les deux
+     seules positions possibles au defilement : la moitie haute, puis la moitie basse.
+     La fiche a fini de s'effacer bien avant (son declencheur se termine a « bottom 45% », soit
+     environ 300 px avant le haut de cette section) : ce blanc n'a plus lieu d'etre. */
+  /* L'en-tete est fixe et opaque (66 px) : centrer dans l'ecran entier fait passer le surtitre
+     dessous. On lui reserve sa hauteur, et le centrage se fait dans ce qui reste. */
+  /* box-sizing: border-box, sinon le rembourrage s'AJOUTE au « min-height: 100svh » et la section
+     redevient plus haute que l'ecran (716 px mesures pour 659) — c'est ce qui remettait le
+     surtitre sous l'en-tete. Avec la bordure comprise, la section fait exactement un ecran. */
+  .section.is-stack { box-sizing: border-box; padding: 4.9rem 0 1rem; min-height: 100dvh;
+    display: flex; flex-direction: column; justify-content: center; }
   .stack_container { position: relative; inset: auto; pointer-events: auto; }
 
   /* respirations entre blocs, cohérentes */
@@ -761,15 +818,15 @@ select.modal_input { appearance: none; }
      gauche et une autre coupée à droite, jamais une entière. Sur téléphone c'est une liste
      qu'on fait glisser, calée sur la marge de la page, avec accrochage. Les copies qui
      servaient à boucler le défilement n'ont plus de raison d'être. */
-  .reviews_marquee { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    -webkit-mask-image: none; mask-image: none;
-    padding-left: var(--_spacing-sizing---page-padding--padding-global);
-    padding-right: var(--_spacing-sizing---page-padding--padding-global); }
+  /* Le bandeau defile tout seul ET se fait glisser au doigt. Les deux agissent sur la meme
+     grandeur — `scrollLeft` du conteneur — donc ils ne se battent pas : l'animation CSS est
+     coupee ici, c'est le JS qui avance (voir initAvisMobile). Un doigt pose met en pause,
+     l'automatique reprend 3 s apres qu'on a lache.
+     `touch-action: pan-x` dit explicitement a iOS que ce conteneur se manipule a l'horizontale. */
+  .reviews_marquee { overflow-x: auto; overflow-y: hidden; touch-action: pan-x;
+    overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .reviews_marquee::-webkit-scrollbar { width: 0; height: 0; }
-  .reviews_track { animation: none !important; transform: none !important; width: max-content; }
-  .reviews_track .review[data-clone] { display: none; }
-  .reviews_track .review { scroll-snap-align: center; }
+  .reviews_track { animation: none !important; transform: none !important; }
 }
 
 
@@ -784,7 +841,20 @@ select.modal_input { appearance: none; }
    ===================================================================================== */
 @media screen and (max-width: 991px) {
 
-  .section.is-profile { display: block; min-height: 100svh; position: relative; }
+  /* PLUS D'EFFET DE DEFILEMENT SUR TELEPHONE (decision Raphael, 24/08).
+     L'ecran scenographique de la fiche produit — conteneur fixe plein cadre, module en fond,
+     bande de texte calee sur Ciao — disparait ici. Ce qu'il portait (nom, description, prix)
+     se retrouve, en mieux, dans les sections propres a chaque opti construites juste sous le
+     heros. La 3D reste sur le premier ecran, ou elle sert a choisir au pouce ; ensuite la page
+     est un document, et rien n'y est fige.
+     (Ancien commentaire conserve pour memoire du chemin parcouru.)
+     La gamme (1re section) derive toute seule et se parcourt au pouce ou aux fleches ; on
+     s'arrete sur l'opti qui interesse, PUIS on descend, et la fiche donne les informations de
+     CETTE opti-la. La fiche est donc UN ecran, et le defilement vertical ne change pas de
+     produit — c'est le geste horizontal qui choisit.
+     (Essai du 24/08 : fiche etiree sur cinq ecrans, une opti par ecran au defilement vertical.
+     Ecarte par Raphael — ce n'est pas le fonctionnement du site.) */
+  .section.is-profile { display: none; }
   /* le nom du produit est déjà le titre de la bande : le doublon en haut d'écran (une pièce de
      la mise en page de bureau) n'a plus lieu d'être ici */
   .carousel_title-bis-wrapper { display: none; }
@@ -813,12 +883,26 @@ select.modal_input { appearance: none; }
   /* Le nom du produit était masqué sur petit écran par la règle .hide-tablet, qui porte un
      !important : il faut le même poids pour le rendre. C'est lui le titre de l'écran. */
   .profile_container .margin-bottom.margin-large.hide-tablet { display: block !important; margin-bottom: .5rem; }
-  /* Valeurs relevées sur Ciao et converties : la racine du site fait 14 px, pas 16.
-     Titre 30 px, texte 17 px, prix 22 px — la bande fait alors 26 % de l'écran, comme la leur. */
-  .profile_container .heading-style-h2 { font-size: 2.15rem; line-height: .95; }
-  /* Pas de troncature : une phrase coupée par « … » se lit comme un défaut, pas comme un choix.
-     Le texte est simplement plus serré, la bande s'ajuste à ce qu'il y a à dire. */
-  .profile_desc p { font-size: 1.21rem; line-height: 1.34; color: var(--color-scheme-1--text); }
+  /* Remesure du 24/08, sonde identique sur les deux sites : Ciao rend un titre de 31,5 px et
+     un texte de 17,5 px. Nous rendions 30,1 et 16,9 — la conversion en rem avait ete faite sur
+     une racine de 14,88 px alors qu'elle vaut 14. Ecart mesure : -4,4 % sur le titre, -3,4 %
+     sur le texte. Les bonnes valeurs sont donc 2,25 rem et 1,25 rem. */
+  .profile_container .heading-style-h2 { font-size: 2.25rem; line-height: .95; }
+  /* Mesure du 24/08 : notre bande allait de 60,0 % a 91,4 % (31,4 % de l'ecran) et sa hauteur
+     CHANGEAIT d'une opti a l'autre (22,6 % pour FluxTuner, 30,7 % pour ChipsetTuner, dont la
+     description tenait sur huit lignes). Chez Ciao elle est constante : 71,2 % -> 95,0 %, soit
+     23,8 %, avec quatre lignes de texte. Deux corrections : une description courte propre au
+     telephone (4 lignes maxi, tiree du texte existant) et une hauteur RESERVEE, pour que le
+     titre et le prix tombent au meme endroit sur les cinq optis. */
+  .profile_desc p { font-size: 1.25rem; line-height: 1.34; color: var(--color-scheme-1--text); }
+  .profile_container .profile_desc > p:not(.profile_desc-court) { display: none; }
+  .profile_container .profile_desc-court { display: block; }
+  /* 4 lignes x 1,34 x 1,25 rem = 6,7 rem : la bande garde la meme hauteur meme quand le texte
+     est plus court, donc le titre ne remonte pas d'une opti a l'autre.
+     Hauteur RESERVEE et non imposee : un texte qui deborderait serait coupe en silence, et une
+     coupure silencieuse se lit comme un defaut. La mesure d'apres coup verifie qu'aucune
+     description ne depasse. */
+  .profile_container .profile_desc { min-height: 6.7rem; height: auto; }
   .profile_cta { display: flex; align-items: center; justify-content: center; gap: .9rem; margin-top: .9rem; }
   .profile_price { font-size: 1.6rem; }
   /* le bouton de l'écran ferait doublon avec le bouton collant, qui fait déjà cette action */
@@ -826,11 +910,18 @@ select.modal_input { appearance: none; }
 
   /* ---- le rail : accès direct aux cinq optis, à portée de pouce, côté droit ---- */
   .rail_mobile {
-    position: fixed; right: 1.15rem; top: 47%; transform: translateY(-50%);
+    /* Ciao : quatre pastilles de 44 px, marge droite 16, pas 80, groupe centre a 50,0 %
+       (premiere a 35,8 %, derniere a 64,2 %). Nos cinq pastilles au pas de 71 px couvrent
+       exactement la meme hauteur (4 x 71 = 284 px = 3 x 80 + 44). Il ne manquait que le
+       centrage : nous etions a 47,0 %. */
+    position: fixed; right: 1.15rem; top: 50%; transform: translateY(-50%);
     z-index: 45; display: flex; flex-direction: column; gap: 2rem;
     opacity: 0; pointer-events: none; transition: opacity .3s;
   }
-  .rail_mobile.is-on { opacity: 1; pointer-events: auto; }
+  /* Le rail servait l'ecran scenographique de la fiche, retire le 24/08 : il ne
+     s'affiche plus. La gamme se parcourt au pouce et aux fleches, et la liste des
+     optis donne l'acces direct. */
+  .rail_mobile { display: none !important; }
   .rail_mobile button {
     width: 3.15rem; height: 3.15rem; border-radius: 999px; padding: 0;
     display: flex; align-items: center; justify-content: center;
@@ -846,9 +937,274 @@ select.modal_input { appearance: none; }
   }
 }
 @media screen and (min-width: 992px) { .rail_mobile { display: none; } }
+/* L'ordinateur garde la description complete : c'est le seul endroit du site ou elle vit. */
+@media screen and (min-width: 992px) { .profile_desc-court { display: none; } }
 
+
+/* La gamme se parcourt au pouce, horizontalement, sur toute la largeur de l'ecran. Sans cette
+   ligne, un glissement horizontal ample n'est pas consomme par la page et le navigateur le prend
+   pour son propre geste de navigation : on quitte le site au lieu de changer d'opti.
+   Mesure du 24/08 : au-dela de ~180 px de glisse, le carrousel ne bougeait plus et la page se
+   rechargeait. Les listes qui defilent horizontalement a l'interieur (la ligne d'avis) ne sont
+   pas concernees, elles ont leur propre conteneur. */
+/* ZONES SURES — contrepartie de `viewport-fit=cover` (voir la balise viewport).
+   La page peint desormais sous les barres d'iOS : c'est ce qui fait disparaitre le bloc en bas.
+   En echange, il faut rendre a la main les marges que le navigateur ne met plus :
+   l'en-tete doit descendre sous l'encoche, et le bas de page remonter au-dessus de la barre
+   d'accueil. Ailleurs, `env(...)` vaut zero et ces regles ne changent rien. */
+@media screen and (max-width: 991px) {
+  .navbar { padding-top: env(safe-area-inset-top); }
+  .section.is-end { padding-bottom: calc(2.5rem + env(safe-area-inset-bottom)); }
+  .section.is-faq { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+  .opti_page { padding-bottom: calc(2.8rem + env(safe-area-inset-bottom)); }
+}
+
+/* Le bloc gris sous la barre de Safari (retour Raphael, iPhone) : la zone que le navigateur
+   peint AUTOUR de la page ne suit pas le fond du body — html etait transparent, Safari y
+   mettait donc sa couleur systeme, claire. On le lui dit des deux facons. */
+:root { color-scheme: dark; }
+/* PAS de fond sur html — et c est important.
+   Le halo violet du site est un `body::after` en `z-index: -1`. Tant que html n a pas de fond,
+   le fond du body remonte au canevas de la page et le pseudo-element reste VISIBLE derriere le
+   contenu. Des qu on donne un fond a html, le body peint le sien sur sa propre boite, et
+   l element en z-index -1 passe DERRIERE : le halo disparait.
+   Mesure du 24/08 : luminosite moyenne de l ecran 44,3 sans fond sur html, 18,2 avec. J avais
+   ainsi eteint tout le fond du site en croyant corriger une bande grise — laquelle venait en
+   realite de la barre de Safari qui ne se repliait pas (voir syncTouch dans engine.js).
+   `color-scheme: dark` suffit a dire au navigateur de peindre sombre autour de la page. */
+
+/* `overscroll-behavior-x` etait pose sur html ET body pour empecher le geste « retour » du
+   navigateur pendant la glisse horizontale de la gamme. Mais sur body il couvre TOUTE la page,
+   y compris la ligne d'avis qui, elle, doit se faire glisser horizontalement — c'est
+   probablement ce qui l'empechait de defiler sur iPhone. On le limite au seul endroit qui en a
+   besoin : le heros, ou vit le geste de la gamme. */
+.section.is-gamme { overscroll-behavior-x: none; }
 
 /* Retour du 24/08 : « tu as mis des lettres qui forment les mots TIMER, TUNER, PULSE, ça ne sert
    à rien, enlève ça ». Ce sont les grandes lettres dispersées derrière la fiche produit, héritées
    du moteur d'origine. Elles disparaissent partout, y compris sur ordinateur. */
 .carousel_title-bis-wrapper { display: none !important; }
+
+
+/* =====================================================================================
+   TELEPHONE — CE QUE SAFARI MANGE EN BAS (retours de Raphael, essai sur iPhone 24/08)
+   Sur un vrai iPhone, la barre de navigation de Safari occupe le bas de l'ecran en
+   permanence. Mesure sur les gabarits iPhone 14 / 15 Pro (hauteur utile 659-664 px) :
+     - la barre de progression de la gamme finissait a 21 px du bord : cachee ;
+     - le bouton « Ouvrir un ticket » finissait a 10 px du bord : colle a la barre Safari,
+       donc penible a viser et visuellement etouffe.
+   env(safe-area-inset-bottom) ne suffit pas : quand la barre de Safari est affichee, cette
+   valeur vaut zero. Il faut un degagement pose en dur.
+   ===================================================================================== */
+@media screen and (max-width: 991px) {
+  /* le nom du produit et la barre remontent, comme ils le font deja sur ordinateur (-11vh) */
+  .carousel_title-collection, .carousel_pagination { transform: translateY(-7svh); }
+
+  /* le bouton collant se decolle franchement du bas : le lien passe de 10 a ~34 px du bord */
+  .cta_mobile { padding: .7rem 1rem calc(2.2rem + env(safe-area-inset-bottom)); }
+
+  /* Sur l'ecran des optis, le bouton collant fait doublon : la section porte deja son propre
+     « Ouvrir un ticket ». Le masquer y rend 63 px, ce qui permet de tout voir d'un coup. */
+  body.is-optis .cta_mobile { opacity: 0; transform: translateY(120%); pointer-events: none; }
+
+  /* Ce qui reste a gagner pour que la section tienne dans un ecran, sans rien retirer :
+     on resserre les respirations et les lignes, on ne coupe aucun contenu. */
+  .section.is-stack .stack_head .margin-bottom.margin-small { margin-bottom: .5rem; }
+  .section.is-stack .stack_head .margin-bottom.margin-xsmall { margin-bottom: .45rem; }
+  .section.is-stack .stack_text p { font-size: .88rem; line-height: 1.35; }
+  .section.is-stack .stack_symptoms { margin-top: .5rem; gap: .3rem; }
+  .section.is-stack .stack_chip { padding: .38rem .7rem; font-size: .66rem; }
+  .section.is-stack .stack_list { margin-top: .5rem; }
+  .section.is-stack .stack_layer { min-height: 42px; padding: .38rem 0; }
+  .section.is-stack .stack_note { margin-top: .45rem; font-size: .62rem; }
+  .section.is-stack .stack_cta { margin-top: .6rem; }
+  /* Les 42 px qui manquaient encore n'etaient pas du contenu : c'est le rembourrage vertical
+     du conteneur de section (63 px a lui seul, mesure sur iPhone 15 Pro). On le resserre —
+     aucun texte, aucune ligne, aucun bouton n'est retire. */
+  .section.is-stack .padding-section-medium,
+  .section.is-stack .stack_container,
+  .section.is-stack .padding-global,
+  .section.is-stack .container-large { padding-top: 0; padding-bottom: 0; }
+  /* La section etait bien reglee pour centrer, mais son contenu ne pouvait pas l'etre : trois
+     conteneurs imbriques portent « height: 100% » et la grille est en « align-content: end »
+     (heritage de la mise en page de bureau, ou le bloc se cale en bas). Resultat mesure : le
+     texte debordait de 71 px en haut alors qu'il restait 190 px de vide en bas. On rend au bloc
+     sa hauteur naturelle, et le centrage de la section fait le reste. */
+  .section.is-stack .height-100 { height: auto; }
+  .section.is-stack .stack_grid { height: auto; align-content: center; }
+}
+
+/* Ecrans courts (iPhone Mini, SE) : il manque une quarantaine de pixels. On les prend sur les
+   respirations, jamais sur le contenu — aucune ligne, aucun prix, aucun bouton ne disparait. */
+@media screen and (max-width: 991px) and (max-height: 660px) {
+  .section.is-stack { padding-top: 4.4rem; }
+  .section.is-stack .stack_head .margin-bottom.margin-small { margin-bottom: .35rem; }
+  .section.is-stack .stack_head .margin-bottom.margin-xsmall { margin-bottom: .3rem; }
+  .section.is-stack .stack_text p { font-size: .82rem; line-height: 1.3; }
+  .section.is-stack .stack_symptoms { margin-top: .35rem; }
+  .section.is-stack .stack_chip { padding: .3rem .6rem; font-size: .62rem; }
+  .section.is-stack .stack_list { margin-top: .35rem; }
+  .section.is-stack .stack_layer { min-height: 38px; padding: .28rem 0; }
+  .section.is-stack .stack_note { margin-top: .35rem; }
+  .section.is-stack .stack_cta { margin-top: .45rem; }
+}
+
+/* =====================================================================================
+   TELEPHONE — LES SECTIONS PROPRES A CHAQUE OPTI
+   Retour Raphael (24/08) : « trop de texte, trop surcharge, personne va lire tout ca ;
+   des choses simples, une bonne hierarchie au niveau des textes ». Le premier jet empilait
+   quinze elements. Ici tout est CLASSE, sur trois niveaux seulement :
+     1. le nom, puis LE RESULTAT — ce qui decide, en grand ;
+     2. pour quel probleme — des puces, sans phrase autour ;
+     3. le prix et le bouton ; et le detail technique, replie.
+   Pas d'image : c'est la taille, la graisse et le blanc qui font la hierarchie.
+   ===================================================================================== */
+.opti_page { display: none; }
+@media screen and (max-width: 991px) {
+  /* Le canvas est en `position: fixed` : il couvre l'ecran en permanence. Ce bloc doit donc
+     etre OPAQUE et passer devant, sinon la 3D se dessine par-dessus le texte, le prix et le
+     bouton (capture iPhone du 24/08). Un fond et un plan suffisent — inutile de toucher au
+     canvas, qui sert encore au heros juste au-dessus. */
+  .opti_page { display: block; position: relative; z-index: 3;
+    background: var(--color-scheme-1--background);
+    padding: 3rem var(--_spacing-sizing---page-padding--padding-global) 2.8rem; }
+  /* Le canvas 3D est fixe, ce bloc defile et il est opaque : sans transition, son bord superieur
+     tranche le module d un trait net — c est le « bloc noir ». L opacite du canvas suit deja la
+     couverture du bloc (voir initHeroMobile) ; ce degrade acheve le raccord, pour qu il n y ait
+     plus aucune arete visible entre la scene et le document. */
+  .opti_page::before { content: ''; position: absolute; left: 0; right: 0; top: -5.5rem;
+    height: 5.5rem; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--color-scheme-1--background)); }
+
+  /* --- niveau 1 : qui c'est, et ce que ca change --- */
+  .opti_page-tag { font-family: var(--_typography---font-styles--mono); font-size: .78rem;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--c, #8b5cf6); margin: 0 0 .4rem; }
+  .opti_page-nom { font-family: Anton, Impact, sans-serif; font-style: italic; text-transform: uppercase;
+    font-size: 2.6rem; line-height: .9; margin: 0; color: var(--color-scheme-1--text); }
+  .opti_page-resultat { font-family: Anton, Impact, sans-serif; font-style: italic;
+    text-transform: uppercase; font-size: 1.5rem; line-height: 1.02; margin: 1.4rem 0 0;
+    color: var(--c, #8b5cf6); }
+  .opti_page-texte { font-size: 1.02rem; line-height: 1.45; margin: 1rem 0 0;
+    color: var(--color-scheme-1--text); }
+
+  /* le releve : deux chiffres cote a cote, c'est la preuve, elle doit se lire sans lire */
+  .opti_page-releve { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .9rem; }
+  .opti_page-releve > div { border: 1px solid var(--color-scheme-1--border); border-radius: .7rem;
+    padding: .7rem .8rem; }
+  .opti_page-releve > div.is-apres { border-color: var(--c, #8b5cf6); }
+  .opti_page-releve span { display: block; font-family: var(--_typography---font-styles--mono);
+    font-size: .7rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--_primitives---opacity--white-60); margin-bottom: .25rem; }
+  .opti_page-releve strong { display: block; font-size: .92rem; line-height: 1.25; font-weight: 500;
+    color: var(--color-scheme-1--text); }
+  .opti_page-releve > div.is-apres strong { color: var(--c, #8b5cf6); }
+  .opti_page-cadre { font-family: var(--_typography---font-styles--mono); font-size: .72rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--_primitives---opacity--white-60);
+    margin: .55rem 0 0; }
+
+  /* --- niveau 2 : pour quel probleme --- */
+  .opti_page-syms { list-style: none; margin: 1.5rem 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+  .opti_page-pour { font-family: var(--_typography---font-styles--mono); font-size: .76rem;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--_primitives---opacity--white-60);
+    margin-right: .2rem; }
+  .opti_page-sym { border: 1px solid var(--c, #8b5cf6); border-radius: 999px;
+    padding: .38rem .8rem; font-family: var(--_typography---font-styles--mono);
+    font-size: .76rem; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--color-scheme-1--text); }
+
+  /* --- niveau 3 : le prix, l'action, puis le detail replie --- */
+  .opti_page-achat { display: flex; align-items: center; gap: .9rem; margin-top: 1.6rem; }
+  .opti_page-prix { font-family: Anton, Impact, sans-serif; font-style: italic; font-size: 1.7rem;
+    color: var(--color-scheme-1--text); flex: 0 0 auto; }
+  .opti_page-cta { flex: 1; display: flex; align-items: center; justify-content: center;
+    min-height: 48px; padding: .85rem 1rem; border-radius: 999px; background: #fff; color: #0c0b12;
+    font-family: var(--_typography---font-styles--mono); font-size: .78rem; letter-spacing: .1em;
+    text-transform: uppercase; text-decoration: none; }
+
+  .opti_page-detail { margin-top: 1.5rem; border-top: 1px solid var(--color-scheme-1--border);
+    padding-top: .2rem; }
+  .opti_page-detail > summary { list-style: none; cursor: pointer; min-height: 44px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--_typography---font-styles--mono); font-size: .76rem;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); }
+  .opti_page-detail > summary::-webkit-details-marker { display: none; }
+  .opti_page-detail > summary::after { content: '+'; font-size: 1rem; line-height: 1;
+    color: var(--c, #8b5cf6); }
+  .opti_page-detail[open] > summary::after { content: '\2212'; }
+  .opti_page-detail .opti_page-texte { font-size: .95rem; margin-top: .2rem;
+    color: var(--_primitives---opacity--white-60); }
+  .opti_page-ou { font-family: var(--_typography---font-styles--mono); font-size: .76rem;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--c, #8b5cf6); margin: .9rem 0 0; }
+  .opti_page-points { list-style: none; margin: .7rem 0 .4rem; padding: 0; }
+  .opti_page-points li { display: flex; flex-direction: column; gap: .1rem;
+    padding: .55rem 0 .55rem 1rem; border-bottom: 1px solid var(--color-scheme-1--border);
+    position: relative; }
+  .opti_page-points li:last-child { border-bottom: 0; }
+  .opti_page-points li::before { content: ''; position: absolute; left: 0; top: .85rem;
+    width: .35rem; height: .35rem; border-radius: 50%; background: var(--c, #8b5cf6); }
+  .opti_page-pt { font-family: var(--_typography---font-styles--mono); font-size: .76rem;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--color-scheme-1--text); }
+  .opti_page-pt2 { font-family: var(--_typography---font-styles--mono); font-size: .76rem;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--_primitives---opacity--white-60); }
+
+  /* le bouton « Detail » de la liste des optis ramene ici */
+  .opti_detail-plus { appearance: none; background: transparent; cursor: pointer;
+    border: 1px solid var(--_primitives---opacity--white-20); border-radius: 999px;
+    min-height: 32px; padding: .25rem .6rem; margin-left: .5rem;
+    color: var(--_primitives---opacity--white-60);
+    font-family: var(--_typography---font-styles--mono); font-size: .6rem;
+    letter-spacing: .1em; text-transform: uppercase; grid-row: 1; }
+}
+@media screen and (min-width: 992px) { .opti_page, .opti_detail-plus { display: none; } }
+
+
+/* =====================================================================================
+   TELEPHONE — CONFORT D'USAGE (audit chiffre du 24/08)
+   Trois defauts mesures, corriges ici. Aucun n'est cosmetique : une cible de 32 px se
+   rate une fois sur trois au pouce, et un texte a 2,46:1 ne se lit pas au soleil.
+   ===================================================================================== */
+@media screen and (max-width: 991px) {
+
+  /* ---- 1. toutes les cibles atteignent 44 px ----
+     Deux methodes : agrandir quand la place existe (puces, boutons), ou elargir la zone
+     tactile par un calque invisible quand agrandir casserait la mise en page (lignes
+     denses, pied de page). Le calque ne change aucune hauteur. */
+  /* Portee alignee sur la regle des ecrans courts (.section.is-stack .stack_chip), qui est
+     plus specifique : sans ca la taille de police restait a 8,7 px. */
+  .stack_chip, .section.is-stack .stack_chip { min-height: 44px; padding: .55rem .9rem; font-size: .78rem; }
+  .section.is-stack .stack_what { font-size: .78rem; }
+  .section.is-stack .stack_note { font-size: .76rem; color: var(--_primitives---opacity--white-60); }
+  .stack_cta .button { min-height: 44px; }
+  .navbar_brand { min-height: 44px; display: flex; align-items: center; }
+  .end_top { min-height: 44px; }
+
+  .opti_detail-plus { position: relative; font-size: .76rem; }
+  .opti_detail-plus::after { content: ''; position: absolute; inset: -.6rem -.7rem; }
+
+  /* les liens du pied de page font 18 px de haut : on elargit sans deplacer le texte */
+  .pulse_footer-col a, .footer_link { position: relative; }
+  .pulse_footer-col a::after, .footer_link::after { content: ''; position: absolute;
+    inset: -1.05rem -.6rem; }
+  /* le bento : ses etiquettes et son journal descendaient a 9,2 px */
+  .bento_layers span, .bento_log-line, .bento_pill, .bento_card-text small { font-size: .78rem; }
+  .bento_tags span { font-size: .78rem; padding: .35rem .6rem; }
+  .pulse_footer-title { font-size: .78rem; }
+  .end_top { font-size: .78rem; }
+  /* Les trois glyphes decoratifs (∿, ★, ›) sont a 3,67:1. Ils portent aria-hidden : la regle
+     de contraste ne leur applique pas. J ai essaye de les remonter en white-60 — ca les a fait
+     TOMBER a 2,51:1, parce qu ils vivent dans une pastille au fond clair, pas sur du noir.
+     On les laisse tels quels : mieux vaut ne pas toucher que degrader. */
+
+  /* ---- 2. plus rien sous le plancher de 10,5 px ---- */
+  .stack_what { font-size: .78rem; }
+  .bento_layers span, .stack_symptoms-label { font-size: .76rem; }
+  .pulse_footer-bottom { font-size: .76rem; }
+  .stack_note { font-size: .76rem; }
+
+  /* ---- 3. contrastes ----
+     Mesure alpha COMPOSEE sur le fond (une couleur a 30 % d'opacite n'est pas sa couleur
+     pleine) : le pied de page etait a 2,46:1 pour un seuil de 4,5, les glyphes a 3,67:1. */
+  .pulse_footer-bottom, .stack_note, .rev_org { color: var(--_primitives---opacity--white-60); }
+  .pulse_footer-base { color: var(--_primitives---opacity--white-60); }
+}
