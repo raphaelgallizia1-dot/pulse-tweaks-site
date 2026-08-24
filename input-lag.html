@@ -48,7 +48,7 @@
   .kicker{font-family:var(--font-mono); font-size:12px; letter-spacing:.3em; color:var(--accent);
     text-transform:uppercase}
   h1{font-family:var(--font-display); font-style:italic; text-transform:uppercase;
-    font-size:clamp(38px,6vw,72px); line-height:.92; transform:skewX(-6deg); margin:16px 0 20px;
+    font-size:clamp(34px,4.4vw,58px); line-height:.92; transform:skewX(-6deg); margin:16px 0 20px;
     margin-left:-.03em; text-wrap:balance}
   .lede{font-size:19px; line-height:1.65; color:#dedbe8; max-width:60ch; margin-bottom:14px}
   h2{font-family:var(--font-display); font-style:italic; text-transform:uppercase;
@@ -94,6 +94,79 @@
     main{padding:4vh 18px 10vh}
     h2{margin:44px 0 18px}
   }
+
+  /* ---------- ce qui rend la page VISUELLE ---------- */
+  .hero{display:grid; grid-template-columns:1.05fr .95fr; gap:32px; align-items:center;
+    min-height:min(78vh,660px)}
+  .hero-mod{position:relative; justify-self:center; width:100%; max-width:340px}
+  .hero-mod img{width:100%; height:auto; display:block; position:relative; z-index:1;
+    filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
+  .hero-mod::before{content:''; position:absolute; inset:-12% -18% -6%;
+    background:radial-gradient(52% 44% at 50% 52%, color-mix(in srgb, var(--accent) 50%, transparent) 0%,
+      transparent 70%); filter:blur(28px); z-index:0}
+  .offre{display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; margin-top:26px;
+    border:1px solid var(--line); border-radius:16px; padding:16px 20px;
+    background:rgba(16,15,22,.55)}
+  .offre .nom{font-family:var(--font-mono); font-size:11.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--accent)}
+  .sommaire{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 8px}
+  .sommaire a{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--dim); text-decoration:none; border:1px solid var(--line);
+    padding:8px 13px; border-radius:999px; transition:color .25s, border-color .25s}
+  .sommaire a:hover,.sommaire a:focus-visible{color:var(--ink); border-color:var(--ink)}
+  h2{display:flex; align-items:baseline; gap:14px}
+  h2 .num{font-family:var(--font-mono); font-size:12px; letter-spacing:.2em; color:var(--accent);
+    transform:skewX(6deg); flex:none; font-style:normal}
+  .cartes{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .carte{border:1px solid var(--line); border-radius:16px; padding:20px;
+    background:rgba(255,255,255,.025); transition:border-color .3s, transform .3s}
+  .carte:hover{border-color:color-mix(in srgb, var(--accent) 55%, var(--line)); transform:translateY(-2px)}
+  .carte h3{margin-bottom:8px}
+  .carte p{font-size:15px; margin:0; color:#bfbcca}
+  .carte .marque{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); margin-bottom:10px}
+  .suite{font-size:17px; line-height:1.7; color:#c6c3d2; margin:22px 0 0}
+  .schema{margin:26px 0 0; border:1px solid var(--line); border-radius:18px; padding:22px 20px 18px;
+    background:rgba(255,255,255,.02)}
+  .schema svg{width:100%; height:auto; display:block}
+  .schema figcaption{font-size:14px; line-height:1.6; color:#a8a5b4; margin-top:16px; max-width:60ch}
+  .etapes{counter-reset:e; display:grid; gap:10px}
+  .etape{display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:start;
+    border-top:1px solid var(--line); padding-top:16px}
+  .etape b{font-family:var(--font-mono); font-size:12px; color:var(--accent); letter-spacing:.1em}
+  .etape p{margin:4px 0 0; font-size:15.5px}
+  .etape strong{color:var(--ink)}
+  /* apparitions */
+  .rev{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1)}
+  .rev.vu{opacity:1; transform:none}
+  .trace{stroke-dasharray:1200; stroke-dashoffset:1200}
+  .vu .trace{animation:trace 1.5s ease-out forwards}
+  .vu .trace.t2{animation-delay:.55s}
+  @keyframes trace{to{stroke-dashoffset:0}}
+  .pop{opacity:0}
+  .vu .pop{animation:pop .5s ease-out forwards; animation-delay:var(--d,0ms)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .pousse{transform-origin:50% 140px; transform:scaleY(0)}
+  .vu .pousse{animation:pousse .45s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:var(--d,0ms)}
+  @keyframes pousse{to{transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .rev{opacity:1; transform:none; transition:none}
+    .trace{stroke-dasharray:none; stroke-dashoffset:0}
+    .pop,.pousse{opacity:1; transform:none; animation:none}
+  }
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr; gap:8px; min-height:0; padding-top:8px}
+    .hero-mod{max-width:200px; order:-1; margin-bottom:2px}
+    h1{font-size:clamp(34px,9vw,52px)}
+    /* Regle maison : le bouton doit etre atteignable en un scroll, jamais plus.
+       Le paragraphe d'introduction le repoussait au deuxieme ecran ; sur telephone
+       l'offre passe donc avant lui, et le texte devient l'entree de l'article. */
+    .hero > div:not(.hero-mod){display:flex; flex-direction:column}
+    .hero .lede{order:3; margin-top:18px}
+    .hero .offre{order:2; margin-top:18px}
+    .offre{padding:14px 16px; gap:10px 12px}
+    .offre .note{flex-basis:100%}
+  }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#page","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html","name":"Input lag sur PC : d'où vient le retard | Pulse Tweaks","description":"Tu vises juste et l'action part en retard. Ce qui cause l'input lag, ce que les réglages du jeu ne peuvent pas corriger, et ce qu'on synchronise côté système.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/#site","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/","name":"Pulse Tweaks"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pulse Tweaks","item":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"},{"@type":"ListItem","position":2,"name":"TimerTuner","item":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html"}]}},{"@type":"Service","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#service","name":"TimerTuner","serviceType":"Optimisation PC pour le jeu","description":"Timers et kernel synchronisés, contrôleurs USB en haute fréquence, audio basse latence, interruptions système maîtrisées. L'objectif est un frametime constant : c'est ce qui rend la visée prévisible, plus encore que la valeur moyenne.","provider":{"@type":"Organization","name":"Pulse Tweaks","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"},"areaServed":"FR","offers":{"@type":"Offer","price":"20","priceCurrency":"EUR","availability":"https://schema.org/InStock","url":"https://discord.gg/pulsetweaks"}},{"@type":"FAQPage","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#faq","inLanguage":"fr-FR","mainEntity":[{"@type":"Question","name":"La différence avec le ping ?","acceptedAnswer":{"@type":"Answer","text":"Le ping, c'est le temps d'aller-retour jusqu'au serveur. L'input lag, c'est le temps entre ton geste et l'affichage sur ton écran. Les deux s'additionnent, mais ils ne se règlent pas au même endroit — le réseau, c'est FluxTuner."}},{"@type":"Question","name":"Ça marche sur un PC portable ?","acceptedAnswer":{"@type":"Answer","text":"Oui. Les réglages diffèrent, notamment sur la gestion d'énergie, mais le principe est le même."}},{"@type":"Question","name":"J'ai une souris à 8000 Hz, ça sert à quelque chose ?","acceptedAnswer":{"@type":"Answer","text":"Seulement si le reste de la chaîne suit. Une souris qui parle 8000 fois par seconde à un système qui écoute moins souvent n'apporte rien — et peut même charger le processeur pour rien. C'est justement le genre de réglage qu'on met en cohérence."}}]}]}</script>
 </head>
@@ -103,53 +176,94 @@
   <a class="back" href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">&#8592;&nbsp;Le site</a>
 </header>
 <main>
-  <span class="kicker">Opti 04 · Kernel et périphériques</span>
-  <h1>J'ai de l'input lag</h1>
-  <p class="lede">Tu vises juste, et l'action part un instant trop tard. Sur un duel rapide, ce décalage décide de l'échange — et il est d'autant plus rageant qu'il ne se voit sur aucun compteur. Ce n'est pas toujours ta souris, et ce n'est presque jamais ta connexion : entre ton geste et l'image affichée, il y a une chaîne d'étapes, et chacune peut ajouter quelques millisecondes.</p>
+  <div class="hero">
+    <div>
+      <span class="kicker">Opti 04 · Kernel et périphériques</span>
+      <h1>J'ai de l'input lag</h1>
+      <p class="lede">Tu vises juste, et l'action part un instant trop tard. Sur un duel rapide, ce décalage décide de l'échange — et il est d'autant plus rageant qu'il ne se voit sur aucun compteur.</p>
+      <div class="offre">
+        <span class="nom">TimerTuner</span>
+        <span class="prix">20&#8239;&euro;</span>
+        <a class="bouton" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket</a>
+        <span class="note">Diagnostic avant tout paiement &middot; r&eacute;versible</span>
+      </div>
+    </div>
+    <div class="hero-mod">
+      <img src="assets/modules/module-timer.webp" width="699" height="900" alt="Le module TimerTuner"
+           fetchpriority="high" decoding="async">
+    </div>
+  </div>
 
-  <h2>Ce que tu as sans doute déjà essayé</h2>
-  <div class="bloc"><div class="item"><h3>Tu as monté ta souris à 1000 Hz</h3><p>Bonne idée, mais le taux d'interrogation ne sert à rien si le système n'écoute pas le port USB à la même cadence.</p></div><div class="item"><h3>Tu as coupé la synchronisation verticale</h3><p>Ça enlève une partie du retard d'affichage. Ça ne touche pas au chemin entre ton geste et le moment où le jeu le reçoit.</p></div><div class="item"><h3>Tu as acheté un écran à 240 Hz</h3><p>Il affiche plus souvent, il ne raccourcit pas la chaîne en amont.</p></div></div>
+  <nav class="sommaire" aria-label="Sur cette page">
+    <a href="#essaye">Ce que tu as déjà essayé</a>
+    <a href="#causes">Ce que ça peut être</a>
+    <a href="#regle">Ce que TimerTuner règle</a>
+    <a href="#deroule">Comment ça se passe</a>
+    <a href="#questions">Questions</a>
+  </nav>
 
-  <h2>Ce que ça peut être</h2>
-  <div class="bloc"><div class="item"><h3>Les timers du système</h3><p>Windows découpe le temps en tranches. Si le jeu, le kernel et les périphériques ne sont pas sur la même cadence, ton geste attend la tranche suivante.</p></div><div class="item"><h3>Les contrôleurs USB</h3><p>Ils ont leur propre fréquence d'interrogation, indépendante de celle annoncée par la souris.</p></div><div class="item"><h3>Les interruptions système</h3><p>Un pilote audio ou réseau mal réglé peut monopoliser le processeur quelques millisecondes. Ces millisecondes-là passent devant ton clic.</p></div></div>
+  <p class="suite rev">Ce n'est pas toujours ta souris, et ce n'est presque jamais ta connexion : entre ton geste et l'image affichée, il y a une chaîne d'étapes, et chacune peut ajouter quelques millisecondes.</p>
 
-  <h2>Ce que TimerTuner règle</h2>
-  <p>Timers et kernel synchronisés, contrôleurs USB en haute fréquence, audio basse latence, interruptions système maîtrisées. L'objectif est un frametime constant : c'est ce qui rend la visée prévisible, plus encore que la valeur moyenne.</p>
-  <p>Ce qui compte ici n'est pas la valeur moyenne mais sa régularité. Un retard de 12 ms constant se compense sans y penser : le corps s'y habitue en quelques parties. Un retard qui varie entre 8 et 25 ms ne s'apprend jamais, et c'est celui-là qui donne l'impression de « rater des tirs qu'on avait ». C'est donc la constance qu'on cherche en priorité.</p>
-  <div class="encadre franc">
+  <h2 id="essaye" class="rev"><span class="num">01</span>Ce que tu as sans doute déjà essayé</h2>
+  <div class="cartes rev"><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as monté ta souris à 1000 Hz</h3><p>Bonne idée, mais le taux d'interrogation ne sert à rien si le système n'écoute pas le port USB à la même cadence.</p></div><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as coupé la synchronisation verticale</h3><p>Ça enlève une partie du retard d'affichage. Ça ne touche pas au chemin entre ton geste et le moment où le jeu le reçoit.</p></div><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as acheté un écran à 240 Hz</h3><p>Il affiche plus souvent, il ne raccourcit pas la chaîne en amont.</p></div></div>
+
+  <h2 id="causes" class="rev"><span class="num">02</span>Ce que ça peut être</h2>
+  <div class="cartes rev"><div class="carte"><span class="marque">cause possible</span><h3>Les timers du système</h3><p>Windows découpe le temps en tranches. Si le jeu, le kernel et les périphériques ne sont pas sur la même cadence, ton geste attend la tranche suivante.</p></div><div class="carte"><span class="marque">cause possible</span><h3>Les contrôleurs USB</h3><p>Ils ont leur propre fréquence d'interrogation, indépendante de celle annoncée par la souris.</p></div><div class="carte"><span class="marque">cause possible</span><h3>Les interruptions système</h3><p>Un pilote audio ou réseau mal réglé peut monopoliser le processeur quelques millisecondes. Ces millisecondes-là passent devant ton clic.</p></div></div>
+  <div class="rev"><figure class="schema"><svg viewBox="0 0 600 180" role="img" aria-label="Le retard s'accumule maillon par maillon. Les réglages du jeu n'agissent que sur la fin de la chaîne ; le début, personne ne le regarde." preserveAspectRatio="xMidYMid meet"><rect class="pop" style="--d:0ms" x="22" y="70" width="82" height="52" rx="12" fill="none" stroke="rgba(244,243,246,.28)" stroke-width="1"/><text x="63" y="101" fill="#9b98a6" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Ton geste</text><path d="M106 96 L114 96" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><path d="M110 92 l5 4 -5 4" fill="none" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><rect class="pop" style="--d:110ms" x="118" y="70" width="82" height="52" rx="12" fill="none" stroke="rgba(244,243,246,.28)" stroke-width="1"/><text x="159" y="101" fill="#9b98a6" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Souris</text><path d="M202 96 L210 96" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><path d="M206 92 l5 4 -5 4" fill="none" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><rect class="pop" style="--d:220ms" x="214" y="70" width="82" height="52" rx="12" fill="none" stroke="#6366f1" stroke-width="2"/><text x="255" y="101" fill="#6366f1" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Port USB</text><path d="M298 96 L306 96" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><path d="M302 92 l5 4 -5 4" fill="none" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><rect class="pop" style="--d:330ms" x="310" y="70" width="82" height="52" rx="12" fill="none" stroke="#6366f1" stroke-width="2"/><text x="351" y="101" fill="#6366f1" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Système</text><path d="M394 96 L402 96" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><path d="M398 92 l5 4 -5 4" fill="none" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><rect class="pop" style="--d:440ms" x="406" y="70" width="82" height="52" rx="12" fill="none" stroke="rgba(244,243,246,.28)" stroke-width="1"/><text x="447" y="101" fill="#9b98a6" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Jeu</text><path d="M490 96 L498 96" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><path d="M494 92 l5 4 -5 4" fill="none" stroke="rgba(244,243,246,.3)" stroke-width="1.5"/><rect class="pop" style="--d:550ms" x="502" y="70" width="82" height="52" rx="12" fill="none" stroke="rgba(244,243,246,.28)" stroke-width="1"/><text x="543" y="101" fill="#9b98a6" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">Écran</text><text x="22" y="44" fill="#9b98a6" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">ce que tes réglages de jeu touchent</text><text x="22" y="154" fill="#6366f1" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">ce que timertuner remet en phase</text><path d="M300 52 L560 52" stroke="rgba(244,243,246,.22)" stroke-width="1" stroke-dasharray="3 4"/><path d="M212 140 L400 140" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="3 4"/></svg><figcaption>Le retard s'accumule maillon par maillon. Les réglages du jeu n'agissent que sur la fin de la chaîne ; le début, personne ne le regarde.</figcaption></figure></div>
+
+  <h2 id="regle" class="rev"><span class="num">03</span>Ce que TimerTuner règle</h2>
+  <p class="rev">Timers et kernel synchronisés, contrôleurs USB en haute fréquence, audio basse latence, interruptions système maîtrisées. L'objectif est un frametime constant : c'est ce qui rend la visée prévisible, plus encore que la valeur moyenne.</p>
+  <p class="rev">Ce qui compte ici n'est pas la valeur moyenne mais sa régularité. Un retard de 12 ms constant se compense sans y penser : le corps s'y habitue en quelques parties. Un retard qui varie entre 8 et 25 ms ne s'apprend jamais, et c'est celui-là qui donne l'impression de « rater des tirs qu'on avait ». C'est donc la constance qu'on cherche en priorité.</p>
+  <div class="encadre franc rev">
     <h3>Ce que ça ne fait pas</h3>
     <p>Ça ne compense pas une souris défectueuse ni un écran lent, et ça ne fait pas viser à ta place. Aucun chiffre n'est promis : le gain dépend de ce qui traîne sur ta machine.</p>
   </div>
-  <div class="cta">
+  <div class="cta rev">
     <span class="prix">20&#8239;&euro;</span>
     <a class="bouton" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket</a>
     <span class="note">Diagnostic avant tout paiement</span>
   </div>
 
-  <h2>Comment ça se passe</h2>
-  <div class="bloc">
-    <div class="item"><h3>1 &middot; Le ticket</h3><p>Tu ouvres un ticket sur le Discord avec ta
-      configuration. C'est gratuit, et rien n'est engagé à ce stade.</p></div>
-    <div class="item"><h3>2 &middot; Le diagnostic</h3><p>On regarde ta machine et on te dit quelles
+  <h2 id="deroule" class="rev"><span class="num">04</span>Comment ça se passe</h2>
+  <div class="etapes rev">
+    <div class="etape"><b>01</b><div><h3>Le ticket</h3><p>Tu ouvres un ticket sur le Discord avec ta
+      configuration. C'est gratuit, et rien n'est engagé à ce stade.</p></div></div>
+    <div class="etape"><b>02</b><div><h3>Le diagnostic</h3><p>On regarde ta machine et on te dit quelles
       optis ont du sens pour toi — parfois une seule, parfois aucune. Ce diagnostic passe
-      <strong>avant tout paiement</strong>.</p></div>
-    <div class="item"><h3>3 &middot; L'intervention</h3><p>Sur un créneau convenu avec toi, en prise en
-      main à distance. C'est un technicien qui règle, à la main, machine par machine : il n'y a pas de
-      profil universel appliqué d'un bloc.</p></div>
-    <div class="item"><h3>4 &middot; Le contrôle</h3><p>On t'explique ce qui a été fait, réglage par
-      réglage. L'état d'origine est conservé, et tout est réversible.</p></div>
+      <strong>avant tout paiement</strong>.</p></div></div>
+    <div class="etape"><b>03</b><div><h3>L'intervention</h3><p>Sur un créneau convenu avec toi, en prise
+      en main à distance. C'est un technicien qui règle, à la main, machine par machine : il n'y a pas
+      de profil universel appliqué d'un bloc.</p></div></div>
+    <div class="etape"><b>04</b><div><h3>Le contrôle</h3><p>On t'explique ce qui a été fait, réglage par
+      réglage. L'état d'origine est conservé, et tout est réversible.</p></div></div>
   </div>
 
-  <h2>Questions</h2>
-  <details><summary>La différence avec le ping ?</summary><p>Le ping, c'est le temps d'aller-retour jusqu'au serveur. L'input lag, c'est le temps entre ton geste et l'affichage sur ton écran. Les deux s'additionnent, mais ils ne se règlent pas au même endroit — le réseau, c'est FluxTuner.</p></details><details><summary>Ça marche sur un PC portable ?</summary><p>Oui. Les réglages diffèrent, notamment sur la gestion d'énergie, mais le principe est le même.</p></details><details><summary>J'ai une souris à 8000 Hz, ça sert à quelque chose ?</summary><p>Seulement si le reste de la chaîne suit. Une souris qui parle 8000 fois par seconde à un système qui écoute moins souvent n'apporte rien — et peut même charger le processeur pour rien. C'est justement le genre de réglage qu'on met en cohérence.</p></details>
+  <h2 id="questions" class="rev"><span class="num">05</span>Questions</h2>
+  <div class="rev"><details><summary>La différence avec le ping ?</summary><p>Le ping, c'est le temps d'aller-retour jusqu'au serveur. L'input lag, c'est le temps entre ton geste et l'affichage sur ton écran. Les deux s'additionnent, mais ils ne se règlent pas au même endroit — le réseau, c'est FluxTuner.</p></details><details><summary>Ça marche sur un PC portable ?</summary><p>Oui. Les réglages diffèrent, notamment sur la gestion d'énergie, mais le principe est le même.</p></details><details><summary>J'ai une souris à 8000 Hz, ça sert à quelque chose ?</summary><p>Seulement si le reste de la chaîne suit. Une souris qui parle 8000 fois par seconde à un système qui écoute moins souvent n'apporte rien — et peut même charger le processeur pour rien. C'est justement le genre de réglage qu'on met en cohérence.</p></details></div>
 
-  <h2>Les autres optis</h2>
-  <div class="autres"><a href="mon-jeu-freeze.html"><span class="n" style="color:#d946ef">OPTI 02</span><span class="t">Mon jeu freeze en pleine partie</span></a><a href="ping-instable.html"><span class="n" style="color:#22d3ee">OPTI 05</span><span class="t">Mon ping part en vrille</span></a><a href="gagner-des-fps.html"><span class="n" style="color:#3b82f6">OPTI 03</span><span class="t">Ma config devrait donner plus</span></a><a href="reglages-bios.html"><span class="n" style="color:#8b5cf6">OPTI 01</span><span class="t">Mon BIOS est resté en réglages d'usine</span></a></div>
+  <h2 class="rev">Les autres optis</h2>
+  <div class="autres rev"><a href="mon-jeu-freeze.html"><span class="n" style="color:#d946ef">OPTI 02</span><span class="t">Mon jeu freeze en pleine partie</span></a><a href="ping-instable.html"><span class="n" style="color:#22d3ee">OPTI 05</span><span class="t">Mon ping part en vrille</span></a><a href="gagner-des-fps.html"><span class="n" style="color:#3b82f6">OPTI 03</span><span class="t">Ma config devrait donner plus</span></a><a href="reglages-bios.html"><span class="n" style="color:#8b5cf6">OPTI 01</span><span class="t">Mon BIOS est resté en réglages d'usine</span></a></div>
 </main>
 <footer>
   <p class="legal">&copy;&nbsp;2026 Pulse Tweaks &middot; <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">le site</a> &middot;
     <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/charte.html">charte d'utilisation</a> &middot;
     <a href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Discord</a></p>
 </footer>
+<script>
+  /* Apparition a l'arrivee a l'ecran. Une seule fois, puis on se desabonne :
+     rien ne tourne pendant que le visiteur lit. */
+  (function () {
+    var cibles = document.querySelectorAll('.rev');
+    if (!('IntersectionObserver' in window)) {
+      cibles.forEach(function (e) { e.classList.add('vu'); }); return;
+    }
+    var o = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('vu'); o.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    cibles.forEach(function (e) { o.observe(e); });
+  })();
+</script>
 </body>
 </html>

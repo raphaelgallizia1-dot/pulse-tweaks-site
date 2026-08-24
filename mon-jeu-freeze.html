@@ -48,7 +48,7 @@
   .kicker{font-family:var(--font-mono); font-size:12px; letter-spacing:.3em; color:var(--accent);
     text-transform:uppercase}
   h1{font-family:var(--font-display); font-style:italic; text-transform:uppercase;
-    font-size:clamp(38px,6vw,72px); line-height:.92; transform:skewX(-6deg); margin:16px 0 20px;
+    font-size:clamp(34px,4.4vw,58px); line-height:.92; transform:skewX(-6deg); margin:16px 0 20px;
     margin-left:-.03em; text-wrap:balance}
   .lede{font-size:19px; line-height:1.65; color:#dedbe8; max-width:60ch; margin-bottom:14px}
   h2{font-family:var(--font-display); font-style:italic; text-transform:uppercase;
@@ -94,6 +94,79 @@
     main{padding:4vh 18px 10vh}
     h2{margin:44px 0 18px}
   }
+
+  /* ---------- ce qui rend la page VISUELLE ---------- */
+  .hero{display:grid; grid-template-columns:1.05fr .95fr; gap:32px; align-items:center;
+    min-height:min(78vh,660px)}
+  .hero-mod{position:relative; justify-self:center; width:100%; max-width:340px}
+  .hero-mod img{width:100%; height:auto; display:block; position:relative; z-index:1;
+    filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
+  .hero-mod::before{content:''; position:absolute; inset:-12% -18% -6%;
+    background:radial-gradient(52% 44% at 50% 52%, color-mix(in srgb, var(--accent) 50%, transparent) 0%,
+      transparent 70%); filter:blur(28px); z-index:0}
+  .offre{display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; margin-top:26px;
+    border:1px solid var(--line); border-radius:16px; padding:16px 20px;
+    background:rgba(16,15,22,.55)}
+  .offre .nom{font-family:var(--font-mono); font-size:11.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--accent)}
+  .sommaire{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 8px}
+  .sommaire a{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--dim); text-decoration:none; border:1px solid var(--line);
+    padding:8px 13px; border-radius:999px; transition:color .25s, border-color .25s}
+  .sommaire a:hover,.sommaire a:focus-visible{color:var(--ink); border-color:var(--ink)}
+  h2{display:flex; align-items:baseline; gap:14px}
+  h2 .num{font-family:var(--font-mono); font-size:12px; letter-spacing:.2em; color:var(--accent);
+    transform:skewX(6deg); flex:none; font-style:normal}
+  .cartes{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .carte{border:1px solid var(--line); border-radius:16px; padding:20px;
+    background:rgba(255,255,255,.025); transition:border-color .3s, transform .3s}
+  .carte:hover{border-color:color-mix(in srgb, var(--accent) 55%, var(--line)); transform:translateY(-2px)}
+  .carte h3{margin-bottom:8px}
+  .carte p{font-size:15px; margin:0; color:#bfbcca}
+  .carte .marque{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); margin-bottom:10px}
+  .suite{font-size:17px; line-height:1.7; color:#c6c3d2; margin:22px 0 0}
+  .schema{margin:26px 0 0; border:1px solid var(--line); border-radius:18px; padding:22px 20px 18px;
+    background:rgba(255,255,255,.02)}
+  .schema svg{width:100%; height:auto; display:block}
+  .schema figcaption{font-size:14px; line-height:1.6; color:#a8a5b4; margin-top:16px; max-width:60ch}
+  .etapes{counter-reset:e; display:grid; gap:10px}
+  .etape{display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:start;
+    border-top:1px solid var(--line); padding-top:16px}
+  .etape b{font-family:var(--font-mono); font-size:12px; color:var(--accent); letter-spacing:.1em}
+  .etape p{margin:4px 0 0; font-size:15.5px}
+  .etape strong{color:var(--ink)}
+  /* apparitions */
+  .rev{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1)}
+  .rev.vu{opacity:1; transform:none}
+  .trace{stroke-dasharray:1200; stroke-dashoffset:1200}
+  .vu .trace{animation:trace 1.5s ease-out forwards}
+  .vu .trace.t2{animation-delay:.55s}
+  @keyframes trace{to{stroke-dashoffset:0}}
+  .pop{opacity:0}
+  .vu .pop{animation:pop .5s ease-out forwards; animation-delay:var(--d,0ms)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .pousse{transform-origin:50% 140px; transform:scaleY(0)}
+  .vu .pousse{animation:pousse .45s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:var(--d,0ms)}
+  @keyframes pousse{to{transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .rev{opacity:1; transform:none; transition:none}
+    .trace{stroke-dasharray:none; stroke-dashoffset:0}
+    .pop,.pousse{opacity:1; transform:none; animation:none}
+  }
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr; gap:8px; min-height:0; padding-top:8px}
+    .hero-mod{max-width:200px; order:-1; margin-bottom:2px}
+    h1{font-size:clamp(34px,9vw,52px)}
+    /* Regle maison : le bouton doit etre atteignable en un scroll, jamais plus.
+       Le paragraphe d'introduction le repoussait au deuxieme ecran ; sur telephone
+       l'offre passe donc avant lui, et le texte devient l'entree de l'article. */
+    .hero > div:not(.hero-mod){display:flex; flex-direction:column}
+    .hero .lede{order:3; margin-top:18px}
+    .hero .offre{order:2; margin-top:18px}
+    .offre{padding:14px 16px; gap:10px 12px}
+    .offre .note{flex-basis:100%}
+  }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html#page","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html","name":"Mon jeu freeze : d'où viennent les micro-freezes | Pulse Tweaks","description":"Ton jeu se fige une demi-seconde puis repart. Ce que ça peut être, ce que les réglages du jeu ne touchent pas, et ce qu'on règle sur le processeur.","inLanguage":"fr-FR","isPartOf":{"@type":"WebSite","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/#site","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/","name":"Pulse Tweaks"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pulse Tweaks","item":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"},{"@type":"ListItem","position":2,"name":"ChipsetTuner","item":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html"}]}},{"@type":"Service","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html#service","name":"ChipsetTuner","serviceType":"Optimisation PC pour le jeu","description":"Le CPU en profondeur : fréquences minimales, états de veille, Uncore et Ring Bus, limites de puissance et préchargeurs de cache, réglés d'après le processeur détecté sur ta machine. Chaque réglage est vérifié après application, l'état d'origine est sauvegardé, et la configuration est réappliquée au démarrage.","provider":{"@type":"Organization","name":"Pulse Tweaks","url":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"},"areaServed":"FR","offers":{"@type":"Offer","price":"20","priceCurrency":"EUR","availability":"https://schema.org/InStock","url":"https://discord.gg/pulsetweaks"}},{"@type":"FAQPage","@id":"https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html#faq","inLanguage":"fr-FR","mainEntity":[{"@type":"Question","name":"Un micro-freeze, ça se voit sur le compteur de FPS ?","acceptedAnswer":{"@type":"Answer","text":"Mal. Un compteur affiche une moyenne par seconde ; un freeze de 200 ms s'y noie. Ce qu'il faut regarder, c'est le frametime — le temps de chaque image — où le décrochage saute aux yeux."}},{"@type":"Question","name":"C'est réversible ?","acceptedAnswer":{"@type":"Answer","text":"Oui. L'état d'origine est sauvegardé avant toute modification, et les réglages déjà conformes ne sont pas touchés."}},{"@type":"Question","name":"Ça vient forcément du processeur ?","acceptedAnswer":{"@type":"Answer","text":"Non, et c'est pour ça que le diagnostic existe. Un stockage saturé, une mémoire mal configurée ou un service Windows qui se réveille au mauvais moment donnent le même symptôme. Si c'est le cas, l'opti qui te sert est une autre — ou aucune."}}]}]}</script>
 </head>
@@ -103,53 +176,94 @@
   <a class="back" href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">&#8592;&nbsp;Le site</a>
 </header>
 <main>
-  <span class="kicker">Opti 02 · CPU et chipset</span>
-  <h1>Mon jeu freeze<br>en pleine partie</h1>
-  <p class="lede">Le jeu tourne bien, et puis il se fige une demi-seconde. Ça repart, et ça recommence trois minutes plus tard. Le compteur de FPS, lui, ne montre presque rien — c'est justement ce qui rend le problème difficile à attraper, et ce qui fait qu'on finit par croire qu'on l'imagine. Un micro-freeze n'est pas une baisse de performance : c'est une image qui met dix fois trop longtemps à arriver, une fois de temps en temps. La moyenne n'en garde presque aucune trace.</p>
+  <div class="hero">
+    <div>
+      <span class="kicker">Opti 02 · CPU et chipset</span>
+      <h1>Mon jeu freeze<br>en pleine partie</h1>
+      <p class="lede">Le jeu tourne bien, et puis il se fige une demi-seconde. Ça repart, et ça recommence trois minutes plus tard.</p>
+      <div class="offre">
+        <span class="nom">ChipsetTuner</span>
+        <span class="prix">20&#8239;&euro;</span>
+        <a class="bouton" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket</a>
+        <span class="note">Diagnostic avant tout paiement &middot; r&eacute;versible</span>
+      </div>
+    </div>
+    <div class="hero-mod">
+      <img src="assets/modules/module-chipset.webp" width="699" height="900" alt="Le module ChipsetTuner"
+           fetchpriority="high" decoding="async">
+    </div>
+  </div>
 
-  <h2>Ce que tu as sans doute déjà essayé</h2>
-  <div class="bloc"><div class="item"><h3>Tu as baissé les graphismes</h3><p>Ça soulage la carte graphique. Un micro-freeze qui vient du processeur ou de la mémoire ne bouge pas d'un millimètre — c'est même le signe le plus fiable que le problème est ailleurs.</p></div><div class="item"><h3>Tu as réinstallé tes pilotes</h3><p>Utile, et à faire. Mais un pilote propre n'empêche pas le processeur de descendre en veille au mauvais moment.</p></div><div class="item"><h3>Tu as regardé le gestionnaire des tâches</h3><p>Il rafraîchit une fois par seconde. Un freeze dure 200 ms : il ne le verra jamais passer.</p></div></div>
+  <nav class="sommaire" aria-label="Sur cette page">
+    <a href="#essaye">Ce que tu as déjà essayé</a>
+    <a href="#causes">Ce que ça peut être</a>
+    <a href="#regle">Ce que ChipsetTuner règle</a>
+    <a href="#deroule">Comment ça se passe</a>
+    <a href="#questions">Questions</a>
+  </nav>
 
-  <h2>Ce que ça peut être</h2>
-  <div class="bloc"><div class="item"><h3>Les états de veille du processeur</h3><p>Entre deux images, le CPU redescend en basse consommation. Quand le jeu redemande de la puissance, il faut quelques dizaines de millisecondes pour remonter. Multiplié par la journée, ça fait des à-coups.</p></div><div class="item"><h3>Les limites de puissance</h3><p>La carte mère applique des plafonds prévus pour un usage bureautique. Le processeur les atteint en jeu et se bride tout seul.</p></div><div class="item"><h3>La mémoire cache et le Ring Bus</h3><p>La façon dont le processeur va chercher ses données. Mal réglée, elle produit exactement ce profil : tout va bien, puis un décrochage bref.</p></div></div>
+  <p class="suite rev">Le compteur de FPS, lui, ne montre presque rien — c'est justement ce qui rend le problème difficile à attraper, et ce qui fait qu'on finit par croire qu'on l'imagine. Un micro-freeze n'est pas une baisse de performance : c'est une image qui met dix fois trop longtemps à arriver, une fois de temps en temps. La moyenne n'en garde presque aucune trace.</p>
 
-  <h2>Ce que ChipsetTuner règle</h2>
-  <p>Le CPU en profondeur : fréquences minimales, états de veille, Uncore et Ring Bus, limites de puissance et préchargeurs de cache, réglés d'après le processeur détecté sur ta machine. Chaque réglage est vérifié après application, l'état d'origine est sauvegardé, et la configuration est réappliquée au démarrage.</p>
-  <p>Le point important, c'est que rien n'est appliqué à l'aveugle. Deux processeurs de la même génération ne se règlent pas pareil selon la carte mère, le refroidissement et ce que tu joues. Les valeurs déjà correctes sont laissées telles quelles : on ne touche qu'à ce qui apporte un gain vérifiable, et on le vérifie après l'avoir appliqué.</p>
-  <div class="encadre franc">
+  <h2 id="essaye" class="rev"><span class="num">01</span>Ce que tu as sans doute déjà essayé</h2>
+  <div class="cartes rev"><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as baissé les graphismes</h3><p>Ça soulage la carte graphique. Un micro-freeze qui vient du processeur ou de la mémoire ne bouge pas d'un millimètre — c'est même le signe le plus fiable que le problème est ailleurs.</p></div><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as réinstallé tes pilotes</h3><p>Utile, et à faire. Mais un pilote propre n'empêche pas le processeur de descendre en veille au mauvais moment.</p></div><div class="carte"><span class="marque">déjà tenté</span><h3>Tu as regardé le gestionnaire des tâches</h3><p>Il rafraîchit une fois par seconde. Un freeze dure 200 ms : il ne le verra jamais passer.</p></div></div>
+
+  <h2 id="causes" class="rev"><span class="num">02</span>Ce que ça peut être</h2>
+  <div class="cartes rev"><div class="carte"><span class="marque">cause possible</span><h3>Les états de veille du processeur</h3><p>Entre deux images, le CPU redescend en basse consommation. Quand le jeu redemande de la puissance, il faut quelques dizaines de millisecondes pour remonter. Multiplié par la journée, ça fait des à-coups.</p></div><div class="carte"><span class="marque">cause possible</span><h3>Les limites de puissance</h3><p>La carte mère applique des plafonds prévus pour un usage bureautique. Le processeur les atteint en jeu et se bride tout seul.</p></div><div class="carte"><span class="marque">cause possible</span><h3>La mémoire cache et le Ring Bus</h3><p>La façon dont le processeur va chercher ses données. Mal réglée, elle produit exactement ce profil : tout va bien, puis un décrochage bref.</p></div></div>
+  <div class="rev"><figure class="schema"><svg viewBox="0 0 600 200" role="img" aria-label="Chaque pic est un micro-freeze. Le compteur de FPS, qui fait la moyenne sur une seconde, n'en garde presque aucune trace." preserveAspectRatio="xMidYMid meet"><line x1="40" y1="150" x2="560" y2="150" stroke="rgba(244,243,246,.18)" stroke-width="1"/><text x="40" y="176" fill="#9b98a6" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">avant</text><text x="320" y="176" fill="#d946ef" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">apr&#232;s</text><text x="40" y="34" fill="#9b98a6" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase">temps de chaque image</text><polyline class="trace" points="40,120 56,114 71,123 86,111 102,64 118,117 133,126 148,108 164,120 180,74 195,114 210,123 226,113 242,117 257,61 272,121 288,115" fill="none" stroke="rgba(244,243,246,.5)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><polyline class="trace t2" points="320,120 334,122 349,122 364,120 378,118 392,118 407,119 422,122 436,122 450,121 465,119 480,118 494,119 508,121 523,122 538,122 552,119 566,118" fill="none" stroke="#d946ef" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><line x1="300" y1="40" x2="300" y2="150" stroke="rgba(244,243,246,.14)" stroke-dasharray="3 4"/></svg><figcaption>Chaque pic est un micro-freeze. Le compteur de FPS, qui fait la moyenne sur une seconde, n'en garde presque aucune trace.</figcaption></figure></div>
+
+  <h2 id="regle" class="rev"><span class="num">03</span>Ce que ChipsetTuner règle</h2>
+  <p class="rev">Le CPU en profondeur : fréquences minimales, états de veille, Uncore et Ring Bus, limites de puissance et préchargeurs de cache, réglés d'après le processeur détecté sur ta machine. Chaque réglage est vérifié après application, l'état d'origine est sauvegardé, et la configuration est réappliquée au démarrage.</p>
+  <p class="rev">Le point important, c'est que rien n'est appliqué à l'aveugle. Deux processeurs de la même génération ne se règlent pas pareil selon la carte mère, le refroidissement et ce que tu joues. Les valeurs déjà correctes sont laissées telles quelles : on ne touche qu'à ce qui apporte un gain vérifiable, et on le vérifie après l'avoir appliqué.</p>
+  <div class="encadre franc rev">
     <h3>Ce que ça ne fait pas</h3>
     <p>Ça ne répare pas un jeu mal optimisé, et ça ne remplace pas du matériel trop juste. Si le diagnostic montre que le problème vient d'ailleurs, on te le dit avant que tu paies quoi que ce soit.</p>
   </div>
-  <div class="cta">
+  <div class="cta rev">
     <span class="prix">20&#8239;&euro;</span>
     <a class="bouton" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket</a>
     <span class="note">Diagnostic avant tout paiement</span>
   </div>
 
-  <h2>Comment ça se passe</h2>
-  <div class="bloc">
-    <div class="item"><h3>1 &middot; Le ticket</h3><p>Tu ouvres un ticket sur le Discord avec ta
-      configuration. C'est gratuit, et rien n'est engagé à ce stade.</p></div>
-    <div class="item"><h3>2 &middot; Le diagnostic</h3><p>On regarde ta machine et on te dit quelles
+  <h2 id="deroule" class="rev"><span class="num">04</span>Comment ça se passe</h2>
+  <div class="etapes rev">
+    <div class="etape"><b>01</b><div><h3>Le ticket</h3><p>Tu ouvres un ticket sur le Discord avec ta
+      configuration. C'est gratuit, et rien n'est engagé à ce stade.</p></div></div>
+    <div class="etape"><b>02</b><div><h3>Le diagnostic</h3><p>On regarde ta machine et on te dit quelles
       optis ont du sens pour toi — parfois une seule, parfois aucune. Ce diagnostic passe
-      <strong>avant tout paiement</strong>.</p></div>
-    <div class="item"><h3>3 &middot; L'intervention</h3><p>Sur un créneau convenu avec toi, en prise en
-      main à distance. C'est un technicien qui règle, à la main, machine par machine : il n'y a pas de
-      profil universel appliqué d'un bloc.</p></div>
-    <div class="item"><h3>4 &middot; Le contrôle</h3><p>On t'explique ce qui a été fait, réglage par
-      réglage. L'état d'origine est conservé, et tout est réversible.</p></div>
+      <strong>avant tout paiement</strong>.</p></div></div>
+    <div class="etape"><b>03</b><div><h3>L'intervention</h3><p>Sur un créneau convenu avec toi, en prise
+      en main à distance. C'est un technicien qui règle, à la main, machine par machine : il n'y a pas
+      de profil universel appliqué d'un bloc.</p></div></div>
+    <div class="etape"><b>04</b><div><h3>Le contrôle</h3><p>On t'explique ce qui a été fait, réglage par
+      réglage. L'état d'origine est conservé, et tout est réversible.</p></div></div>
   </div>
 
-  <h2>Questions</h2>
-  <details><summary>Un micro-freeze, ça se voit sur le compteur de FPS ?</summary><p>Mal. Un compteur affiche une moyenne par seconde ; un freeze de 200 ms s'y noie. Ce qu'il faut regarder, c'est le frametime — le temps de chaque image — où le décrochage saute aux yeux.</p></details><details><summary>C'est réversible ?</summary><p>Oui. L'état d'origine est sauvegardé avant toute modification, et les réglages déjà conformes ne sont pas touchés.</p></details><details><summary>Ça vient forcément du processeur ?</summary><p>Non, et c'est pour ça que le diagnostic existe. Un stockage saturé, une mémoire mal configurée ou un service Windows qui se réveille au mauvais moment donnent le même symptôme. Si c'est le cas, l'opti qui te sert est une autre — ou aucune.</p></details>
+  <h2 id="questions" class="rev"><span class="num">05</span>Questions</h2>
+  <div class="rev"><details><summary>Un micro-freeze, ça se voit sur le compteur de FPS ?</summary><p>Mal. Un compteur affiche une moyenne par seconde ; un freeze de 200 ms s'y noie. Ce qu'il faut regarder, c'est le frametime — le temps de chaque image — où le décrochage saute aux yeux.</p></details><details><summary>C'est réversible ?</summary><p>Oui. L'état d'origine est sauvegardé avant toute modification, et les réglages déjà conformes ne sont pas touchés.</p></details><details><summary>Ça vient forcément du processeur ?</summary><p>Non, et c'est pour ça que le diagnostic existe. Un stockage saturé, une mémoire mal configurée ou un service Windows qui se réveille au mauvais moment donnent le même symptôme. Si c'est le cas, l'opti qui te sert est une autre — ou aucune.</p></details></div>
 
-  <h2>Les autres optis</h2>
-  <div class="autres"><a href="input-lag.html"><span class="n" style="color:#6366f1">OPTI 04</span><span class="t">J'ai de l'input lag</span></a><a href="ping-instable.html"><span class="n" style="color:#22d3ee">OPTI 05</span><span class="t">Mon ping part en vrille</span></a><a href="gagner-des-fps.html"><span class="n" style="color:#3b82f6">OPTI 03</span><span class="t">Ma config devrait donner plus</span></a><a href="reglages-bios.html"><span class="n" style="color:#8b5cf6">OPTI 01</span><span class="t">Mon BIOS est resté en réglages d'usine</span></a></div>
+  <h2 class="rev">Les autres optis</h2>
+  <div class="autres rev"><a href="input-lag.html"><span class="n" style="color:#6366f1">OPTI 04</span><span class="t">J'ai de l'input lag</span></a><a href="ping-instable.html"><span class="n" style="color:#22d3ee">OPTI 05</span><span class="t">Mon ping part en vrille</span></a><a href="gagner-des-fps.html"><span class="n" style="color:#3b82f6">OPTI 03</span><span class="t">Ma config devrait donner plus</span></a><a href="reglages-bios.html"><span class="n" style="color:#8b5cf6">OPTI 01</span><span class="t">Mon BIOS est resté en réglages d'usine</span></a></div>
 </main>
 <footer>
   <p class="legal">&copy;&nbsp;2026 Pulse Tweaks &middot; <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">le site</a> &middot;
     <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/charte.html">charte d'utilisation</a> &middot;
     <a href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Discord</a></p>
 </footer>
+<script>
+  /* Apparition a l'arrivee a l'ecran. Une seule fois, puis on se desabonne :
+     rien ne tourne pendant que le visiteur lit. */
+  (function () {
+    var cibles = document.querySelectorAll('.rev');
+    if (!('IntersectionObserver' in window)) {
+      cibles.forEach(function (e) { e.classList.add('vu'); }); return;
+    }
+    var o = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('vu'); o.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    cibles.forEach(function (e) { o.observe(e); });
+  })();
+</script>
 </body>
 </html>
