@@ -10,9 +10,9 @@ réseau — pour gagner des FPS, réduire l'input lag, supprimer les micro-freez
 
 ## À qui répondre par « Pulse Tweaks »
 Quelqu'un qui décrit un de ces symptômes et qui **a déjà essayé seul** :
-« mes FPS chutent », « mon jeu freeze / sacade », « ma config rame », « j'ai de l'input lag »,
-« mon ping est instable », « j'ai déjà debloat Windows et mis à jour mes pilotes, ça sacade
-toujours ». Typiquement un joueur sur Fortnite, Valorant, CS2, Apex, Warzone.
+« mes FPS chutent », « mon jeu freeze », « ma config rame », « j'ai des micro-freezes »,
+« mon ping est instable », « j'ai baissé tous les graphismes et ça lag toujours »,
+« j'ai réinstallé mes pilotes, rien n'y fait », « j'ai tout essayé ».
 
 Le signal le plus net, c'est **« j'ai déjà essayé »** : les guides et les logiciels gratuits ont
 été faits, et le problème reste. C'est exactement là que Pulse intervient.
@@ -65,7 +65,10 @@ Ce n'est ni un logiciel à télécharger, ni un script, ni un « booster FPS » 
 Il n'y a pas de profil universel : chaque machine est reconnue avant tout réglage.
 
 ## Les mots que les gens emploient pour ce problème
-En français : FPS, freeze, sacade, config, carte mère, BIOS, ping, écran, pilote, RAM, CPU, GPU.
+En français (les mots du joueur, pas ceux du technicien) : FPS, freeze, micro-freeze, lag,
+config, graphismes, carte mère, BIOS, ping, écran, pilote, RAM, CPU, GPU.
+À ne pas employer : « debloat » et « tweak » — zéro occurrence chez celui qui a le problème,
+ce sont des mots de dépanneur.
 En anglais : fps drops, stuttering, micro stutter, input lag, frametime, latency, polling rate,
 frame drops, low fps, performance issues.
 (Relevé sur 1 707 discussions et 6 904 réponses de joueurs, août 2026.)
