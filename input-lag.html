@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Input lag sur PC : d'où vient le retard | Pulse Tweaks</title>
+<meta name="description" content="Tu vises juste et l'action part en retard. Ce qui cause l'input lag, ce que les réglages du jeu ne peuvent pas corriger, et ce qu'on synchronise côté système.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
+<link rel="canonical" href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Input lag sur PC : d'où vient le retard | Pulse Tweaks">
+<meta property="og:description" content="Tu vises juste et l'action part en retard. Ce qui cause l'input lag, ce que les réglages du jeu ne peuvent pas corriger, et ce qu'on synchronise côté système.">
+<meta property="og:url" content="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html">
+<meta property="og:image" content="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/assets/og.jpg">
+<meta property="og:site_name" content="Pulse Tweaks">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#08080a">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"}}</script>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js">
+
+<link rel="preload" as="font" type="font/woff2" href="fonts/Geist-Light.woff2" crossorigin>
+<link rel="preload" as="image" href="assets/modules/module-timer.webp">
+<style>
+  @font-face{font-family:Geist;src:url(fonts/Geist-Light.woff2)format("woff2");font-weight:300;font-display:swap}
+  @font-face{font-family:Geist;src:url(fonts/Geist-Regular.woff2)format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:Geistmono;src:url(fonts/GeistMono-Regular.woff2)format("woff2");font-weight:400;font-display:swap}
+  :root{
+    font-size:16px;
+    --bg:#08080a; --ink:#fff; --dim:rgba(255,255,255,.6); --faible:rgba(255,255,255,.42);
+    --sol:120,120,118;   /* le gris du sol de l'accueil, releve au pixel */
+    --filet:rgba(255,255,255,.12);
+    --accent:#6366f1; --primaire:#1B1B54;
+    --display:Anton,Impact,sans-serif; --corps:Geist,Arial,sans-serif; --mono:Geistmono,Arial,monospace;
+    --marge:clamp(1.4rem,6vw,7rem);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--bg); color:var(--ink); font-family:var(--corps); font-weight:300;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; line-height:1.45}
+  /* le mur du studio : jamais un aplat, il respire du noir vers le gris */
+  body::before{content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:linear-gradient(180deg, rgba(var(--sol),.10) 0%, rgba(var(--sol),.03) 46%,
+      rgba(var(--sol),.09) 100%)}
+  a{color:inherit; text-decoration:none}
+  img{max-width:100%; display:block}
+  .titre{font-family:var(--display); font-style:italic; font-weight:400; text-transform:uppercase;
+    letter-spacing:.005em; transform:skewX(-7deg)}
+
+  .jauge{position:fixed; inset:0 0 auto 0; height:2px; background:var(--accent); z-index:9;
+    transform-origin:0 50%; transform:scaleX(0)}
+  @supports (animation-timeline:scroll()){
+    .jauge{animation:remplit linear both; animation-timeline:scroll(root)}
+  }
+  @keyframes remplit{to{transform:scaleX(1)}}
+
+  header{position:absolute; inset:0 auto auto 0; width:100%; display:flex; z-index:8;
+    align-items:center; justify-content:space-between; padding:1.5rem var(--marge)}
+  .marque{font-family:var(--display); font-style:italic; text-transform:uppercase; font-size:1rem}
+  .marque span{font-family:var(--mono); font-style:normal; font-size:.54rem; letter-spacing:.34em;
+    margin-left:.5rem; color:var(--faible)}
+  .retour{font-family:var(--mono); font-size:.56rem; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--faible)}
+  .retour:hover{color:var(--ink)}
+
+  /* ---- 1. ouverture ---- */
+  /* le packshot fourni est deja recadre en bas : sa coupe est calee sur le bord de section,
+     ce qui la lit comme un debordement voulu et non comme une image tronquee. */
+  .ouverture{min-height:88svh; display:grid; align-items:end;
+    grid-template-columns:minmax(0,1fr) minmax(0,.8fr); gap:clamp(1rem,3vw,3rem);
+    padding:7rem var(--marge) 0; position:relative}
+  .ouverture .dire{padding-bottom:clamp(3.5rem,9vh,6.5rem)}
+  .ouverture::before{content:''; position:absolute; inset:0 0 auto auto; width:82%; height:118%;
+    background:
+      radial-gradient(7% 34% at 78.5% 43%, color-mix(in srgb,var(--accent) 55%,#000) 0%, transparent 100%),
+      radial-gradient(20% 50% at 78% 44%, color-mix(in srgb,var(--primaire) 96%,#000) 0%, transparent 100%);
+    pointer-events:none}
+  /* le sol du studio : il porte le produit a droite et s'eteint a gauche,
+     la ou vit le texte -- sinon le blanc tomberait a 2,6:1 sur le gris. */
+  .ouverture::after{content:''; position:absolute; inset:auto 0 0 0; height:74%; pointer-events:none;
+    background:
+      linear-gradient(180deg, transparent 62%, rgba(8,8,10,.5) 92%, rgba(8,8,10,.8) 100%),
+      radial-gradient(72% 100% at 72% 104%, rgba(var(--sol),.62) 0%,
+        rgba(var(--sol),.26) 42%, transparent 74%),
+      linear-gradient(180deg, transparent 0%, rgba(var(--sol),.07) 100%)}
+  .ouverture > *{position:relative; z-index:2}
+  /* le module sort du cadre : il cesse de flotter, et le titre passe devant */
+  .ouverture .objet{position:relative; z-index:1; margin-right:calc(var(--marge) * -1);
+    width:calc(100% + var(--marge)); align-self:end; pointer-events:none; line-height:0}
+  .rubrique{font-family:var(--mono); font-size:.58rem; letter-spacing:.28em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:1.6rem}
+  h1{font-size:clamp(2.6rem,6.4vw,6.2rem); line-height:.93; margin-left:-.04em;
+    text-wrap:balance; max-width:22ch}
+  .accroche{font-size:clamp(1.05rem,1.4vw,1.3rem); color:var(--dim); max-width:30ch; margin-top:1.6rem}
+  /* le module 3D vivant se superpose au packshot, qui reste dessous tant qu'il n'est pas prêt */
+  .ouverture .objet{position:relative}
+  .ouverture .objet .objet-3d{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none}
+  .ouverture .objet.is-3d img{opacity:0; transition:opacity .6s}
+  .objet img{width:100%; height:auto; max-height:80svh; object-fit:contain; object-position:right bottom;
+    filter:drop-shadow(-2rem 1rem 5rem rgba(0,0,0,.75))}
+
+  .acte{display:flex; align-items:center; flex-wrap:wrap; gap:.9rem 1.4rem; margin-top:2.4rem}
+  .releve-hero{margin-top:1.6rem; max-width:34ch}
+  .releve-hero b{font-weight:400; font-size:clamp(1.1rem,1.45vw,1.35rem); line-height:1.35; color:var(--ink)}
+  .releve-hero span{display:block; font-family:var(--mono); font-size:.56rem; letter-spacing:.2em; text-transform:uppercase; color:var(--faible); margin-top:.45rem}
+  .prix{font-family:var(--display); font-style:italic; font-size:2.1rem; line-height:1;
+    color:var(--accent)}
+  /* CTA d'ouverture : contour, il se remplit au survol (l'inverse, jamais deux pleins) */
+  .btn{display:inline-flex; align-items:center; gap:.8rem; background:transparent; color:var(--ink);
+    font-family:var(--mono); font-size:.64rem; letter-spacing:.2em; text-transform:uppercase;
+    padding:1.05rem 2rem; border-radius:999px; border:1px solid rgba(255,255,255,.34);
+    transition:background .3s, color .3s, border-color .3s, transform .35s cubic-bezier(.2,.7,.3,1)}
+  .btn:hover{background:var(--ink); color:#000; border-color:var(--ink); transform:translateY(-2px)}
+  .btn i{font-style:normal; transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .btn:hover i{transform:translateX(5px)}
+
+  /* CTA de bas de page : typographique, il n'a rien d'un bouton */
+  .lien{display:inline-flex; align-items:baseline; gap:.9rem; font-family:var(--display);
+    font-style:italic; font-weight:400; text-transform:uppercase; letter-spacing:.008em;
+    font-size:clamp(1.35rem,2.5vw,2.1rem); transform:skewX(-7deg); padding-bottom:.45rem;
+    border-bottom:2px solid var(--accent); transition:color .3s, border-color .3s}
+  .lien:hover{color:var(--accent)}
+  .lien i{font-style:normal; transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .lien:hover i{transform:translateX(7px)}
+  .note{font-family:var(--mono); font-size:.56rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--faible)}
+
+  /* ---- 2. le constat : une image, six mots ---- */
+  .constat{min-height:62svh; display:flex; flex-direction:column; justify-content:center;
+    align-items:center; text-align:center; padding:4rem var(--marge); position:relative;
+    isolation:isolate; overflow:hidden}
+  .constat .fond{position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover}
+  .constat::after{content:''; position:absolute; inset:0; z-index:-1;
+    background:linear-gradient(180deg,rgba(26,26,29,.88) 0%,rgba(8,8,10,.6) 45%,rgba(8,8,10,.92) 100%)}
+  .constat p{font-size:clamp(2.1rem,5.4vw,5rem); line-height:1; max-width:24ch}
+  .constat em{font-style:italic; color:var(--accent); display:block}
+  .constat .sous{font-family:var(--mono); font-size:.62rem; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--dim); margin-top:2rem; max-width:none}
+
+  /* ---- 3. deja essaye : trois lignes, six mots ---- */
+  .ecran{padding:clamp(3rem,6.2vh,4.6rem) var(--marge); position:relative;
+    background:linear-gradient(180deg, rgba(var(--sol),.055) 0%, rgba(var(--sol),.015) 100%)}
+  .ecran + .ecran{border-top:1px solid var(--filet)}
+  .num{font-family:var(--mono); font-size:.56rem; letter-spacing:.26em; color:var(--faible);
+    display:block; margin-bottom:1rem}
+  h2{font-size:clamp(1.5rem,2.6vw,2.5rem); line-height:1; margin-left:-.03em}
+  .essais{list-style:none; margin-top:clamp(1.6rem,3.6vh,2.4rem)}
+  .essais li{display:grid; grid-template-columns:3.2rem minmax(0,1fr) minmax(0,.85fr);
+    align-items:center; gap:1rem 2rem; padding:clamp(1.2rem,2.8vh,2rem) 0;
+    border-bottom:1px solid var(--filet); transition:border-color .4s, padding-left .4s}
+  .essais li:first-child{border-top:1px solid var(--filet)}
+  .essais li:hover{border-color:var(--accent); padding-left:.8rem}
+  .essais em{font-family:var(--mono); font-style:normal; font-size:.62rem; letter-spacing:.2em;
+    color:var(--faible)}
+  .essais b{font-size:clamp(1.5rem,3.1vw,2.9rem); line-height:.98; color:var(--faible);
+    text-decoration:line-through; text-decoration-thickness:.055em;
+    text-decoration-color:color-mix(in srgb,var(--accent) 80%,transparent)}
+  .essais span{font-size:clamp(1rem,1.35vw,1.25rem); color:var(--ink); text-align:right}
+
+  /* ---- 4. le produit ---- */
+  .produit{position:relative; isolation:isolate; overflow:hidden;
+    background:linear-gradient(180deg, rgba(var(--sol),.10) 0%, rgba(var(--sol),.03) 100%)}
+  .produit::before{content:''; position:absolute; inset:-30% -10% auto -20%; height:150%; z-index:-1;
+    background:radial-gradient(42% 52% at 24% 48%, color-mix(in srgb,var(--accent) 26%,transparent) 0%, transparent 70%)}
+  .produit{display:grid; grid-template-columns:minmax(0,1fr) auto;
+    gap:1rem clamp(2rem,5vw,5rem); align-items:end}
+  .produit > .num{grid-column:1/-1}
+  .produit > .bas{grid-column:1/-1}
+  .nom{font-size:clamp(3.2rem,8.4vw,8rem); line-height:.9; margin-left:-.04em}
+  .grosprix{font-family:var(--display); font-style:italic; text-transform:uppercase;
+    font-size:clamp(3.2rem,8.4vw,8rem); line-height:.9; color:var(--accent);
+    transform:skewX(-7deg); white-space:nowrap; display:block}
+  .mots{list-style:none; margin-top:2.2rem; display:grid; gap:.7rem;
+    grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); max-width:74rem}
+  .mots li{font-family:var(--mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--dim); padding-left:1.5rem; position:relative}
+  .mots li::before{content:''; position:absolute; left:0; top:.38em; width:.42rem; height:.42rem;
+    border-radius:50%; background:var(--accent)}
+  .limite{font-size:.98rem; color:var(--dim); margin-top:1.8rem; max-width:44ch}
+
+  /* ---- 5. le deroule + les voisins ---- */
+  .etapes{list-style:none; display:grid; grid-template-columns:repeat(4,1fr); gap:1.6rem;
+    margin-top:clamp(1.8rem,4vh,2.8rem)}
+  .etapes li{border-top:1px solid var(--filet); padding-top:1.1rem; position:relative}
+  .etapes li::before{content:''; position:absolute; top:-1px; left:0; width:1.9rem; height:2px;
+    background:var(--accent)}
+  .etapes i{font-family:var(--mono); font-style:normal; font-size:.54rem; letter-spacing:.24em;
+    color:var(--faible); display:block; margin-bottom:.7rem}
+  .etapes b{font-size:1.15rem; display:block}
+  .etapes span{font-family:var(--mono); font-size:.58rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); display:block; margin-top:.4rem}
+
+  .voisins{list-style:none; display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+    margin-top:clamp(1.8rem,4vh,2.8rem)}
+  .voisins a{display:block; padding-top:1rem; border-top:1px solid var(--filet);
+    transition:border-color .3s}
+  .voisins a:hover{border-color:var(--accent)}
+  .voisins i{font-family:var(--mono); font-style:normal; font-size:.54rem; letter-spacing:.24em;
+    color:var(--faible); display:block; margin-bottom:.6rem}
+  .voisins b{font-size:1.12rem; color:var(--dim); display:block; transition:color .3s}
+  .voisins a:hover b{color:var(--ink)}
+
+  /* barre d'action : elle n'existe que sur telephone, ou le prix et le ticket
+     doivent rester a portee de pouce pendant tout le defilement. */
+  .barre{display:none}
+  footer{padding:2.2rem var(--marge) 3rem; border-top:1px solid var(--filet);
+    background:linear-gradient(180deg, rgba(var(--sol),.02) 0%, transparent 100%);
+    font-family:var(--mono); font-size:.56rem; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--faible); display:flex; gap:1.4rem; flex-wrap:wrap}
+  footer a:hover{color:var(--ink)}
+
+  @media (prefers-reduced-motion:no-preference){
+    @supports (animation-timeline:view()){
+      .anim{animation:monte linear both; animation-timeline:view(); animation-range:entry 4% cover 22%}
+      .ouverture .objet img{animation:derive linear both; animation-timeline:view(); animation-range:cover}
+      .constat .fond{animation:zoome linear both; animation-timeline:view(); animation-range:cover}
+    }
+    .js .anim{opacity:0; transform:translateY(1.6rem)}
+    .js .anim.vu{opacity:1; transform:none;
+      transition:opacity .85s cubic-bezier(.2,.7,.3,1), transform .85s cubic-bezier(.2,.7,.3,1)}
+  }
+  @keyframes monte{from{opacity:0; transform:translateY(1.6rem)} to{opacity:1; transform:none}}
+  @keyframes derive{from{transform:translateY(3%) rotate(.5deg)} to{transform:translateY(-3%) rotate(-.5deg)}}
+  @keyframes zoome{from{transform:scale(1.14)} to{transform:scale(1)}}
+
+  /* ---- ouverture d'article : le sommaire tient la moitie droite ---- */
+  .ouverture.guide{grid-template-columns:minmax(0,1.08fr) minmax(0,.82fr);
+    gap:clamp(2.5rem,6vw,6rem); min-height:auto; align-items:center;
+    padding:clamp(6.5rem,15vh,9.5rem) var(--marge) clamp(3rem,7vh,5rem)}
+  .ouverture.guide h1{max-width:16ch}
+
+  /* le sommaire : il dit ce qu'il y a plus bas, et il y emmene */
+  .sommaire{align-self:center}
+  .sommaire-titre{display:block; font-family:var(--mono); font-size:.56rem; letter-spacing:.24em;
+    text-transform:uppercase; color:var(--faible); margin-bottom:1.1rem}
+  .sommaire ol{list-style:none; counter-reset:som}
+  .sommaire a{display:grid; grid-template-columns:2.2rem 1fr; align-items:baseline; gap:.9rem;
+    padding:.82rem 0; border-top:1px solid var(--filet);
+    transition:padding-left .35s cubic-bezier(.2,.7,.3,1), border-color .35s}
+  .sommaire li:last-child a{border-bottom:1px solid var(--filet)}
+  .sommaire a:hover{padding-left:.7rem; border-color:var(--accent)}
+  .sommaire a::before{counter-increment:som; content:"0" counter(som);
+    font-family:var(--mono); font-size:.56rem; letter-spacing:.2em; color:var(--accent)}
+  .sommaire b{font-family:var(--display); font-style:italic; font-weight:400;
+    text-transform:uppercase; letter-spacing:.008em; transform:skewX(-7deg);
+    font-size:clamp(.98rem,1.5vw,1.28rem); line-height:1.1; color:var(--dim);
+    transition:color .3s}
+  .sommaire a:hover b{color:var(--ink)}
+
+  /* la section qui desamorce : elle a droit a la couleur */
+  .rassure{position:relative}
+  .rassure::before{content:''; position:absolute; inset:0 auto 0 0; width:2px;
+    background:var(--accent)}
+  .rassure > *{padding-left:clamp(1.4rem,3vw,2.6rem)}
+  .promesses{list-style:none; margin-top:clamp(1.4rem,3vh,2rem); display:grid;
+    gap:clamp(.9rem,2vh,1.4rem)}
+  .promesses b{display:block; font-family:var(--display); font-style:italic; font-weight:400;
+    text-transform:uppercase; letter-spacing:.008em; transform:skewX(-7deg);
+    font-size:clamp(1.15rem,2.2vw,1.85rem); line-height:1.05}
+  .promesses span{font-family:var(--mono); font-size:.6rem; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--faible)}
+  .ouverture.guide .accroche{max-width:52ch; font-size:clamp(1.1rem,1.5vw,1.38rem)}
+  .repere{display:flex; gap:1.4rem; flex-wrap:wrap; margin-top:clamp(1.8rem,4vh,2.6rem);
+    font-family:var(--mono); font-size:.56rem; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--faible)}
+  .repere b{font-weight:400; color:var(--dim)}
+
+  /* ---- le process : le coeur de l'article ---- */
+  .etapes-guide{list-style:none; counter-reset:pas; margin-top:clamp(2rem,4.4vh,3rem)}
+  .etapes-guide li{display:grid; grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);
+    gap:.55rem clamp(2rem,4vw,4rem); padding:clamp(1.2rem,2.8vh,1.9rem) 0;
+    border-top:1px solid var(--filet); align-items:center}
+  .etapes-guide li::before{counter-increment:pas; content:"0" counter(pas);
+    grid-column:1; grid-row:1; font-family:var(--mono); font-size:.58rem; letter-spacing:.22em;
+    color:var(--accent); align-self:start}
+  .etapes-guide h3{grid-column:1; grid-row:2; font-family:var(--display); font-style:italic;
+    font-weight:400; text-transform:uppercase; letter-spacing:.008em; transform:skewX(-7deg);
+    font-size:clamp(1.25rem,2.35vw,2.05rem); line-height:1.02; align-self:start}
+  .etapes-guide p{grid-column:2; grid-row:1/3; font-size:clamp(1.02rem,1.3vw,1.2rem);
+    line-height:1.55; color:var(--dim); max-width:46ch; align-self:center}
+
+  /* ---- le pivot : la question qui amene le produit ---- */
+  .pivot{text-align:center; padding:clamp(4rem,9vh,7rem) var(--marge)}
+  .pivot p{font-size:clamp(1.05rem,1.35vw,1.25rem); line-height:1.6; color:var(--dim);
+    max-width:58ch; margin:0 auto}
+  .pivot .question{font-family:var(--display); font-style:italic; font-weight:400;
+    text-transform:uppercase; letter-spacing:.006em; transform:skewX(-7deg); color:var(--ink);
+    font-size:clamp(1.7rem,4.2vw,3.4rem); line-height:1.02; max-width:22ch; margin:0 auto 1.6rem}
+
+  /* ---- le produit, enfin ---- */
+  .offre{display:grid; grid-template-columns:minmax(0,.68fr) minmax(0,1fr);
+    gap:clamp(2rem,5vw,5rem); align-items:end; padding-bottom:0}
+  .offre .objet{margin-left:calc(var(--marge) * -1); width:calc(100% + var(--marge));
+    align-self:end; line-height:0}
+  .offre .objet img{max-height:66svh; object-position:left bottom}
+  .offre > div{padding-bottom:clamp(3rem,7vh,5rem)}
+  .offre .num{color:var(--accent)}
+  .offre .fait{margin-top:1.3rem; font-size:clamp(1.05rem,1.35vw,1.25rem); color:var(--dim);
+    max-width:44ch}
+  .offre .acte{gap:1.6rem 2.4rem; align-items:baseline}
+  .offre .releve{margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid var(--filet); max-width:44ch}
+  .offre .releve b{font-weight:400; font-size:clamp(1.15rem,1.5vw,1.4rem); line-height:1.35; color:var(--ink)}
+  .offre .releve span{display:block; font-family:var(--mono); font-size:.56rem; letter-spacing:.2em; text-transform:uppercase; color:var(--faible); margin-top:.5rem}
+  .offre.seule{grid-template-columns:1fr; align-items:start; padding-bottom:clamp(3rem,7vh,5rem)}
+  .offre.seule > div{padding-bottom:0; max-width:60ch}
+
+  /* ---------------- telephone : une composition, pas un empilement ---------------- */
+  @media (max-width:60rem){
+    :root{font-size:15px; --marge:clamp(1.15rem,5vw,2rem)}
+    body{padding-bottom:4.6rem}          /* la place de la barre d'action */
+
+    /* ouverture : le titre tient l'ecran, le produit sort par la droite */
+    .ouverture{min-height:auto; grid-template-columns:1fr; gap:0;
+      padding:5rem var(--marge) 0; align-items:start}
+    .ouverture.guide{grid-template-columns:1fr; gap:2.2rem;
+      padding:5rem var(--marge) 2.6rem}
+    .sommaire a{padding:.72rem 0}
+    .rassure > *{padding-left:1.1rem}
+    .ouverture .dire{padding-bottom:1.8rem}
+    .rubrique{margin-bottom:1rem}
+    h1{font-size:clamp(2.5rem,10.6vw,4.4rem); line-height:.96; max-width:none}
+    .accroche{font-size:1.06rem; max-width:26ch; margin-top:1.1rem}
+    .acte{margin-top:1.6rem; gap:.8rem 1.1rem}
+    .ouverture .acte{display:none}       /* le ticket vit dans la barre du bas */
+    .ouverture .objet{width:100%; max-width:none; margin:0; text-align:center}
+    .ouverture .objet img{max-height:42svh; width:auto; max-width:78%; object-position:center bottom; display:inline-block}
+    /* la lueur part du module, qui est en bas de l'écran sur téléphone */
+    .ouverture::before{inset:auto 0 0 0; width:100%; height:62%;
+      background:
+        radial-gradient(9% 38% at 62% 58%, color-mix(in srgb,var(--accent) 55%,#000) 0%, transparent 100%),
+        radial-gradient(28% 52% at 58% 58%, color-mix(in srgb,var(--primaire) 96%,#000) 0%, transparent 100%)}
+    .ouverture{padding-top:5.2rem}
+    .ouverture .dire{padding-bottom:.6rem}
+    .ouverture h1{font-size:clamp(2.2rem,11vw,2.9rem)}
+    .ouverture .accroche{margin-top:1rem}
+    .ouverture::after{height:52%}
+
+    /* le constat : il garde sa force, sur trois lignes courtes */
+    .constat{min-height:56svh; padding:3.4rem var(--marge)}
+    .constat p{font-size:clamp(1.75rem,7.1vw,2.9rem); max-width:20ch}
+    .constat .sous{font-size:.58rem; letter-spacing:.2em; margin-top:1.4rem}
+
+    /* deja essaye : le verdict passe sous le geste, jamais a droite */
+    .ecran{padding:2.8rem var(--marge)}
+    h2{font-size:clamp(1.35rem,5.4vw,1.9rem)}
+    .essais li{grid-template-columns:2rem 1fr; gap:.35rem .9rem;
+      padding:1.1rem 0; align-items:baseline}
+    .essais em{align-self:start; padding-top:.35rem}
+    .essais b{font-size:clamp(1.15rem,5.4vw,1.75rem)}
+    .essais span{text-align:left; grid-column:2; font-size:.98rem; color:var(--dim)}
+
+    .offre{grid-template-columns:1fr; gap:0; padding-bottom:0}
+    .offre .objet{margin-left:calc(var(--marge) * -1); margin-right:calc(var(--marge) * -1);
+      width:calc(100% + var(--marge) * 2); order:2}
+    .offre .objet img{max-height:44svh; object-position:center bottom}
+    .offre > div{padding-bottom:2.2rem}
+    .offre .acte{gap:1rem 1.6rem}
+    .pivot{padding:3.2rem var(--marge)}
+    .pivot .question{font-size:clamp(1.6rem,7.4vw,2.6rem)}
+    .etapes-guide li{grid-template-columns:1fr; gap:.5rem; padding:1.4rem 0}
+    .etapes-guide li::before{grid-row:1}
+    .etapes-guide h3{grid-column:1; grid-row:2; font-size:clamp(1.15rem,5.2vw,1.7rem)}
+    .etapes-guide p{grid-column:1; grid-row:3; font-size:1rem}
+
+    /* le produit : le nom, puis le prix dessous, l'un sous l'autre et pleine largeur */
+    .produit{grid-template-columns:1fr; gap:.2rem}
+    .nom{font-size:clamp(2.6rem,11.4vw,4.4rem)}
+    .grosprix{font-size:clamp(2.6rem,11.4vw,4.4rem)}
+    .mots{grid-template-columns:1fr; gap:.55rem; margin-top:1.6rem}
+    .limite{margin-top:1.4rem}
+    .produit .acte{margin-top:1.8rem}
+    .lien{font-size:1.3rem}
+
+    .etapes{grid-template-columns:1fr 1fr; gap:1.2rem}
+    .voisins{grid-template-columns:1fr; gap:0}
+    .voisins a{padding:.95rem 0}
+    footer{padding:1.8rem var(--marge) 2.4rem; gap:1rem}
+
+    /* la barre d'action */
+    .barre{position:fixed; inset:auto 0 0 0; z-index:20; display:flex; align-items:center;
+      gap:.9rem; padding:.75rem var(--marge) calc(.75rem + env(safe-area-inset-bottom));
+      background:rgba(10,10,12,.96); border-top:1px solid var(--filet)}
+    .barre-prix{font-size:1.5rem; color:var(--accent); line-height:1}
+    .barre-quoi{font-family:var(--mono); font-size:.62rem; letter-spacing:.16em;
+      text-transform:uppercase; color:var(--faible); line-height:1.5; flex:1}
+    .barre-quoi b{display:block; font-weight:400; color:var(--dim)}
+    .barre-cta{font-family:var(--mono); font-size:.58rem; letter-spacing:.16em;
+      text-transform:uppercase; color:#000; background:var(--ink);
+      padding:.85rem 1.15rem; border-radius:999px; white-space:nowrap}
+  }
+  @media (max-width:23rem){
+  }
+
+  /* ---- 01 en colonnes : un filet vertical entre chaque point, le numéro en haut, le titre en bas (Metalab, Linear) ---- */
+  .etapes-guide{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:0;
+    border-top:1px solid var(--filet); border-bottom:1px solid var(--filet); margin-top:clamp(2rem,4.4vh,3rem)}
+  .etapes-guide li{display:flex; flex-direction:column; grid-template-columns:none; gap:0;
+    min-height:clamp(15rem,32vh,21rem); padding:1.3rem 1.25rem 1.5rem 1.25rem; border-top:0;
+    border-left:1px solid var(--filet); position:relative; transition:background .35s}
+  .etapes-guide li:first-child{border-left:0; padding-left:0}
+  .etapes-guide li::before{grid-column:auto; grid-row:auto; align-self:flex-start; color:var(--accent);
+    font-size:.58rem; letter-spacing:.22em; margin-bottom:auto}
+  .etapes-guide h3{grid-column:auto; grid-row:auto; margin-top:2.2rem; font-size:clamp(1.15rem,1.55vw,1.5rem);
+    line-height:1.04; color:var(--ink); transition:color .3s}
+  .etapes-guide p{grid-column:auto; grid-row:auto; margin-top:.7rem; font-size:.92rem; line-height:1.5;
+    color:var(--faible); max-width:none; transition:color .3s}
+  .etapes-guide:hover li:not(:hover) h3{color:var(--dim)}
+  .etapes-guide li:hover p{color:var(--dim)}
+  .etapes-guide li:hover{background:rgba(255,255,255,.025)}
+
+  /* ---- les autres guides : le module de chaque opti sur le noir, nom et prix dessous (Sigma, Shopify Supply) ---- */
+  .voisins{grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border-top:1px solid var(--filet);
+    border-bottom:1px solid var(--filet); margin-top:clamp(1.6rem,3.6vh,2.4rem)}
+  .voisins li{border-left:1px solid var(--filet)}
+  .voisins li:first-child{border-left:0}
+  .voisins a{display:flex; flex-direction:column; align-items:flex-start; gap:.35rem; padding:1.4rem 1.25rem 1.5rem;
+    border-top:0; height:100%}
+  .voisins li:first-child a{padding-left:0}
+  .voisins a:hover{border-color:transparent; background:rgba(255,255,255,.025)}
+  .voisins img{display:block; width:100%; max-height:13rem; object-fit:contain; object-position:center bottom;
+    margin:0 0 1.2rem; filter:drop-shadow(0 1rem 2rem rgba(0,0,0,.7));
+    transition:transform .55s cubic-bezier(.2,.7,.3,1)}
+  .voisins a:hover img{transform:translateY(-6px) rotate(-2deg)}
+  .voisins i{margin-top:auto}
+  .voisins .prix-v{font-family:var(--display); font-style:italic; font-size:1.1rem; color:var(--accent); margin-top:.2rem}
+  @media (max-width:60rem){
+    .etapes-guide{grid-template-columns:1fr; border-bottom:0}
+    .etapes-guide li{border-left:0; border-top:1px solid var(--filet); min-height:0; padding:1.2rem 0 1.4rem}
+    .etapes-guide li:first-child{border-top:0}
+    .etapes-guide h3{margin-top:.9rem; font-size:clamp(1.15rem,5.2vw,1.6rem)}
+    .voisins{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .voisins li:nth-child(odd){border-left:0}
+    .voisins li:nth-child(n+3){border-top:1px solid var(--filet)}
+    .voisins a{padding:1.1rem .9rem 1.2rem}
+    .voisins li:first-child a{padding-left:.9rem}
+    .voisins img{max-height:9rem}
+  }
+  /* les autres guides en 3D : le canvas se superpose au packshot de la case */
+  .voisin-objet{position:relative; width:100%; height:13rem; margin:0 0 1.2rem}
+  .voisin-objet img{position:absolute; inset:0; width:100%; height:100%; margin:0; object-fit:contain; object-position:center bottom}
+  .voisin-3d{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none}
+  .voisins li.is-3d img{opacity:0; transition:opacity .6s}
+  @media (max-width:60rem){ .voisin-objet{height:9rem} }
+  /* le module 3D tient entier dans son écran : centré, avec de l'air, jamais coupé par la section suivante */
+  .ouverture .objet.is-3d{align-self:center; margin-right:0; width:100%; padding-bottom:clamp(2rem,6vh,4rem)}
+  .ouverture .objet.is-3d img{max-height:76svh}
+  .voisin-objet{height:16rem}
+  @media (max-width:60rem){ .ouverture .objet.is-3d{padding-bottom:1rem} .voisin-objet{height:11rem} }
+  /* la section 02 : le module en 3D, entier, dans sa figure */
+  .offre .objet{position:relative}
+  .offre .objet .voisin-3d{position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none}
+  .offre .objet.is-3d img{opacity:0; transition:opacity .6s}
+  /* même sans 3D, le packshot est entier et centré, jamais coupé par la section suivante */
+  .ouverture .objet{align-self:center; margin-right:0; width:100%; padding-bottom:clamp(2rem,6vh,4rem); text-align:center}
+  .ouverture .objet img{max-height:70svh; width:auto; max-width:100%; object-fit:contain; object-position:center; display:inline-block}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "@id": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#article", "headline": "Input lag sur PC : d'où vient le retard | Pulse Tweaks", "description": "Tu vises juste et l'action part en retard. Ce qui cause l'input lag, ce que les réglages du jeu ne peuvent pas corriger, et ce qu'on synchronise côté système.", "inLanguage": "fr-FR", "url": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html", "datePublished": "2026-08-24", "dateModified": "2026-08-25", "author": {"@type": "Organization", "name": "Pulse Tweaks", "url": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"}, "publisher": {"@type": "Organization", "name": "Pulse Tweaks", "url": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"}, "mainEntityOfPage": {"@type": "WebPage", "@id": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#page"}, "about": {"@type": "Thing", "name": "Kernel et périphériques"}, "isPartOf": {"@type": "WebSite", "@id": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/#site", "url": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/", "name": "Pulse Tweaks"}, "breadcrumb": {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Pulse Tweaks", "item": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"}, {"@type": "ListItem", "position": 2, "name": "Comment réduire l'input lag", "item": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html"}]}}, {"@type": "HowTo", "@id": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#howto", "name": "Comment réduire l'input lag", "description": "Tu vises juste et l'action part trop tard. Le retard s'ajoute à chaque étape, et aucun compteur ne le montre.", "inLanguage": "fr-FR", "step": [{"@type": "HowToStep", "position": 1, "name": "Commence par l'affichage", "text": "V-Sync, mode faible latence, limiteur d'images. La partie connue."}, {"@type": "HowToStep", "position": 2, "name": "La vraie fréquence de l'USB", "text": "Une souris à 1000 Hz ne sert à rien si le port n'est pas interrogé aussi vite."}, {"@type": "HowToStep", "position": 3, "name": "Les timers du système", "text": "Pas la même cadence entre le jeu, le noyau et ta souris : ton geste attend."}, {"@type": "HowToStep", "position": 4, "name": "Les interruptions", "text": "Un pilote audio ou réseau qui prend la main passe devant ton clic."}, {"@type": "HowToStep", "position": 5, "name": "Vise la régularité", "text": "Un retard constant s'apprend en deux parties. Un retard qui saute, jamais."}]}, {"@type": "Service", "@id": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html#service", "name": "TimerTuner", "serviceType": "Optimisation PC pour le jeu", "description": "Timers et kernel synchronisés, la chaîne remise en ordre du port USB jusqu'au jeu. Aucun chiffre promis. On vise la régularité. Mal posés, ils coûtent en stabilité ce qu'ils gagnent en latence. Une soirée d'essais tout seul, ou un ticket, et on le fait avec toi. On relève l'état d'origine : avant de toucher quoi que ce soit. Tu redémarres, c'est annulé : on remet exactement ce qu'il y avait. Le diagnostic est gratuit : tu paies après, si ça vaut le coup.", "provider": {"@type": "Organization", "name": "Pulse Tweaks", "url": "https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/"}, "areaServed": "FR", "offers": {"@type": "Offer", "price": "20", "priceCurrency": "EUR", "availability": "https://schema.org/InStock", "url": "https://discord.gg/pulsetweaks"}}]}</script>
+</head>
+<body>
+<div class="jauge"></div>
+<div class="barre" aria-hidden="false">
+  <span class="barre-prix titre">20&#8239;&euro;</span>
+  <span class="barre-quoi">TimerTuner<b>diagnostic gratuit</b></span>
+  <a class="barre-cta" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket</a>
+</div>
+<header>
+  <a class="marque titre" href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">Pulse<span>Tweaks</span></a>
+  <a class="retour" href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">Le site</a>
+</header>
+
+<main>
+  <article>
+  <section class="ouverture">
+    <div class="dire">
+      <p class="rubrique anim">Guide &middot; Kernel et p&eacute;riph&eacute;riques</p>
+      <h1 class="titre anim">Comment réduire<br>l'input lag</h1>
+      <p class="accroche anim">Tu vises juste et l'action part trop tard. Le retard s'ajoute à chaque étape, et aucun compteur ne le montre.</p>
+      <p class="releve-hero anim"><b>Le jeu r&eacute;pond au point qu&rsquo;on a l&rsquo;impression d&rsquo;anticiper.</b><span>Constat&eacute; sur une machine, pas de chiffre, pas une promesse</span></p>
+      <div class="acte anim"><span class="prix">20&#8239;&euro;</span><a class="btn" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket <i>&rarr;</i></a></div>
+    </div>
+    <figure class="objet anim"><img src="assets/modules/module-timer.webp" width="699" height="900" alt="Le module TimerTuner" fetchpriority="high" decoding="async"></figure>
+  </section>
+
+  <section class="constat">
+    <p class="titre anim">Ce n'est pas ta souris.<em>C'est la chaîne derrière.</em></p>
+  </section>
+
+  <section class="ecran">
+    <span class="num">01</span>
+    <h2 class="titre anim">La chaîne, maillon par maillon</h2>
+    <ol class="etapes-guide"><li class="anim" id="p1"><h3>Commence par l'affichage</h3><p>V-Sync, mode faible latence, limiteur d'images. La partie connue.</p></li><li class="anim" id="p2"><h3>La vraie fréquence de l'USB</h3><p>Une souris à 1000 Hz ne sert à rien si le port n'est pas interrogé aussi vite.</p></li><li class="anim" id="p3"><h3>Les timers du système</h3><p>Pas la même cadence entre le jeu, le noyau et ta souris : ton geste attend.</p></li><li class="anim" id="p4"><h3>Les interruptions</h3><p>Un pilote audio ou réseau qui prend la main passe devant ton clic.</p></li><li class="anim" id="p5"><h3>Vise la régularité</h3><p>Un retard constant s'apprend en deux parties. Un retard qui saute, jamais.</p></li></ol>
+  </section>
+
+  <section class="ecran pivot">
+    <p class="question titre anim">Et comment<br>tu appliques &ccedil;a&nbsp;?</p>
+    <p class="anim">Mal posés, ils coûtent en stabilité ce qu'ils gagnent en latence. Une soirée d'essais tout seul, ou un ticket, et on le fait avec toi.</p>
+  </section>
+
+  <section class="ecran offre">
+    <figure class="objet anim" data-key="timer"><img src="assets/modules/module-timer.webp" width="699" height="900" alt="Le module TimerTuner" loading="lazy" decoding="async"></figure>
+    <div>
+      <span class="num">02</span>
+      <h2 class="nom titre anim">TimerTuner</h2>
+      <p class="fait anim">Timers et kernel synchronisés, la chaîne remise en ordre du port USB jusqu'au jeu.</p>
+      <ul class="mots anim"><li>timers et kernel</li><li>USB haute fréquence</li><li>audio basse latence</li><li>interruptions système</li></ul>
+      <p class="limite anim">Aucun chiffre promis. On vise la régularité.</p>
+      <div class="acte anim">
+        <span class="grosprix">20&#8239;&euro;</span>
+        <a class="lien" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Ouvrir un ticket <i>&rarr;</i></a>
+      </div>
+      <p class="note anim" style="display:block;margin-top:1.2rem">diagnostic gratuit &middot; r&eacute;versible &middot; &eacute;tat d'origine conserv&eacute;</p>
+    </div>
+  </section>
+
+  <section class="ecran rassure">
+    <span class="num anim">03</span>
+    <h2 class="titre anim">Et si &ccedil;a te pla&icirc;t pas&nbsp;?</h2>
+    <ul class="promesses"><li class="anim"><b class="titre">On relève l'état d'origine</b><span>avant de toucher quoi que ce soit</span></li><li class="anim"><b class="titre">Tu redémarres, c'est annulé</b><span>on remet exactement ce qu'il y avait</span></li><li class="anim"><b class="titre">Le diagnostic est gratuit</b><span>tu paies après, si ça vaut le coup</span></li></ul>
+  </section>
+
+  <section class="ecran">
+    <span class="num">04</span>
+    <h2 class="titre anim">Les autres guides</h2>
+    <ul class="voisins"><li class="anim" data-key="bios"><a href="reglages-bios.html"><span class="voisin-objet"><img src="assets/modules/module-bios.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 01</i><b class="titre">BIOS d'usine</b><span class="prix-v">20 &euro;</span></a></li><li class="anim" data-key="chipset"><a href="mon-jeu-freeze.html"><span class="voisin-objet"><img src="assets/modules/module-chipset.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 02</i><b class="titre">Freeze en partie</b><span class="prix-v">20 &euro;</span></a></li><li class="anim" data-key="os"><a href="gagner-des-fps.html"><span class="voisin-objet"><img src="assets/modules/module-os.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 03</i><b class="titre">Config bridée</b><span class="prix-v">30 &euro;</span></a></li><li class="anim" data-key="flux"><a href="ping-instable.html"><span class="voisin-objet"><img src="assets/modules/module-flux.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 05</i><b class="titre">Ping en vrille</b><span class="prix-v">20 &euro;</span></a></li></ul>
+  </section>
+  </article>
+</main>
+
+<footer><p class="repere"><span>Mis &agrave; jour <b>ao&ucirc;t 2026</b></span></p>
+  <span>&copy; 2026 Pulse Tweaks</span>
+  <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/">Le site</a>
+  <a href="https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/charte.html">Charte</a>
+  <a href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">Discord</a>
+</footer>
+
+<script>
+  if (!(CSS.supports && CSS.supports('animation-timeline', 'view()'))) {
+    document.documentElement.classList.add('js');
+    var o = new IntersectionObserver(function (e) {
+      e.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('vu'); o.unobserve(x.target); } });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    document.querySelectorAll('.anim').forEach(function (n) { o.observe(n); });
+  }
+</script>
+<script>window.PULSE_PRODUCTS = [{"key": "bios", "name": "BIOSTUNER", "tag": "OPTI 01 · BIOS / FIRMWARE", "color": 9133302, "css": "#8b5cf6", "lines": ["250+ RÉGLAGES / PAR CONFIG", "DÉTECTION AUTO / CM · CPU · BIOS", "FOCUS 1 % LOW / FRAMETIME"]}, {"key": "chipset", "name": "CHIPSETTUNER", "tag": "OPTI 02 · CPU / CHIPSET", "color": 14239471, "css": "#d946ef", "lines": ["FRÉQUENCES MIN / ÉTATS DE VEILLE", "UNCORE · RING BUS / LIMITES DE PUISSANCE", "SAUVEGARDE + / RESTAURATION AUTO"]}, {"key": "os", "name": "PULSEOS", "tag": "OPTI 03 · SYSTÈME", "color": 3900150, "css": "#3b82f6", "lines": ["WINDOWS NETTOYÉ / & RÉGLÉ JEU", "DEFENDER / CONSERVÉ", "RESET PROPRE / INTÉGRÉ"]}, {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]}, {"key": "flux", "name": "FLUXTUNER", "tag": "OPTI 05 · RÉSEAU", "color": 2282478, "css": "#22d3ee", "lines": ["PING STABILISÉ / JAMAIS TRUQUÉ", "UDP · MTU · DNS / BUFFERS", "WI-FI & LAN / AUTO"]}];window.PULSE_PRODUCT = {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]};</script>
+<script type="module" src="js/guide-3d.js?v=5"></script>
+</body>
+</html>
