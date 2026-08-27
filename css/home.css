@@ -926,7 +926,7 @@ select.modal_input { appearance: none; }
     width: 3.15rem; height: 3.15rem; border-radius: 999px; padding: 0;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--_primitives---opacity--white-20);
-    background: rgba(10, 9, 18, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    background: rgba(10, 9, 18, .72);
     color: var(--_primitives---opacity--white-60);
     font-family: var(--_typography---font-styles--mono); font-size: .78rem; letter-spacing: .04em;
     transition: border-color .25s, color .25s, background-color .25s, transform .25s;
@@ -1207,4 +1207,17 @@ select.modal_input { appearance: none; }
      pleine) : le pied de page etait a 2,46:1 pour un seuil de 4,5, les glyphes a 3,67:1. */
   .pulse_footer-bottom, .stack_note, .rev_org { color: var(--_primitives---opacity--white-60); }
   .pulse_footer-base { color: var(--_primitives---opacity--white-60); }
+}
+
+/* ---- Fluidité (27/08) : plus aucun backdrop-filter au-dessus du canvas 3D ; un flou de compositeur se repaie à chaque image présentée, hors de toute mesure rAF ---- */
+/* ---- « Plus de détails » : le lien vers le guide de l'opti affichée, en bas à gauche de la gamme (27/08) ---- */
+.gamme_plus { position: absolute; left: 2.5rem; bottom: 2.4rem; z-index: 6; pointer-events: auto; display: inline-flex; align-items: center; gap: .7rem;
+  padding: .85rem 1.5rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.34); color: #fff; text-decoration: none;
+  font-family: var(--_typography---font-styles--mono, 'Geistmono', monospace); font-size: .62rem; letter-spacing: .2em; text-transform: uppercase;
+  background: rgba(8,8,12,.55); transition: background .3s, color .3s, border-color .3s, transform .35s cubic-bezier(.2,.7,.3,1); }
+.gamme_plus:hover, .gamme_plus:focus-visible { background: #fff; color: #000; border-color: #fff; transform: translateY(-2px); }
+.gamme_plus i { font-style: normal; transition: transform .35s cubic-bezier(.2,.7,.3,1); }
+.gamme_plus:hover i { transform: translateX(4px); }
+@media screen and (max-width: 991px) {
+  .gamme_plus { left: 1.25rem; bottom: 1.5rem; /* sous la barre de progression : a 5.6rem il la chevauchait (capture 393, 27/08) */ padding: .7rem 1.1rem; font-size: .58rem; background: rgba(8,8,12,.55); }
 }

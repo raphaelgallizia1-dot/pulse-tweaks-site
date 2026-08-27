@@ -1,3 +1,19 @@
+/* Fluidité (27/08) : les gestionnaires de défilement lisaient offsetTop/offsetHeight à chaque image, et
+   GSAP salit les styles à chaque image : chaque lecture forçait une mise en page complète (mesuré : 124
+   mises en page de 7 ms pendant six transitions, CPU bridé x4). Les bords des sections ne bougent qu'au
+   resize : on les lit une fois, et on les relit quand la page change de taille. */
+window.__bords = (() => {
+  const cache = new Map(); let h = 0;
+  const invalide = () => { cache.clear(); h = 0; };
+  window.addEventListener('resize', invalide); window.addEventListener('load', invalide);
+  return (el) => {
+    if (!el) return null;
+    /* la hauteur vient de Lenis (deja mesuree par son ResizeObserver) : lire scrollHeight ici forcerait la mise en page qu'on evite */
+    const H = window.lenis && window.lenis.dimensions ? window.lenis.dimensions.scrollHeight : 0; if (H !== h) { cache.clear(); h = H; }
+    let b = cache.get(el); if (!b) { b = { top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight }; cache.set(el, b); }
+    return b;
+  };
+})();
 
   document.addEventListener('DOMContentLoaded', () => {
     // #region Helpers
@@ -444,7 +460,7 @@
          l'opti au pouce, puis elle s'efface et la page devient un document. */
       const finScene = () => {
         const g = $('.section.is-gamme');
-        return g ? g.offsetTop + g.offsetHeight : window.innerHeight;
+        return g ? window.__bords(g).bottom : window.innerHeight;
       };
       const maj = () => {
         const h = window.innerHeight || 1;
@@ -528,7 +544,7 @@
       let etat = null;
       const maj = () => {
         const pos = window.lenis.animatedScroll;
-        const bord = fiche ? fiche.offsetTop + fiche.offsetHeight : window.innerHeight;
+        const bord = fiche ? window.__bords(fiche).bottom : window.innerHeight;
         /* pas sur le tout premier ecran : le heros a deja son nom et sa barre, deux reperes suffisent */
         const on = pos > window.innerHeight * 0.5 && pos < bord - window.innerHeight * 0.45;
         if (on === etat) return;
@@ -751,8 +767,7 @@
            les sections de l'opti choisie. Le bouton collant y ferait doublon et recouvrirait la
            fin du bloc — on le retire le temps de ces ecrans. */
         const h = window.innerHeight;
-        const surBloc = (el) => !!el && pos + h > el.offsetTop + h * 0.25
-                                     && pos < el.offsetTop + el.offsetHeight - h * 0.15;
+        const surBloc = (el) => { const b = window.__bords(el); return !!b && pos + h > b.top + h * 0.25 && pos < b.bottom - h * 0.15; };
         document.body.classList.toggle('is-optis',
           surBloc($('.section.is-stack')) || surBloc($('.opti_page')));
         const visible = pos > items[0].height * 0.8 && reste > 420;

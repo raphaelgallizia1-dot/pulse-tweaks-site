@@ -1,10 +1,24 @@
 /* Les modules Pulse en 3D sur les pages guide : le même objet que l'accueil (mêmes géométries, mêmes
    matériaux, même étiquette dessinée), rendu en direct.
    - Le premier écran : le module de la page, dans la figure, avec son propre rendu WebGL.
-   - « Les autres guides » : les quatre autres modules, chacun dans sa case, immobiles (dérive lente,
-     inclinaison au survol), rendus par UN seul rendu WebGL partagé et recopiés dans des canvas 2D.
+   - « Les autres guides » et l'offre : les autres modules, chacun dans sa case, rendus par UN seul
+     rendu WebGL partagé (une fenêtre par case dans un tampon fixe) et recopiés dans des canvas 2D.
    Si WebGL manque, les packshots restent. Copié de js/engine.js (#region Module Pulse) : si l'accueil
-   change, ici aussi. */
+   change, ici aussi.
+
+   Fluidité (27/08, mesuré avant/après dans wiki/pulse-tweaks-site.md) :
+   - les nuanciers se compilent en parallèle (compileAsync) : la page ne gèle plus à l'arrivée, le
+     packshot reste affiché le temps que la 3D soit prête ;
+   - le rendu partagé se prépare une section avant d'être vu, un module par image : jamais plus
+     d'une étiquette dessinée dans la même image ;
+   - une case hors écran n'est pas rendue ; une case au repos se redessine 40 fois par seconde, 125
+     sous la souris (requestAnimationFrame tourne à 280 Hz sur certaines machines : sans plafond, six
+     rendus par image pour rien) ;
+   - le tampon partagé garde une taille fixe : une fenêtre (viewport) par case, plus de redimension
+     du canvas à chaque rendu ;
+   - v7 : UN seul contexte WebGL pour le héros et les cases (un seul environnement PMREM, une seule
+     compilation), et l'arrivée découpée entre les images : environnement, puis module, puis compilation,
+     puis première image. Mesuré à CPU bridé x4 : encore un gel de 507 ms avec deux contextes. */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -16,6 +30,9 @@ if (!fig || !PAGE) throw new Error('guide-3d : pas de figure ou pas de produit')
 window.addEventListener('error', (e) => { if (String(e.message || '').includes('WebGL')) console.warn('guide-3d : WebGL indisponible, packshots conservés'); });
 const CALME = matchMedia('(prefers-reduced-motion: reduce)').matches; /* mouvement réduit : la 3D reste, elle ne dérive pas */
 const lowPower = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 4 : false;
+const CADENCE = { actif: 1000 / 125, repos: 1000 / 40 }; /* plafonds de rendu, en ms entre deux images */
+const mark = (n) => { try { performance.mark('g3d:' + n); } catch (e) {} };
+const image = () => new Promise((r) => requestAnimationFrame(r));
 
 await Promise.race([
   Promise.all([document.fonts.load('italic 100px Anton'), document.fonts.load('400 20px Geistmono'), document.fonts.load('600 20px Geist')]),
@@ -109,92 +126,117 @@ function frameCamera(camera, w, h, fill) {
   camera.position.set(0, 0, Math.max(dist, dist * (1 / Math.min(1, camera.aspect * 1.6))));
 }
 const dprCap = () => Math.min(window.devicePixelRatio || 1, lowPower ? 1.5 : 1.25);
+const makeRenderer = (canvas) => {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  r.setClearColor(0x000000, 0); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+  return r;
+};
+THREE.ColorManagement.enabled = true;
 
-/* ---------- 1. le premier écran : le module de la page, rendu direct ---------- */
-{
-  const canvas = document.createElement('canvas'); canvas.className = 'objet-3d'; canvas.setAttribute('aria-hidden', 'true');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setClearColor(0x000000, 0); THREE.ColorManagement.enabled = true;
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  const { scene, camera, lampe } = makeStage(renderer);
-  lampe.color.set(PAGE.color);
-  const can = makeCan(renderer, PAGE, lowPower ? 0.35 : 0.5); scene.add(can);
-  let targetY = 0, targetX = 0, curY = 0, curX = 0, visible = true, raf = 0; const t0 = performance.now();
-  function resize() {
-    const r = fig.getBoundingClientRect(); const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
-    renderer.setPixelRatio(dprCap()); renderer.setSize(w, h, false); frameCamera(camera, w, h, 1.55);
-  }
-  addEventListener('pointermove', (e) => { const r = fig.getBoundingClientRect();
-    targetY = ((e.clientX - (r.left + r.width / 2)) / r.width) * 0.35; targetX = ((e.clientY - (r.top + r.height / 2)) / r.height) * 0.18; }, { passive: true });
-  addEventListener('scroll', () => { targetX = Math.min(0.5, scrollY / innerHeight) * 0.35; }, { passive: true });
-  new IntersectionObserver((es) => { visible = es[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(loop); }, { threshold: 0.02 }).observe(fig);
-  addEventListener('resize', resize, { passive: true });
-  function loop(now) {
-    raf = 0; if (!visible) return;
-    const t = (now - t0) / 1000;
-    curY += (targetY - curY) * 0.06; curX += (targetX - curX) * 0.06;
-    const k = CALME ? 0 : 1;
-    can.rotation.y = curY + Math.sin(t * 0.45) * 0.12 * k; can.rotation.x = curX + Math.sin(t * 0.3) * 0.04 * k;
-    can.rotation.z = BASE_Z + Math.sin(t * 0.25) * 0.02 * k; can.position.y = Math.sin(t * 0.6) * 0.06 * k;
-    renderer.render(scene, camera); raf = requestAnimationFrame(loop);
-  }
-  resize(); renderer.render(scene, camera);
-  fig.appendChild(canvas); fig.classList.add('is-3d');
-  const img = fig.querySelector('img'); if (img) img.setAttribute('aria-hidden', 'true');
-  raf = requestAnimationFrame(loop);
+/* ---------- un seul rendu pour toutes les vues : héros, autres guides, offre ---------- */
+const off = document.createElement('canvas');
+const renderer = makeRenderer(off);
+const views = []; const vus = new Set(); /* les vues à l'écran : seules celles-là se dessinent */
+let scene = null, camera = null, lampe = null, raf = 0, last = -1; const t0 = performance.now();
+
+function size() {
+  const dpr = dprCap();
+  views.forEach((v) => {
+    const r = v.holder.getBoundingClientRect();
+    v.w = Math.max(1, Math.round(r.width)); v.h = Math.max(1, Math.round(r.height));
+    v.canvas.width = Math.round(v.w * dpr); v.canvas.height = Math.round(v.h * dpr);
+  });
+  /* tampon fixe à la taille de la plus grande vue ; chaque vue y prend une fenêtre (viewport + scissor) */
+  const maxW = Math.max(...views.map((v) => v.canvas.width)), maxH = Math.max(...views.map((v) => v.canvas.height));
+  if (off.width !== maxW || off.height !== maxH) { renderer.setPixelRatio(1); renderer.setSize(maxW, maxH, false); }
+  renderer.setScissorTest(true);
 }
+function dessine(v, t) {
+  const k = CALME ? 0 : 1;
+  v.cY += (v.tY - v.cY) * (v.hero ? 0.08 : 0.1); v.cX += (v.tX - v.cX) * (v.hero ? 0.08 : 0.1);
+  if (v.hero) {
+    v.can.rotation.y = v.cY + Math.sin(t * 0.45) * 0.12 * k; v.can.rotation.x = v.cX + Math.sin(t * 0.3) * 0.04 * k;
+    v.can.rotation.z = BASE_Z + Math.sin(t * 0.25) * 0.02 * k; v.can.position.y = Math.sin(t * 0.6) * 0.06 * k;
+  } else {
+    v.can.rotation.y = v.cY + (v.hover || CALME ? 0 : v.calme ? Math.sin(t * 0.4 + v.phase) * 0.14 : (t * 0.35 + v.phase) % (Math.PI * 2));
+    v.can.rotation.x = v.cX + Math.sin(t * 0.27 + v.phase) * 0.03; v.can.rotation.z = BASE_Z; v.can.position.y = Math.sin(t * 0.5 + v.phase) * 0.04;
+  }
+  lampe.color.set(v.p.color);
+  views.forEach((o) => { o.can.visible = o === v; });
+  const W = v.canvas.width, H = v.canvas.height;
+  renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H); frameCamera(camera, v.w, v.h, v.fill);
+  renderer.render(scene, camera);
+  v.ctx.clearRect(0, 0, W, H);
+  v.ctx.drawImage(off, 0, off.height - H, W, H, 0, 0, W, H);
+}
+function loop(now) {
+  raf = 0; if (!vus.size) return;
+  raf = requestAnimationFrame(loop);
+  const actif = views.some((v) => vus.has(v.li) && (v.hover || (v.hero && Math.abs(v.tY - v.cY) + Math.abs(v.tX - v.cX) > 0.003)));
+  if (now - last < (actif ? CADENCE.actif : CADENCE.repos) - 1) return;
+  last = now;
+  const t = (now - t0) / 1000;
+  views.forEach((v) => { if (v.pret && vus.has(v.li)) dessine(v, t); });
+}
+const reveille = () => { if (vus.size && !raf) raf = requestAnimationFrame(loop); };
+const io = new IntersectionObserver((es) => { es.forEach((e) => { e.isIntersecting ? vus.add(e.target) : vus.delete(e.target); }); reveille(); }, { threshold: 0.02 });
+function ajouteVue(li, p, opts) {
+  const canvas = document.createElement('canvas'); canvas.className = opts.hero ? 'objet-3d' : 'voisin-3d'; canvas.setAttribute('aria-hidden', 'true');
+  const holder = opts.hero ? li : (li.querySelector('.voisin-objet') || (li.classList.contains('objet') ? li : li.querySelector('a')));
+  const v = { li, p, holder, canvas, ctx: canvas.getContext('2d'), w: 1, h: 1, tY: 0, tX: 0, cY: 0, cX: 0, hover: false, pret: false, ...opts };
+  v.can = makeCan(renderer, p, v.res); v.can.visible = true; scene.add(v.can);
+  if (!opts.hero) holder.appendChild(canvas); /* le héros n'est posé qu'une fois sa première image dessinée */
+  views.push(v); io.observe(li);
+  return v;
+}
+addEventListener('resize', size, { passive: true });
 
-/* ---------- 2. les autres guides : quatre modules, un rendu partagé, chacun dans sa case ---------- */
+/* ---------- 1. le premier écran : le module de la page, morceau par morceau ---------- */
+mark('hero:debut');
+await image(); ({ scene, camera, lampe } = makeStage(renderer)); /* environnement (PMREM) */
+await image(); const hero = ajouteVue(fig, PAGE, { hero: true, fill: 1.55, res: lowPower ? 0.35 : 0.5, calme: false, phase: 0 }); /* étiquette dessinée */
+addEventListener('pointermove', (e) => { const r = fig.getBoundingClientRect();
+  hero.tY = ((e.clientX - (r.left + r.width / 2)) / r.width) * 0.35; hero.tX = ((e.clientY - (r.top + r.height / 2)) / r.height) * 0.18; }, { passive: true });
+addEventListener('scroll', () => { hero.tX = Math.min(0.5, scrollY / innerHeight) * 0.35; }, { passive: true });
+size();
+/* les nuanciers se compilent en parallèle : pas de gel, le packshot reste affiché en attendant */
+if (renderer.compileAsync) await renderer.compileAsync(scene, camera).catch(() => {});
+await image();
+hero.pret = true; vus.add(fig); dessine(hero, 0);
+fig.appendChild(hero.canvas); fig.classList.add('is-3d');
+const img = fig.querySelector('img'); if (img) img.setAttribute('aria-hidden', 'true');
+mark('hero:pret');
+reveille();
+
+/* ---------- 2. les autres guides et l'offre : même rendu, préparés un écran avant d'être vus ---------- */
 const cells = [...document.querySelectorAll('.voisins li[data-key], .offre .objet[data-key]')].filter((li) => PRODUCTS.some((p) => p.key === li.dataset.key));
 if (cells.length) {
-  const off = document.createElement('canvas');
-  const renderer = new THREE.WebGLRenderer({ canvas: off, antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
-  renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  const { scene, camera, lampe } = makeStage(renderer);
-  const views = cells.map((li, i) => {
-    const p = PRODUCTS.find((x) => x.key === li.dataset.key);
-    const can = makeCan(renderer, p, lowPower ? 0.25 : 0.35); can.visible = false; scene.add(can);
-    const canvas = document.createElement('canvas'); canvas.className = 'voisin-3d'; canvas.setAttribute('aria-hidden', 'true');
-    const holder = li.querySelector('.voisin-objet') || (li.classList.contains('objet') ? li : li.querySelector('a'));
-    holder.appendChild(canvas);
-    const v = { li, p, can, canvas, ctx: canvas.getContext('2d'), w: 1, h: 1, tY: 0, tX: 0, cY: 0, cX: 0, phase: i * 1.3, hover: false, calme: li.classList.contains('objet') };
-    li.addEventListener('pointermove', (e) => { const r = li.getBoundingClientRect();
-      v.tY = ((e.clientX - (r.left + r.width / 2)) / r.width) * 0.5; v.tX = ((e.clientY - (r.top + r.height / 2)) / r.height) * 0.25; v.hover = true; }, { passive: true });
-    li.addEventListener('pointerleave', () => { v.tY = 0; v.tX = 0; v.hover = false; }, { passive: true });
-    return v;
-  });
-  let visible = false, raf = 0; const t0 = performance.now();
-  function size() {
-    const dpr = dprCap();
-    views.forEach((v) => {
-      const holder = v.canvas.parentElement; const r = holder.getBoundingClientRect();
-      v.w = Math.max(1, Math.round(r.width)); v.h = Math.max(1, Math.round(r.height));
-      v.canvas.width = Math.round(v.w * dpr); v.canvas.height = Math.round(v.h * dpr);
-    });
-    const maxW = Math.max(...views.map((v) => v.w)), maxH = Math.max(...views.map((v) => v.h));
-    renderer.setPixelRatio(dpr); renderer.setSize(maxW, maxH, false);
+  let pret = false, enCours = false;
+  async function preparer() {
+    if (enCours || pret) return; enCours = true; mark('voisins:debut');
+    const nouvelles = [];
+    for (let i = 0; i < cells.length; i++) {
+      await image(); /* un module par image : jamais deux étiquettes dessinées dans la même image */
+      const li = cells[i]; const p = PRODUCTS.find((x) => x.key === li.dataset.key);
+      const v = ajouteVue(li, p, { hero: false, fill: li.classList.contains('objet') ? 1.35 : 1.12, res: lowPower ? 0.25 : 0.35, calme: li.classList.contains('objet'), phase: i * 1.3 });
+      li.addEventListener('pointermove', (e) => { const r = li.getBoundingClientRect();
+        v.tY = ((e.clientX - (r.left + r.width / 2)) / r.width) * 0.5; v.tX = ((e.clientY - (r.top + r.height / 2)) / r.height) * 0.25; v.hover = true; }, { passive: true });
+      li.addEventListener('pointerleave', () => { v.tY = 0; v.tX = 0; v.hover = false; }, { passive: true });
+      nouvelles.push(v);
+    }
+    size();
+    await image();
+    nouvelles.forEach((v) => { v.pret = true; });
+    mark('voisins:pret');
+    pret = true; enCours = false;
+    const t = (performance.now() - t0) / 1000;
+    nouvelles.forEach((v) => { if (vus.has(v.li)) dessine(v, t); }); /* une première image dans chaque case visible, avant le fondu */
+    nouvelles.forEach((v) => v.li.classList.add('is-3d'));
+    reveille();
   }
-  function loop(now) {
-    raf = 0; if (!visible) return;
-    const t = (now - t0) / 1000; const dpr = dprCap();
-    views.forEach((v) => {
-      v.cY += (v.tY - v.cY) * 0.08; v.cX += (v.tX - v.cX) * 0.08;
-      v.can.rotation.y = v.cY + (v.hover || CALME ? 0 : v.calme ? Math.sin(t * 0.4 + v.phase) * 0.14 : (t * 0.35 + v.phase) % (Math.PI * 2)); v.can.rotation.x = v.cX + Math.sin(t * 0.27 + v.phase) * 0.03;
-      v.can.rotation.z = BASE_Z; v.can.position.y = Math.sin(t * 0.5 + v.phase) * 0.04;
-      lampe.color.set(v.p.color);
-      views.forEach((o) => { o.can.visible = o === v; });
-      renderer.setSize(v.w, v.h, false); frameCamera(camera, v.w, v.h, v.calme ? 1.35 : 1.12);
-      renderer.render(scene, camera);
-      v.ctx.clearRect(0, 0, v.canvas.width, v.canvas.height);
-      v.ctx.drawImage(off, 0, off.height - v.h * dpr, v.w * dpr, v.h * dpr, 0, 0, v.canvas.width, v.canvas.height);
-    });
-    raf = requestAnimationFrame(loop);
-  }
-  const vus = new Set();
-  const io = new IntersectionObserver((es) => { es.forEach((e) => { e.isIntersecting ? vus.add(e.target) : vus.delete(e.target); }); visible = vus.size > 0; if (visible && !raf) raf = requestAnimationFrame(loop); }, { threshold: 0.05 });
-  new Set(cells.map((c) => c.closest('section') || c)).forEach((sec) => io.observe(sec));
-  addEventListener('resize', size, { passive: true });
-  size();
-  views.forEach((v) => v.li.classList.add('is-3d'));
-  raf = requestAnimationFrame(loop);
+  /* se préparer un écran avant d'être vu, ou au premier moment calme */
+  const proche = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { proche.disconnect(); preparer(); } }, { rootMargin: '100% 0px' });
+  cells.forEach((c) => proche.observe(c));
+  const calme = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
+  calme(() => preparer(), { timeout: 4000 });
 }
