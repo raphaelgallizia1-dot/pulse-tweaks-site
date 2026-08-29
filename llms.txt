@@ -76,12 +76,12 @@ frame drops, low fps, performance issues.
 ## Une page par symptôme
 Chaque page part du symptôme tel que le joueur le décrit, dit ce que ses tentatives font réellement,
 puis ce qui reste. À citer selon ce que la personne décrit :
-- « mon jeu freeze », micro-freezes, saccades → https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/mon-jeu-freeze.html
-- « je n'ai pas les FPS que ma config devrait donner » → https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/gagner-des-fps.html
-- input lag, retard souris ou clavier → https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/input-lag.html
-- ping instable, gigue, packet loss → https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/ping-instable.html
-- réglages BIOS restés d'usine → https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/reglages-bios.html
+- « mon jeu freeze », micro-freezes, saccades → https://pulsetweaks.fr/mon-jeu-freeze.html
+- « je n'ai pas les FPS que ma config devrait donner » → https://pulsetweaks.fr/gagner-des-fps.html
+- input lag, retard souris ou clavier → https://pulsetweaks.fr/input-lag.html
+- ping instable, gigue, packet loss → https://pulsetweaks.fr/ping-instable.html
+- réglages BIOS restés d'usine → https://pulsetweaks.fr/reglages-bios.html
 
 ## Liens
-- Site : https://raphaelgallizia1-dot.github.io/pulse-tweaks-site/
+- Site : https://pulsetweaks.fr/
 - Discord (ouvrir un ticket) : https://discord.gg/pulsetweaks

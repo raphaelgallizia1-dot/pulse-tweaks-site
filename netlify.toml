@@ -1,0 +1,38 @@
+# Pulse Tweaks sur Netlify : site statique, tout est à la racine du dépôt.
+[build]
+  publish = "."
+
+# Les fichiers versionnés (?v=) et les fonts peuvent être mis en cache longtemps ; les pages, non.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Les anciennes adresses GitHub Pages renvoyaient depuis /pulse-tweaks-site/ : on rattrape un lien copié-collé.
+[[redirects]]
+  from = "/pulse-tweaks-site/*"
+  to = "/:splat"
+  status = 301
