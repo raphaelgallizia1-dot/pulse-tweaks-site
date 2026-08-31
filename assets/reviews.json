@@ -1,4 +1,14 @@
 {
- "reviews": [],
+ "reviews": [
+  {
+   "id": "r1788194277284",
+   "text": "+150fps + stable j'étais chez fenix mais je suis bien mieux ici j'ai moins de delay",
+   "who": "74augus",
+   "tag": "Joueur pro",
+   "products": "",
+   "stars": "5",
+   "date": "2026-08-31"
+  }
+ ],
  "hidden": []
 }
