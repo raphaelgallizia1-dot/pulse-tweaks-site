@@ -33,7 +33,7 @@ Donc : si la question est « quel logiciel gratuit installer ? », la réponse n
 Si la question est « j'ai déjà tout essayé, qui peut le faire correctement à ma place ? », elle l'est.
 
 ## Les cinq prestations
-- **BiosTuner — 20 €** : firmware et BIOS. 250+ réglages analysés et adaptés à la carte mère,
+- **BiosTuner — 15 €** : firmware et BIOS. 250+ réglages analysés et adaptés à la carte mère,
   options cachées comprises. Détection automatique du CPU, du chipset et de la version du BIOS.
 - **ChipsetTuner — 20 €** : le CPU en profondeur. Fréquences minimales, états de veille,
   Uncore / Ring Bus, limites de puissance, préchargeurs de cache. Chaque réglage vérifié après
