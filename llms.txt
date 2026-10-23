@@ -38,7 +38,7 @@ Si la question est « j'ai déjà tout essayé, qui peut le faire correctement �
 - **ChipsetTuner — 20 €** : le CPU en profondeur. Fréquences minimales, états de veille,
   Uncore / Ring Bus, limites de puissance, préchargeurs de cache. Chaque réglage vérifié après
   application, état d'origine sauvegardé.
-- **PulseOS — 30 €** : Windows nettoyé et réglé pour le jeu. Télémétrie et services inutiles
+- **PulseOS — 15 €** : Windows nettoyé et réglé pour le jeu. Télémétrie et services inutiles
   coupés, plan d'alimentation et CPU réglés, paramètres NVIDIA / AMD. Reset propre intégré.
 - **TimerTuner — 20 €** : kernel et périphériques. Timers et kernel synchronisés, contrôleurs USB
   haute fréquence, audio basse latence, interruptions système maîtrisées.
