@@ -194,7 +194,7 @@
   .etapes span{font-family:var(--mono); font-size:.58rem; letter-spacing:.14em; text-transform:uppercase;
     color:var(--dim); display:block; margin-top:.4rem}
 
-  .voisins{list-style:none; display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+  .voisins{list-style:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:1rem;
     margin-top:clamp(1.8rem,4vh,2.8rem)}
   .voisins a{display:block; padding-top:1rem; border-top:1px solid var(--filet);
     transition:border-color .3s}
@@ -413,7 +413,7 @@
   .etapes-guide li:hover{background:rgba(255,255,255,.025)}
 
   /* ---- les autres guides : le module de chaque opti sur le noir, nom et prix dessous (Sigma, Shopify Supply) ---- */
-  .voisins{grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border-top:1px solid var(--filet);
+  .voisins{grid-template-columns:repeat(5,minmax(0,1fr)); gap:0; border-top:1px solid var(--filet);
     border-bottom:1px solid var(--filet); margin-top:clamp(1.6rem,3.6vh,2.4rem)}
   .voisins li{border-left:1px solid var(--filet)}
   .voisins li:first-child{border-left:0}
@@ -427,6 +427,7 @@
   .voisins a:hover img{transform:translateY(-6px) rotate(-2deg)}
   .voisins i{margin-top:auto}
   .voisins .prix-v{font-family:var(--display); font-style:italic; font-size:1.1rem; color:var(--accent); margin-top:.2rem}
+  .prix-v.is-ticket{font-family:var(--mono); font-style:normal; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; line-height:1.3}
   @media (max-width:60rem){
     .etapes-guide{grid-template-columns:1fr; border-bottom:0}
     .etapes-guide li{border-left:0; border-top:1px solid var(--filet); min-height:0; padding:1.2rem 0 1.4rem}
@@ -520,7 +521,7 @@
   <section class="ecran">
     <span class="num">02</span>
     <h2 class="titre anim">Les autres guides</h2>
-    <ul class="voisins"><li class="anim" data-key="bios"><a href="reglages-bios.html"><span class="voisin-objet"><img src="assets/modules/module-bios.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 01</i><b class="titre">250+ réglages BIOS adaptés à ta carte mère</b><span class="prix-v">15 &euro;</span></a></li><li class="anim" data-key="chipset"><a href="mon-jeu-freeze.html"><span class="voisin-objet"><img src="assets/modules/module-chipset.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 02</i><b class="titre">Le CPU réglé en profondeur</b><span class="prix-v">20 &euro;</span></a></li><li class="anim" data-key="os"><a href="gagner-des-fps.html"><span class="voisin-objet"><img src="assets/modules/module-os.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 03</i><b class="titre">Windows nettoyé et réglé pour le jeu</b><span class="prix-v">15 &euro;</span></a></li><li class="anim" data-key="flux"><a href="ping-instable.html"><span class="voisin-objet"><img src="assets/modules/module-flux.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 05</i><b class="titre">Ping stabilisé, jamais truqué</b><span class="prix-v">20 &euro;</span></a></li></ul>
+    <ul class="voisins"><li class="anim" data-key="bios"><a href="reglages-bios.html"><span class="voisin-objet"><img src="assets/modules/module-bios.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 01</i><b class="titre">250+ réglages BIOS adaptés à ta carte mère</b><span class="prix-v">15 &euro;</span></a></li><li class="anim" data-key="chipset"><a href="mon-jeu-freeze.html"><span class="voisin-objet"><img src="assets/modules/module-chipset.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 02</i><b class="titre">Le CPU réglé en profondeur</b><span class="prix-v">20 &euro;</span></a></li><li class="anim" data-key="os"><a href="gagner-des-fps.html"><span class="voisin-objet"><img src="assets/modules/module-os.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 03</i><b class="titre">Windows nettoyé et réglé pour le jeu</b><span class="prix-v">15 &euro;</span></a></li><li class="anim" data-key="flux"><a href="ping-instable.html"><span class="voisin-objet"><img src="assets/modules/module-flux.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 05</i><b class="titre">Ping stabilisé, jamais truqué</b><span class="prix-v">20 &euro;</span></a></li><li class="anim" data-key="ocuv"><a href="overclocking-undervolting.html"><span class="voisin-objet"><img src="assets/modules/module-ocuv.webp" width="699" height="900" alt="" loading="lazy" decoding="async"></span><i>Guide 06</i><b class="titre">Overclocking &amp; undervolting</b><span class="prix-v is-ticket">Sur ticket</span></a></li></ul>
   </section>
   <section class="ecran questions-sec">
     <span class="num">03</span>
@@ -546,7 +547,7 @@
     document.querySelectorAll('.anim').forEach(function (n) { o.observe(n); });
   }
 </script>
-<script>window.PULSE_PRODUCTS = [{"key": "bios", "name": "BIOSTUNER", "tag": "OPTI 01 · BIOS / FIRMWARE", "color": 9133302, "css": "#8b5cf6", "lines": ["250+ RÉGLAGES / PAR CONFIG", "DÉTECTION AUTO / CM · CPU · BIOS", "FOCUS 1 % LOW / FRAMETIME"]}, {"key": "chipset", "name": "CHIPSETTUNER", "tag": "OPTI 02 · CPU / CHIPSET", "color": 14239471, "css": "#d946ef", "lines": ["FRÉQUENCES MIN / ÉTATS DE VEILLE", "UNCORE · RING BUS / LIMITES DE PUISSANCE", "SAUVEGARDE + / RESTAURATION AUTO"]}, {"key": "os", "name": "PULSEOS", "tag": "OPTI 03 · SYSTÈME", "color": 3900150, "css": "#3b82f6", "lines": ["WINDOWS NETTOYÉ / & RÉGLÉ JEU", "DEFENDER / CONSERVÉ", "RESET PROPRE / INTÉGRÉ"]}, {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]}, {"key": "flux", "name": "FLUXTUNER", "tag": "OPTI 05 · RÉSEAU", "color": 2282478, "css": "#22d3ee", "lines": ["PING STABILISÉ / JAMAIS TRUQUÉ", "UDP · MTU · DNS / BUFFERS", "WI-FI & LAN / AUTO"]}];window.PULSE_PRODUCT = {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]};</script>
-<script type="module" src="js/guide-3d.js?v=7"></script>
+<script>window.PULSE_PRODUCTS = [{"key": "bios", "name": "BIOSTUNER", "tag": "OPTI 01 · BIOS / FIRMWARE", "color": 9133302, "css": "#8b5cf6", "lines": ["250+ RÉGLAGES / PAR CONFIG", "DÉTECTION AUTO / CM · CPU · BIOS", "FOCUS 1 % LOW / FRAMETIME"]}, {"key": "chipset", "name": "CHIPSETTUNER", "tag": "OPTI 02 · CPU / CHIPSET", "color": 14239471, "css": "#d946ef", "lines": ["FRÉQUENCES MIN / ÉTATS DE VEILLE", "UNCORE · RING BUS / LIMITES DE PUISSANCE", "SAUVEGARDE + / RESTAURATION AUTO"]}, {"key": "os", "name": "PULSEOS", "tag": "OPTI 03 · SYSTÈME", "color": 3900150, "css": "#3b82f6", "lines": ["WINDOWS NETTOYÉ / & RÉGLÉ JEU", "DEFENDER / CONSERVÉ", "RESET PROPRE / INTÉGRÉ"]}, {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]}, {"key": "flux", "name": "FLUXTUNER", "tag": "OPTI 05 · RÉSEAU", "color": 2282478, "css": "#22d3ee", "lines": ["PING STABILISÉ / JAMAIS TRUQUÉ", "UDP · MTU · DNS / BUFFERS", "WI-FI & LAN / AUTO"]}, {"key": "ocuv", "name": "OC & UV", "title": "Overclocking & Undervolting", "tag": "OPTI 06 · OC / UV", "color": 16096779, "css": "#f59e0b", "lines": ["270+ PARAMÈTRES / BIOS AUTOMATISÉ", "FRÉQUENCES / ET TENSIONS", "TESTS ADAPTÉS / SELON LE MATÉRIEL"], "foot": ["VIA L'APPLICATION", "TESTS DE STABILITÉ"]}];window.PULSE_PRODUCT = {"key": "timer", "name": "TIMERTUNER", "tag": "OPTI 04 · KERNEL / INPUT", "color": 6514417, "css": "#6366f1", "lines": ["TIMERS + KERNEL / SYNCHRONISÉS", "USB HAUTE / FRÉQUENCE", "AUDIO BASSE / LATENCE"]};</script>
+<script type="module" src="js/guide-3d.js?v=8"></script>
 </body>
 </html>

@@ -59,6 +59,15 @@ labelBackGeometry.rotateX(Math.PI / 2); labelBackGeometry.rotateY(Math.PI); labe
 const stripGeometry = new THREE.BoxGeometry(0.03, 0.06, 3.2); stripGeometry.translate(MOD_W / 2 + 0.005, MOD_H / 2 - 0.12, 0);
 const strip2Geometry = new THREE.BoxGeometry(0.03, 0.06, 3.2); strip2Geometry.translate(-MOD_W / 2 - 0.005, -MOD_H / 2 + 0.12, 0);
 const ledGeometry = new THREE.SphereGeometry(0.06, 16, 16); ledGeometry.translate(-MOD_W / 2 + 0.2, MOD_H / 2 + 0.02, MOD_L / 2 - 0.35);
+const dieFrameGeometry = new THREE.BoxGeometry(0.24, 0.24, 0.016);
+dieFrameGeometry.translate(0, 0, MOD_L / 2 + 0.216);
+const dieCoreGeometry = new THREE.BoxGeometry(0.12, 0.12, 0.012);
+dieCoreGeometry.translate(0, 0, MOD_L / 2 + 0.23);
+const diePinGeometry = [-0.075, 0.075].flatMap((x) => [-0.075, 0.075].map((y) => {
+  const geo = new THREE.BoxGeometry(0.03, 0.03, 0.018);
+  geo.translate(x, y, MOD_L / 2 + 0.234);
+  return geo;
+}));
 
 function labelTexture(renderer, p, res) {
   const REF_W = 2048, REF_H = 6144, RES = res;
@@ -83,9 +92,26 @@ function labelTexture(renderer, p, res) {
     g.fillText(parts[0], 980, y);
     if (parts[1]) g.fillText(parts[1], 980, y + 118);
   });
+  if (p.key === 'ocuv') {
+    const cx = 1460, cy = 1040, s = 250;
+    g.save();
+    g.strokeStyle = p.css; g.lineWidth = 12; g.lineJoin = 'miter';
+    g.strokeRect(cx - s / 2, cy - s / 2, s, s);
+    g.strokeRect(cx - s * 0.22, cy - s * 0.22, s * 0.44, s * 0.44);
+    g.fillStyle = p.css;
+    [-0.5, -0.16, 0.16, 0.5].forEach((t) => {
+      const o = t * s;
+      g.fillRect(cx + o - 9, cy - s / 2 - 36, 18, 26);
+      g.fillRect(cx + o - 9, cy + s / 2 + 10, 18, 26);
+      g.fillRect(cx - s / 2 - 36, cy + o - 9, 26, 18);
+      g.fillRect(cx + s / 2 + 10, cy + o - 9, 26, 18);
+    });
+    g.restore();
+  }
   g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(228,228,234,.9)';
-  g.fillText('OPTIMISATION MANUELLE', REF_W / 2, REF_H - 520);
-  g.fillText('ZÉRO RÉGLAGE INUTILE', REF_W / 2, REF_H - 410);
+  const foot = p.foot || ['OPTIMISATION MANUELLE', 'ZÉRO RÉGLAGE INUTILE'];
+  g.fillText(foot[0], REF_W / 2, REF_H - 520);
+  g.fillText(foot[1], REF_W / 2, REF_H - 410);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true;
   return t;
@@ -99,10 +125,14 @@ function makeCan(renderer, p, res) {
   const capMaterial = makeMaterial({ color: 0x15141c, metalness: 0.9, roughness: 0.25, clearcoat: 0.4, envMapIntensity: 1 });
   const labelMaterial = new THREE.MeshBasicMaterial({ map: labelTexture(renderer, p, res), side: THREE.DoubleSide, toneMapped: false });
   const glow = new THREE.MeshBasicMaterial({ color: p.color });
-  [new THREE.Mesh(bodyGeometry, bodyMaterial), new THREE.Mesh(capGeometry, capMaterial),
+  const parts = [new THREE.Mesh(bodyGeometry, bodyMaterial), new THREE.Mesh(capGeometry, capMaterial),
    new THREE.Mesh(labelGeometry, labelMaterial), new THREE.Mesh(labelBackGeometry, labelMaterial),
-   new THREE.Mesh(stripGeometry, glow), new THREE.Mesh(strip2Geometry, glow), new THREE.Mesh(ledGeometry, glow)]
-    .forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
+   new THREE.Mesh(stripGeometry, glow), new THREE.Mesh(strip2Geometry, glow), new THREE.Mesh(ledGeometry, glow)];
+  if (p.key === 'ocuv') {
+    parts.push(new THREE.Mesh(dieFrameGeometry, capMaterial), new THREE.Mesh(dieCoreGeometry, glow));
+    diePinGeometry.forEach((geo) => parts.push(new THREE.Mesh(geo, glow)));
+  }
+  parts.forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
   can.rotation.set(0, 0, BASE_Z);
   return can;
 }

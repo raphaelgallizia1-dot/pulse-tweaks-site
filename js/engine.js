@@ -561,9 +561,27 @@ function labelTexture(p) {
     g.fillText(parts[0], 980, y);
     if (parts[1]) g.fillText(parts[1], 980, y + 118);
   });
+  /* pastille puce : seulement sur l'overclocking, dans le vide au-dessus des lignes */
+  if (p.key === 'ocuv') {
+    const cx = 1460, cy = 1040, s = 250;
+    g.save();
+    g.strokeStyle = p.css; g.lineWidth = 12; g.lineJoin = 'miter';
+    g.strokeRect(cx - s / 2, cy - s / 2, s, s);
+    g.strokeRect(cx - s * 0.22, cy - s * 0.22, s * 0.44, s * 0.44);
+    g.fillStyle = p.css;
+    [-0.5, -0.16, 0.16, 0.5].forEach((t) => {
+      const o = t * s;
+      g.fillRect(cx + o - 9, cy - s / 2 - 36, 18, 26);
+      g.fillRect(cx + o - 9, cy + s / 2 + 10, 18, 26);
+      g.fillRect(cx - s / 2 - 36, cy + o - 9, 26, 18);
+      g.fillRect(cx + s / 2 + 10, cy + o - 9, 26, 18);
+    });
+    g.restore();
+  }
   g.textAlign = 'center'; g.font = '66px Geistmono'; g.fillStyle = 'rgba(228,228,234,.9)';
-  g.fillText('OPTIMISATION MANUELLE', REF_W / 2, REF_H - 520);
-  g.fillText('ZÉRO RÉGLAGE INUTILE', REF_W / 2, REF_H - 410);
+  const foot = p.foot || ['OPTIMISATION MANUELLE', 'ZÉRO RÉGLAGE INUTILE'];
+  g.fillText(foot[0], REF_W / 2, REF_H - 520);
+  g.fillText(foot[1], REF_W / 2, REF_H - 410);
   mark('dessin etiquette ' + p.name + ' : ' + Math.round(performance.now() - t0) + ' ms');
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.premultiplyAlpha = false;
@@ -585,6 +603,16 @@ const strip2Geometry = new THREE.BoxGeometry(0.03, 0.06, 3.2);
 strip2Geometry.translate(-MOD_W / 2 - 0.005, -MOD_H / 2 + 0.12, 0);
 const ledGeometry = new THREE.SphereGeometry(0.06, 16, 16);
 ledGeometry.translate(-MOD_W / 2 + 0.2, MOD_H / 2 + 0.02, MOD_L / 2 - 0.35);
+/* puce sur le capuchon : le motif CPU/GPU de l'overclocking, quelques boites, geometries partagees */
+const dieFrameGeometry = new THREE.BoxGeometry(0.24, 0.24, 0.016);
+dieFrameGeometry.translate(0, 0, MOD_L / 2 + 0.216);
+const dieCoreGeometry = new THREE.BoxGeometry(0.12, 0.12, 0.012);
+dieCoreGeometry.translate(0, 0, MOD_L / 2 + 0.23);
+const diePinGeometry = [-0.075, 0.075].flatMap((x) => [-0.075, 0.075].map((y) => {
+  const geo = new THREE.BoxGeometry(0.03, 0.03, 0.018);
+  geo.translate(x, y, MOD_L / 2 + 0.234);
+  return geo;
+}));
 
 const createCan = async (p) => {
   const can = new THREE.Group();
@@ -601,7 +629,14 @@ const createCan = async (p) => {
   const strip = new THREE.Mesh(stripGeometry, glow); strip.name = 'Strip';
   const strip2 = new THREE.Mesh(strip2Geometry, glow); strip2.name = 'Strip2';
   const led = new THREE.Mesh(ledGeometry, glow); led.name = 'Led';
-  [body, cap, shell, shellBack, strip, strip2, led].forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
+  const parts = [body, cap, shell, shellBack, strip, strip2, led];
+  if (p.key === 'ocuv') {
+    const frame = new THREE.Mesh(dieFrameGeometry, capMaterial); frame.name = 'DieFrame';
+    const core = new THREE.Mesh(dieCoreGeometry, glow); core.name = 'DieCore';
+    parts.push(frame, core);
+    diePinGeometry.forEach((geo, n) => { const pin = new THREE.Mesh(geo, glow); pin.name = 'DiePin' + n; parts.push(pin); });
+  }
+  parts.forEach((m) => { m.rotation.x = Math.PI / 2; can.add(m); });
 
   scene.add(can);
   can.rotation.z = (Math.PI / 360) * 45;
@@ -1016,7 +1051,8 @@ function animate(tick = 0) {
     if (data.stack > 0) {
       /* empilement : cans[k] (k < 4) = un produit chacun, les clones s'effacent ; la couche active s'avance */
       const k = i % PRODUCTS.length, sst = data.stack;
-      const gap = 1.5; /* ecart entre couches : on voit chaque module en entier */
+      /* six modules : on resserre juste assez pour que la pile tienne dans le champ (cinq tenaient a 1,5) */
+      const gap = PRODUCTS.length > 5 ? 1.28 : 1.5;
       const sy = (k - (PRODUCTS.length - 1) / 2) * gap + data.canPosY;
       const filtered = !!(window.stackHighlight && window.stackHighlight.size);
       const advised = filtered && window.stackHighlight.has(k);
