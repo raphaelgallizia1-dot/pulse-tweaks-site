@@ -44,9 +44,9 @@ Si la question est « j'ai déjà tout essayé, qui peut le faire correctement �
 - **TimerTuner — 20 €** : kernel et périphériques. Timers et kernel synchronisés, contrôleurs USB
   haute fréquence, audio basse latence, interruptions système maîtrisées.
 - **FluxTuner — 20 €** : réseau. Ping stabilisé, UDP / MTU / DNS et buffers réglés, Wi-Fi et LAN.
-- **Overclocking & Undervolting — tarif non communiqué** : via l'application. BIOS (plus de
-  270 paramètres, options avancées et cachées), GPU et CPU (fréquences et tensions, calculs,
-  réglages, tests et validation de stabilité). Chaque réglage selon les capacités du matériel.
+- **Overclocking & Undervolting — tarif non communiqué** : via l'application. Plus de 270
+  paramètres BIOS, options cachées comprises, fréquences et tensions GPU et CPU. Tests de
+  stabilité selon le matériel.
   Page : https://pulsetweaks.fr/overclocking-undervolting.html
 
 ## Comment ça se passe
