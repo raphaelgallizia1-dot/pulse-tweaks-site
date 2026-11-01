@@ -501,6 +501,8 @@ window.__bords = (() => {
       timer: P('<path d="M5 3l6.5 16 2.2-6.3 6.3-2.2z"/><path d="M13.8 13.8L19 19"/>'),
       /* reseau : l onde */
       flux: P('<path d="M12 19h.01"/><path d="M8.5 15.5a5 5 0 017 0"/><path d="M5.5 12.2a9.2 9.2 0 0113 0"/><path d="M2.5 9a13.4 13.4 0 0119 0"/>'),
+      /* overclocking : la puce, frequences et tensions */
+      ocuv: P('<rect x="7" y="7" width="10" height="10" rx="1"/><rect x="10" y="10" width="4" height="4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.5 5.5l2.5 2.5M16 16l2.5 2.5M18.5 5.5L16 8M8 16l-2.5 2.5"/>'),
     };
 
     /* Le rail. Sur Ciao, quatre pastilles rondes alignees a droite donnent acces aux quatre idees
@@ -604,6 +606,8 @@ window.__bords = (() => {
       const rendre = (i) => {
         const prod = produits[i];
         if (!prod) return;
+        const nomAffiche = prod.title || prod.name;
+        const ticket = !!(document.querySelectorAll('.profile_price')[i] && document.querySelectorAll('.profile_price')[i].classList.contains('is-ticket'));
         const res = (window.PULSE_RESULTATS || {})[prod.key] || null;
 
         /* 1. LE RESULTAT — c'est ce qui decide, donc c'est ce qui vient en premier et en grand. */
@@ -638,11 +642,11 @@ window.__bords = (() => {
         page.style.setProperty('--c', prod.css || '#8b5cf6');
         page.innerHTML =
             '<p class="opti_page-tag">' + esc(prod.tag) + '</p>'
-          + '<h2 class="opti_page-nom">' + esc(prod.name) + '</h2>'
+          + '<h2 class="opti_page-nom">' + esc(nomAffiche) + '</h2>'
           + tete
           + (puces ? '<ul class="opti_page-syms"><li class="opti_page-pour">Pour</li>' + puces + '</ul>' : '')
           + '<div class="opti_page-achat">'
-          + (prix[i] ? '<span class="opti_page-prix">' + esc(prix[i]) + '</span>' : '')
+          + (prix[i] ? '<span class="opti_page-prix' + (ticket ? ' is-ticket' : '') + '">' + esc(prix[i]) + '</span>' : '')
           + '<a class="opti_page-cta" href="https://discord.gg/pulsetweaks" target="_blank" rel="noopener">'
           + 'Ouvrir un ticket</a></div>'
           + '<details class="opti_page-detail">'
